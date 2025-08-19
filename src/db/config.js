@@ -7,7 +7,7 @@ export const initializeDatabase = async () => {
   if (Platform.OS === "web") return null;
 
   db = await SQLite.openDatabaseAsync("app.db");
-
+  await db.runAsync("PRAGMA journal_mode = WAL");
   // Use runAsync for PRAGMA statements
   await db.runAsync("PRAGMA foreign_keys = ON");
 

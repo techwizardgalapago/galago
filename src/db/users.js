@@ -18,8 +18,89 @@ export const initUsersTable = async () => {
         reasonForTravel TEXT,
         userRole TEXT,
         googleAccount INTEGER,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0,
         isSynced INTEGER DEFAULT 0
       );`);
+};
+
+export const upsertUsersFromAPI = async (users = []) => {
+  const db = getDatabase();
+  await db.runAsync(`DROP TABLE IF EXISTS users;`);
+  await initUsersTable();
+
+  await db.runAsync(`DROP TABLE IF EXISTS venues;`);
+  await initVenuesTable();
+
+  await db.runAsync(`DROP TABLE IF EXISTS events;`);
+  await initEventsTable();
+
+  await db.runAsync(`DROP TABLE IF EXISTS event_users;`);
+  await initEventUsersTable();
+
+  try {
+    await db.execAsync("BEGIN TRANSACTION");
+
+    for (const user of users) {
+      // sanitize & map
+      const updated_at = Number.isFinite(new Date(user.lastModified).getTime())
+        ? new Date(user.lastModified).getTime()
+        : Date.now();
+      const reasonForTravel = Array.isArray(user.reasonForTravel)
+        ? user.reasonForTravel.join(", ")
+        : user.reasonForTravel ?? "";
+      const googleAccount = user.googleAccount ? 1 : 0;
+      const deleted = user.deleted ? 1 : 0; // if your API ever flags deletes
+
+      // never store secrets
+      const password = user.password ?? null;
+      const safePassword = password; // or null-out if not needed locally
+
+      await db.runAsync(
+        `
+        INSERT INTO users (
+          userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
+          reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        ON CONFLICT(userID) DO UPDATE SET
+          firstName      = excluded.firstName,
+          lastName       = excluded.lastName,
+          userEmail      = excluded.userEmail,
+          password       = excluded.password,
+          countryOfOrigin= excluded.countryOfOrigin,
+          dateOfBirth    = excluded.dateOfBirth,
+          reasonForTravel= excluded.reasonForTravel,
+          userRole       = excluded.userRole,
+          googleAccount  = excluded.googleAccount,
+          updated_at     = excluded.updated_at,
+          deleted        = excluded.deleted,
+          isSynced       = 1
+        WHERE excluded.updated_at >= users.updated_at
+        `,
+        [
+          user.userID,
+          user.firstName ?? "",
+          user.lastName ?? "",
+          user.userEmail ?? "",
+          safePassword,
+          user.countryOfOrigin ?? "",
+          user.dateOfBirth ?? "",
+          reasonForTravel,
+          user.userRole ?? "",
+          googleAccount,
+          updated_at,
+          deleted,
+        ]
+      );
+    }
+
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    console.error("❌ upsertUsersFromAPI failed:", e);
+    throw e;
+  }
 };
 
 export const insertUsersFromAPI = async (users) => {
@@ -50,6 +131,8 @@ export const insertUsersFromAPI = async (users) => {
           ? user.reasonForTravel.join(", ")
           : user.reasonForTravel ?? "",
         googleAccount: user.googleAccount ? 1 : 0,
+        updated_at: new Date(user.lastModified).getTime(),
+        deleted: 0,
       };
 
       delete sanitizedUser.recoveryToken;
@@ -57,8 +140,8 @@ export const insertUsersFromAPI = async (users) => {
       await db.runAsync(
         `INSERT INTO users (
           userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
-          reasonForTravel, userRole, googleAccount, isSynced
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           sanitizedUser.userID,
           sanitizedUser.firstName,
@@ -70,6 +153,8 @@ export const insertUsersFromAPI = async (users) => {
           sanitizedUser.reasonForTravel,
           sanitizedUser.userRole,
           sanitizedUser.googleAccount,
+          sanitizedUser.updated_at,
+          sanitizedUser.deleted,
           1, // ✅ mark as synced
         ]
       );

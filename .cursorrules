@@ -1,0 +1,9 @@
+# Audits & Reports
+- When asked to analyze the repo, always:
+  - Cite exact file paths and line ranges for every claim.
+  - Include short code quotes for each finding.
+  - Provide a risk matrix (Likelihood x Impact) with priority labels (P0/P1/P2).
+  - Propose concrete fixes as diffs or step-by-step patches.
+  - If uncertain, explicitly say "Uncertain" and list what to inspect next.
+- Do not invent files or dependencies. If not found, say so.
+- Prefer conservative changes over risky rewrites.

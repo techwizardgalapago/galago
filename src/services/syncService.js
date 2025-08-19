@@ -8,7 +8,9 @@ import { updateVenueSynced } from "../db/venues";
 import { updateScheduleSynced } from "../db/schedules";
 import { updateEventUserSynced } from "../db/eventUsers";
 
-const API_URL = "https://your-api-url.com";
+// const API_URL = "https://your-api-url.com";
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL || "http://18.119.60.28/api/v1/";
 
 /**
  * Generic sync function for syncing any table
@@ -21,7 +23,7 @@ const syncTable = async ({ name, getUnsynced, pushToBackend, markSynced }) => {
       console.log(`✅ No unsynced ${name} records.`);
       return;
     }
-    console.log(`synctable: `, unsynced)
+    console.log(`synctable: `, unsynced);
 
     await Promise.all(
       unsynced.map(async (item) => {
@@ -64,13 +66,15 @@ const debouncedSyncAll = debounce(async () => {
       syncTable({
         name: "schedules",
         getUnsynced: () => getUnsyncedRecords("schedules"),
-        pushToBackend: (schedule) => axios.post(`${API_URL}/schedules`, schedule),
+        pushToBackend: (schedule) =>
+          axios.post(`${API_URL}/schedules`, schedule),
         markSynced: (schedule) => updateScheduleSynced(schedule.scheduleID),
       }),
       syncTable({
         name: "event_users",
         getUnsynced: () => getUnsyncedRecords("event_users"),
-        pushToBackend: (eventUser) => axios.post(`${API_URL}/event-users`, eventUser),
+        pushToBackend: (eventUser) =>
+          axios.post(`${API_URL}/event-users`, eventUser),
         markSynced: (eventUser) => updateEventUserSynced(eventUser.id),
       }),
     ]);

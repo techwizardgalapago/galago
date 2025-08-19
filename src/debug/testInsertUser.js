@@ -1,5 +1,5 @@
 import { initializeDatabase } from "../db";
-import { insertUser, selectAllUsers, insertUsersFromAPI } from "../db/users";
+import { insertUser, selectAllUsers, insertUsersFromAPI, upsertUsersFromAPI } from "../db/users";
 
 const API_URL = "http://18.119.60.28/api/v1/users/recA0pW4iCJwy6hpI";
 
@@ -34,7 +34,7 @@ export const testFetchAndInsertUser = async () => {
 
     const response1 = await fetch("http://18.119.60.28/api/v1/users");
     const user1 = await response1.json();
-    await insertUsersFromAPI(user1);
+    await upsertUsersFromAPI(user1);
 
     // 4️⃣ Confirm
 
