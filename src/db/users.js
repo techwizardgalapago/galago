@@ -12,7 +12,6 @@ export const initUsersTable = async () => {
         firstName TEXT,
         lastName TEXT,
         userEmail TEXT,
-        password TEXT,
         countryOfOrigin TEXT,
         dateOfBirth TEXT,
         reasonForTravel TEXT,
@@ -24,6 +23,39 @@ export const initUsersTable = async () => {
       );`);
 };
 
+/** Utility: map incoming API record to DB fields consistently */
+const mapUserFromAPI = (user) => {
+  const updated_at = (() => {
+    const t = new Date(
+      user.lastModified ?? user.updated_at ?? Date.now()
+    ).getTime();
+    return Number.isFinite(t) ? t : Date.now();
+  })();
+
+  const reasonForTravel = Array.isArray(user.reasonForTravel)
+    ? user.reasonForTravel.join(", ")
+    : user.reasonForTravel ?? "";
+
+  return {
+    userID: user.userID,
+    firstName: user.firstName ?? "",
+    lastName: user.lastName ?? "",
+    userEmail: user.userEmail ?? "",
+    countryOfOrigin: user.countryOfOrigin ?? "",
+    dateOfBirth: user.dateOfBirth ?? "",
+    reasonForTravel,
+    userRole: user.userRole ?? "",
+    googleAccount: user.googleAccount ? 1 : 0,
+    updated_at,
+    deleted: user.deleted ? 1 : 0,
+  };
+};
+
+/**
+ * API → SQLite upsert with last-writer-wins by updated_at
+ * - Marks isSynced=1 for rows applied from remote.
+ * - Preserves newer local copies when remote is stale.
+ */
 export const upsertUsersFromAPI = async (users = []) => {
   const db = getDatabase();
   await db.runAsync(`DROP TABLE IF EXISTS users;`);
@@ -41,56 +73,43 @@ export const upsertUsersFromAPI = async (users = []) => {
   try {
     await db.execAsync("BEGIN TRANSACTION");
 
-    for (const user of users) {
-      // sanitize & map
-      const updated_at = Number.isFinite(new Date(user.lastModified).getTime())
-        ? new Date(user.lastModified).getTime()
-        : Date.now();
-      const reasonForTravel = Array.isArray(user.reasonForTravel)
-        ? user.reasonForTravel.join(", ")
-        : user.reasonForTravel ?? "";
-      const googleAccount = user.googleAccount ? 1 : 0;
-      const deleted = user.deleted ? 1 : 0; // if your API ever flags deletes
-
-      // never store secrets
-      const password = user.password ?? null;
-      const safePassword = password; // or null-out if not needed locally
+    for (const raw of users) {
+      const user = mapUserFromAPI(raw); // or null-out if not needed locally
 
       await db.runAsync(
         `
         INSERT INTO users (
           userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
           reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
         ON CONFLICT(userID) DO UPDATE SET
-          firstName      = excluded.firstName,
-          lastName       = excluded.lastName,
-          userEmail      = excluded.userEmail,
-          password       = excluded.password,
-          countryOfOrigin= excluded.countryOfOrigin,
-          dateOfBirth    = excluded.dateOfBirth,
-          reasonForTravel= excluded.reasonForTravel,
-          userRole       = excluded.userRole,
-          googleAccount  = excluded.googleAccount,
-          updated_at     = excluded.updated_at,
-          deleted        = excluded.deleted,
-          isSynced       = 1
+          firstName = excluded.firstName,
+          lastName = excluded.lastName,
+          userEmail = excluded.userEmail,
+          password = excluded.password,
+          countryOfOrigin = excluded.countryOfOrigin,
+          dateOfBirth = excluded.dateOfBirth,
+          reasonForTravel = excluded.reasonForTravel,
+          userRole = excluded.userRole,
+          googleAccount = excluded.googleAccount,
+          updated_at = excluded.updated_at,
+          deleted = excluded.deleted,
+          isSynced = 1
         WHERE excluded.updated_at >= users.updated_at
         `,
         [
           user.userID,
-          user.firstName ?? "",
-          user.lastName ?? "",
-          user.userEmail ?? "",
-          safePassword,
-          user.countryOfOrigin ?? "",
-          user.dateOfBirth ?? "",
-          reasonForTravel,
-          user.userRole ?? "",
-          googleAccount,
-          updated_at,
-          deleted,
+          user.firstName,
+          user.lastName,
+          user.userEmail,
+          user.password,
+          user.countryOfOrigin,
+          user.dateOfBirth,
+          user.reasonForTravel,
+          user.userRole,
+          user.googleAccount,
+          user.updated_at,
+          user.deleted,
         ]
       );
     }
@@ -168,81 +187,129 @@ export const insertUsersFromAPI = async (users) => {
   }
 };
 
-export const insertUser = async (user) => {
+/** Soft delete a user (mark deleted=1 and bump freshness) */
+export const softDeleteUser = async (userID, when = Date.now()) => {
   const db = getDatabase();
+  await db.runAsync(
+    `UPDATE users SET deleted = 1, updated_at = ?, isSynced = 0 WHERE userID = ?`,
+    [when, userID]
+  );
+};
 
-  await db.runAsync(`DROP TABLE IF EXISTS users;`);
-  await initUsersTable();
+/** Update an existing user locally (guard optional; always bumps updated_at) */
+export const updateUserLocal = async (patch) => {
+  const db = getDatabase();
+  const reasonForTravel = Array.isArray(patch.reasonForTravel)
+    ? patch.reasonForTravel.join(", ")
+    : patch.reasonForTravel ?? undefined;
 
-  await db.runAsync(`DROP TABLE IF EXISTS venues;`);
-  await initVenuesTable();
-
-  await db.runAsync(`DROP TABLE IF EXISTS events;`);
-  await initEventsTable();
-
-  await db.runAsync(`DROP TABLE IF EXISTS event_users;`);
-  await initEventUsersTable();
-
-  const result = await db.getAllAsync("PRAGMA table_info(users);");
-  console.log(result);
-
-  const sanitizedUser = {
-    ...user,
-    reasonForTravel: Array.isArray(user.reasonForTravel)
-      ? user.reasonForTravel.join(", ")
-      : user.reasonForTravel ?? "",
-    googleAccount: user.googleAccount ? 1 : 0,
-  };
-
-  delete sanitizedUser.recoveryToken; // remove recoveryToken if it exists
-
-  console.log("Inserting user:", sanitizedUser);
+  const now = Date.now();
 
   await db.runAsync(
-    `INSERT INTO users (
-      userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
-      reasonForTravel, userRole, googleAccount, isSynced
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `UPDATE users SET
+      firstName = COALESCE(?, firstName),
+      lastName = COALESCE(?, lastName),
+      userEmail = COALESCE(?, userEmail),
+      password = COALESCE(?, password),
+      countryOfOrigin = COALESCE(?, countryOfOrigin),
+      dateOfBirth = COALESCE(?, dateOfBirth),
+      reasonForTravel = COALESCE(?, reasonForTravel),
+      userRole = COALESCE(?, userRole),
+      googleAccount = COALESCE(?, googleAccount),
+      updated_at = ?,
+      isSynced = 0
+    WHERE userID = ? AND deleted = 0`,
     [
-      sanitizedUser.userID,
-      sanitizedUser.firstName,
-      sanitizedUser.lastName,
-      sanitizedUser.userEmail,
-      sanitizedUser.password,
-      sanitizedUser.countryOfOrigin,
-      sanitizedUser.dateOfBirth,
-      sanitizedUser.reasonForTravel,
-      sanitizedUser.userRole,
-      sanitizedUser.googleAccount,
-      0, // isSynced default to 0s
+      patch.firstName,
+      patch.lastName,
+      patch.userEmail,
+      patch.password ?? null,
+      patch.countryOfOrigin,
+      patch.dateOfBirth,
+      reasonForTravel,
+      patch.userRole,
+      patch.googleAccount != null ? (patch.googleAccount ? 1 : 0) : undefined,
+      now,
+      patch.userID,
     ]
   );
 };
 
-// When selecting users, parse the JSON fields so they become arrays again:
-export const selectAllUsers = async () => {
+/**
+ * Local create (from UI). New rows are unsynced and not deleted.
+ */
+export const insertUser = async (user) => {
   const db = getDatabase();
-  const rows = await db.getAllAsync("SELECT * FROM users");
 
-  return rows.map((user) => ({
-    ...user,
-    reasonForTravel: user.reasonForTravel ? [user.reasonForTravel] : [],
-  }));
+  const reasonForTravel = Array.isArray(user.reasonForTravel)
+    ? user.reasonForTravel.join(", ")
+    : user.reasonForTravel ?? "";
+
+  const now = Date.now();
+
+  await db.runAsync(
+    `INSERT INTO users (
+  userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
+  reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+    [
+      user.userID,
+      user.firstName ?? "",
+      user.lastName ?? "",
+      user.userEmail ?? "",
+      user.password ?? null,
+      user.countryOfOrigin ?? "",
+      user.dateOfBirth ?? "",
+      reasonForTravel,
+      user.userRole ?? "",
+      user.googleAccount ? 1 : 0,
+      now,
+    ]
+  );
 };
 
+/** Reads (respect soft-delete) */
+export const selectAllUsers = async () => {
+  const db = getDatabase();
+  return db.getAllAsync(
+    `SELECT * FROM users WHERE deleted = 0 ORDER BY firstName, lastName`
+  );
+};
+
+export const selectUserById = async (userID) => {
+  const db = getDatabase();
+  const rows = await db.getAllAsync(
+    `SELECT * FROM users WHERE userID = ? AND deleted = 0`,
+    [userID]
+  );
+  return rows?.[0] ?? null;
+};
+
+/** Sync helpers */
 export const getUnsyncedUsers = async () => {
   const db = getDatabase();
-  const rows = await db.getAllAsync("SELECT * FROM users WHERE isSynced = 0");
-  //return for airtable
-  return rows.map((user) => ({
-    fields: {
-      ...user,
-      reasonForTravel: user.reasonForTravel ? [user.reasonForTravel] : [],
-    },
-  }));
+  return db.getAllAsync(
+    `SELECT * FROM users WHERE isSynced = 0 AND deleted = 0`
+  );
 };
 
 export const updateUserSynced = async (userID) => {
   const db = getDatabase();
-  await db.runAsync("UPDATE users SET isSynced = 1 WHERE userID = ?", [userID]);
+  await db.runAsync(`UPDATE users SET isSynced = 1 WHERE userID = ?`, [userID]);
+};
+
+/** Optional: bulk mark synced by IDs */
+export const markUsersSynced = async (ids = []) => {
+  if (!ids.length) return;
+  const db = getDatabase();
+  try {
+    await db.execAsync("BEGIN TRANSACTION");
+    for (const id of ids) {
+      await db.runAsync(`UPDATE users SET isSynced = 1 WHERE userID = ?`, [id]);
+    }
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    throw e;
+  }
 };
