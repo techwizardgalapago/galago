@@ -15,6 +15,8 @@ export const initVenuesTable = async () => {
         longitud REAL,
         negocio INTEGER,
         userID TEXT,
+        updated_at INTEGER NOT NULL,     
+        deleted INTEGER NOT NULL DEFAULT 0,
         isSynced INTEGER DEFAULT 0,
         FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
       );`);
@@ -22,19 +24,22 @@ export const initVenuesTable = async () => {
 
 export const insertVenue = async (venue) => {
   const db = getDatabase();
-  await db.runAsync(`DROP TABLE IF EXISTS venues;`);
-  await initVenuesTable();
 
+  const now = Date.now();
   await db.runAsync(
     `INSERT INTO venues (
-      venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation, 
-      venueAddress, venueContact, latitude, 
-      longitud, negocio, userID, isSynced
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+      venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation,
+      venueAddress, venueContact, latitude, longitud, negocio, userID,
+      updated_at, deleted, isSynced
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+
     [
       venue.venueID,
-      venue.venueName,
-      venue.venueImage,
+      venue.venueName ?? "",
+      // store JSON as string if you really need to; otherwise keep as TEXT/URL
+      Array.isArray(venue.venueImage)
+        ? JSON.stringify(venue.venueImage)
+        : venue.venueImage ?? "",
       venue.venueDescription,
       venue.venueCategory,
       venue.venueLocation,
@@ -43,7 +48,8 @@ export const insertVenue = async (venue) => {
       venue.latitude,
       venue.longitud,
       venue.negocio ? 1 : 0,
-      venue.userID,
+      Array.isArray(venue.userID) ? venue.userID[0] : venue.userID ?? null,
+      now,
     ]
   );
 };
@@ -74,7 +80,7 @@ export const insertVenuesFromAPI = async (venues) => {
           venue.longitud ?? 0,
           venue.negocio ? 1 : 0,
           Array.isArray(venue.userID) ? venue.userID[0] : venue.userID, // foreign key must match
-          1 // ✅ mark as synced
+          1, // ✅ mark as synced
         ]
       );
     }
