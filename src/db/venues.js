@@ -205,7 +205,7 @@ export const selectAllVenues = async () => {
 
 export const getUnsyncedVenues = async () => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM venues WHERE isSynced = 0 AND deleted = 0");");
+  return await db.getAllAsync("SELECT * FROM venues WHERE isSynced = 0 AND deleted = 0");
 };
 
 export const updateVenueSynced = async (venueID) => {
