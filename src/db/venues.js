@@ -93,22 +93,119 @@ export const insertVenuesFromAPI = async (venues) => {
     throw error;
   }
 };
+// Sanitize one venue coming from the API/Airtable
+const mapVenueFromAPI = (venue) => {
+  const updated_at = (() => {
+    const t = new Date(
+      venue.lastModified ?? venue.updated_at ?? Date.now()
+    ).getTime();
+    return Number.isFinite(t) ? t : Date.now();
+  })();
+  return {
+    venueID: venue.venueID,
+    venueName:
+      typeof venue.venueName === "string"
+        ? venue.venueName
+        : Array.isArray(venue.venueName)
+        ? venue.venueName.join(", ")
+        : "",
+    // if venueImage can be array, stringify consistently; otherwise keep URL string
+    venueImage: Array.isArray(venue.venueImage)
+      ? JSON.stringify(venue.venueImage)
+      : venue.venueImage ?? "",
+    venueDescription: venue.venueDescription ?? "",
+    venueCategory: venue.venueCategory ?? "",
+    venueLocation: venue.venueLocation ?? "",
+    venueAddress: venue.venueAddress ?? "",
+    venueContact: venue.venueContact ?? "",
+    latitude: Number.isFinite(venue.latitude) ? venue.latitude : 0,
+    longitud: Number.isFinite(venue.longitud) ? venue.longitud : 0,
+    negocio: venue.negocio ? 1 : 0,
+    userID: Array.isArray(venue.userID)
+      ? venue.userID[0]
+      : venue.userID ?? null,
+    updated_at,
+    deleted: venue.deleted ? 1 : 0,
+  };
+};
+
+export const upsertVenuesFromAPI = async (venues) => {
+  const db = getDatabase();
+
+  try {
+    await db.execAsync("BEGIN TRANSACTION");
+    for (const raw of venues) {
+      const v = mapVenueFromAPI(raw);
+      await db.runAsync(
+        `
+            INSERT INTO venues (
+              venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation,
+              venueAddress, venueContact, latitude, longitud, negocio, userID,
+              updated_at, deleted, isSynced
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            ON CONFLICT(venueID) DO UPDATE SET
+              venueName       = excluded.venueName,
+              venueImage      = excluded.venueImage,
+              venueDescription= excluded.venueDescription,
+              venueCategory   = excluded.venueCategory,
+              venueLocation   = excluded.venueLocation,
+              venueAddress    = excluded.venueAddress,
+              venueContact    = excluded.venueContact,
+              latitude        = excluded.latitude,
+              longitud        = excluded.longitud,
+              negocio         = excluded.negocio,
+              userID          = excluded.userID,
+              updated_at      = excluded.updated_at,
+              deleted         = excluded.deleted,
+              isSynced        = 1
+            WHERE excluded.updated_at >= venues.updated_at
+            `,
+        [
+          v.venueID,
+          v.venueName,
+          v.venueImage,
+          v.venueDescription,
+          v.venueCategory,
+          v.venueLocation,
+          v.venueAddress,
+          v.venueContact,
+          v.latitude,
+          v.longitud,
+          v.negocio,
+          v.userID,
+          v.updated_at,
+          v.deleted,
+        ]
+      );
+    }
+
+    await db.execAsync("COMMIT");
+
+    console.log("✅ Venues upserted successfully");
+  } catch (error) {
+    await db.execAsync("ROLLBACK");
+
+    console.error("❌ Failed to upsert venues from API:", error);
+    throw error;
+  }
+};
 
 export const getVenuesByUser = async (userID) => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM venues WHERE userID = ?", [
-    userID,
-  ]);
+  return await db.getAllAsync(
+    "SELECT * FROM venues WHERE userID = ? AND deleted = 0",
+    [userID]
+  );
 };
 
 export const selectAllVenues = async () => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM venues");
+  return await db.getAllAsync("SELECT * FROM venues WHERE deleted = 0");
 };
 
 export const getUnsyncedVenues = async () => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM venues WHERE isSynced = 0");
+  return await db.getAllAsync("SELECT * FROM venues WHERE isSynced = 0 AND deleted = 0");");
 };
 
 export const updateVenueSynced = async (venueID) => {
