@@ -129,11 +129,12 @@ const mapVenueFromAPI = (venue) => {
   };
 };
 
-export const upsertVenuesFromAPI = async (venues) => {
+export const upsertVenuesFromAPI = async (venues = []) => {
   const db = getDatabase();
 
   try {
     await db.execAsync("BEGIN TRANSACTION");
+
     for (const raw of venues) {
       const v = mapVenueFromAPI(raw);
       await db.runAsync(
@@ -190,27 +191,99 @@ export const upsertVenuesFromAPI = async (venues) => {
   }
 };
 
+/** Soft-delete a venue */
+export const softDeleteVenue = async (venueID, when = Date.now()) => {
+  const db = getDatabase();
+  await db.runAsync(
+    `UPDATE venues SET deleted = 1, updated_at = ?, isSynced = 0 WHERE venueID = ?`,
+    [when, venueID]
+  );
+};
+
+/** Local partial update (bumps freshness, marks unsynced) */
+export const updateVenueLocal = async (patch) => {
+  const db = getDatabase();
+  const now = Date.now();
+  await db.runAsync(
+    `UPDATE venues SET
+  venueName = COALESCE(?, venueName),
+  venueImage = COALESCE(?, venueImage),
+  venueDescription = COALESCE(?, venueDescription),
+  venueCategory = COALESCE(?, venueCategory),
+  venueLocation = COALESCE(?, venueLocation),
+  venueAddress = COALESCE(?, venueAddress),
+  venueContact = COALESCE(?, venueContact),
+  latitude = COALESCE(?, latitude),
+  longitud = COALESCE(?, longitud),
+  negocio = COALESCE(?, negocio),
+  userID = COALESCE(?, userID),
+  updated_at = ?,
+  isSynced = 0
+  WHERE venueID = ? AND deleted = 0`,
+    [
+      patch.venueName,
+      Array.isArray(patch.venueImage)
+        ? JSON.stringify(patch.venueImage)
+        : patch.venueImage,
+      patch.venueDescription,
+      patch.venueCategory,
+      patch.venueLocation,
+      patch.venueAddress,
+      patch.venueContact,
+      patch.latitude,
+      patch.longitud,
+      patch.negocio != null ? (patch.negocio ? 1 : 0) : undefined,
+      Array.isArray(patch.userID) ? patch.userID[0] : patch.userID,
+      now,
+      patch.venueID,
+    ]
+  );
+};
+
+/** Reads (respect soft-delete) */
 export const getVenuesByUser = async (userID) => {
   const db = getDatabase();
-  return await db.getAllAsync(
-    "SELECT * FROM venues WHERE userID = ? AND deleted = 0",
+  return db.getAllAsync(
+    `SELECT * FROM venues WHERE userID = ? AND deleted = 0 ORDER BY venueName ASC`,
     [userID]
   );
 };
 
 export const selectAllVenues = async () => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM venues WHERE deleted = 0");
+  return db.getAllAsync(
+    `SELECT * FROM venues WHERE deleted = 0 ORDER BY updated_at DESC`
+  );
 };
 
+/** Sync helpers */
 export const getUnsyncedVenues = async () => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM venues WHERE isSynced = 0 AND deleted = 0");
+  return db.getAllAsync(
+    `SELECT * FROM venues WHERE isSynced = 0 AND deleted = 0`
+  );
 };
 
 export const updateVenueSynced = async (venueID) => {
   const db = getDatabase();
-  await db.runAsync("UPDATE venues SET isSynced = 1 WHERE venueID = ?", [
+  await db.runAsync(`UPDATE venues SET isSynced = 1 WHERE venueID = ?`, [
     venueID,
   ]);
+};
+
+export const markVenuesSynced = async (ids = []) => {
+  if (!ids.length) return;
+  const db = getDatabase();
+  try {
+    await db.execAsync("BEGIN TRANSACTION");
+    for (const id of ids) {
+      await db.runAsync(`UPDATE venues SET isSynced = 1 WHERE venueID = ?`, [
+        id,
+      ]);
+    }
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    throw e;
+  }
 };

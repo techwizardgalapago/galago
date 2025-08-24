@@ -79,14 +79,13 @@ export const upsertUsersFromAPI = async (users = []) => {
       await db.runAsync(
         `
         INSERT INTO users (
-          userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
+          userID, firstName, lastName, userEmail, countryOfOrigin, dateOfBirth,
           reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
         ON CONFLICT(userID) DO UPDATE SET
           firstName = excluded.firstName,
           lastName = excluded.lastName,
           userEmail = excluded.userEmail,
-          password = excluded.password,
           countryOfOrigin = excluded.countryOfOrigin,
           dateOfBirth = excluded.dateOfBirth,
           reasonForTravel = excluded.reasonForTravel,
@@ -102,7 +101,6 @@ export const upsertUsersFromAPI = async (users = []) => {
           user.firstName,
           user.lastName,
           user.userEmail,
-          user.password,
           user.countryOfOrigin,
           user.dateOfBirth,
           user.reasonForTravel,
@@ -158,7 +156,7 @@ export const insertUsersFromAPI = async (users) => {
 
       await db.runAsync(
         `INSERT INTO users (
-          userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
+          userID, firstName, lastName, userEmail, countryOfOrigin, dateOfBirth,
           reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
@@ -166,7 +164,6 @@ export const insertUsersFromAPI = async (users) => {
           sanitizedUser.firstName,
           sanitizedUser.lastName,
           sanitizedUser.userEmail,
-          sanitizedUser.password,
           sanitizedUser.countryOfOrigin,
           sanitizedUser.dateOfBirth,
           sanitizedUser.reasonForTravel,
@@ -210,7 +207,6 @@ export const updateUserLocal = async (patch) => {
       firstName = COALESCE(?, firstName),
       lastName = COALESCE(?, lastName),
       userEmail = COALESCE(?, userEmail),
-      password = COALESCE(?, password),
       countryOfOrigin = COALESCE(?, countryOfOrigin),
       dateOfBirth = COALESCE(?, dateOfBirth),
       reasonForTravel = COALESCE(?, reasonForTravel),
@@ -223,7 +219,6 @@ export const updateUserLocal = async (patch) => {
       patch.firstName,
       patch.lastName,
       patch.userEmail,
-      patch.password ?? null,
       patch.countryOfOrigin,
       patch.dateOfBirth,
       reasonForTravel,
@@ -249,15 +244,14 @@ export const insertUser = async (user) => {
 
   await db.runAsync(
     `INSERT INTO users (
-  userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
+  userID, firstName, lastName, userEmail, countryOfOrigin, dateOfBirth,
   reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
     [
       user.userID,
       user.firstName ?? "",
       user.lastName ?? "",
       user.userEmail ?? "",
-      user.password ?? null,
       user.countryOfOrigin ?? "",
       user.dateOfBirth ?? "",
       reasonForTravel,

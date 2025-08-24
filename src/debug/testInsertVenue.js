@@ -2,7 +2,7 @@ import { use } from "react";
 import { initializeDatabase } from "../db";
 import { insertVenue, selectAllVenues } from "../db/venues";
 import { sanitizeJsonField } from "../db/dbUtils";
-import { insertVenuesFromAPI } from "../db/venues";
+import { upsertVenuesFromAPI } from "../db/venues";
 
 const API_URL = "http://18.119.60.28/api/v1/venues/recZIbq07g9c3uIqX"; // Replace with your actual API
 
@@ -35,7 +35,7 @@ export const testFetchAndInsertVenue = async () => {
 
     const response1 = await fetch("http://18.119.60.28/api/v1/venues");
     const venues = await response1.json();
-    await insertVenuesFromAPI(venues);
+    await upsertVenuesFromAPI(venues);
 
     const venuesSelected = await selectAllVenues();
 
