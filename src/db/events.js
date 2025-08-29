@@ -18,36 +18,148 @@ export const initEventsTable = async () => {
         organizador TEXT,
         eventCapacity INTEGER,
         eventPrice REAL,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0,
         isSynced INTEGER DEFAULT 0,
         FOREIGN KEY (eventVenueID) REFERENCES venues(venueID) ON DELETE CASCADE
       );`);
 };
 
+/** Map an event from API → DB shape (handles Airtable lastModified) */
+const mapEventFromAPI = (event) => {
+  const updated_at = (() => {
+    const t = new Date(
+      event.lastModified ?? event.updated_at ?? Date.now()
+    ).getTime();
+    return Number.isFinite(t) ? t : Date.now();
+  })();
+
+  return {
+    eventID: event.eventID,
+    eventName: event.eventName ?? "",
+    eventImage: Array.isArray(event.eventImage)
+      ? JSON.stringify(event.eventImage)
+      : event.eventImage ?? "",
+    eventDescription: event.eventDescription ?? "",
+    eventTags: Array.isArray(event.eventTags)
+      ? event.eventTags.join(", ")
+      : event.eventTags ?? "",
+    telOrganizador: event.telOrganizador ?? "",
+    startTime: event.startTime ?? "",
+    endTime: event.endTime ?? "",
+    eventVenueID: event.eventVenueID ?? null,
+    eventVenueName: event.eventVenueName ?? "",
+    eventIslandLocation: event.eventIslandLocation ?? "",
+    direccionVenues: event.direccionVenues ?? "",
+    organizador: event.organizador ?? "",
+    eventCapacity: Number.isFinite(event.eventCapacity)
+      ? event.eventCapacity
+      : null,
+    eventPrice: Number.isFinite(event.eventPrice) ? event.eventPrice : null,
+    updated_at,
+    deleted: event.deleted ? 1 : 0,
+  };
+};
+
+/** Local create (from UI). Marks unsynced and sets freshness. */
 export const insertEvent = async (event) => {
   const db = getDatabase();
+  const now = Date.now();
+
   await db.runAsync(
     `INSERT INTO events (
-      eventName, eventImage, eventDescription, eventTags, telOrganizador,
-      startTime, endTime, eventVenueID, eventVenueName, eventIslandLocation,
-      direccionVenues, organizador, eventCapacity, eventPrice, isSynced
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+  eventID, eventName, eventImage, eventDescription, eventTags, telOrganizador,
+  startTime, endTime, eventVenueID, eventVenueName, eventIslandLocation, direccionVenues,
+  organizador, eventCapacity, eventPrice, updated_at, deleted, isSynced
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
     [
-      event.eventName,
-      event.eventImage,
-      event.eventDescription,
-      event.eventTags,
-      event.telOrganizador,
-      event.startTime,
-      event.endTime,
-      event.eventVenueID,
-      event.eventVenueName,
-      event.eventIslandLocation,
-      event.direccionVenues,
-      event.organizador,
-      event.eventCapacity,
-      event.eventPrice,
+      event.eventID,
+      event.eventName ?? "",
+      Array.isArray(event.eventImage)
+        ? JSON.stringify(event.eventImage)
+        : event.eventImage ?? "",
+      event.eventDescription ?? "",
+      Array.isArray(event.eventTags)
+        ? event.eventTags.join(", ")
+        : event.eventTags ?? "",
+      event.telOrganizador ?? "",
+      event.startTime ?? "",
+      event.endTime ?? "",
+      event.eventVenueID ?? null,
+      event.eventVenueName ?? "",
+      event.eventIslandLocation ?? "",
+      event.direccionVenues ?? "",
+      event.organizador ?? "",
+      Number.isFinite(event.eventCapacity) ? event.eventCapacity : null,
+      Number.isFinite(event.eventPrice) ? event.eventPrice : null,
+      now,
     ]
   );
+};
+
+/** API → SQLite upsert (last-writer-wins by updated_at) */
+export const upsertEventsFromAPI = async (events = []) => {
+  const db = getDatabase();
+  try {
+    await db.execAsync("BEGIN TRANSACTION");
+
+    for (const raw of events) {
+      const e = mapEventFromAPI(raw);
+      await db.runAsync(
+        `
+        INSERT INTO events (
+          eventID, eventName, eventImage, eventDescription, eventTags, telOrganizador,
+          startTime, endTime, eventVenueID, eventVenueName, eventIslandLocation, direccionVenues,
+          organizador, eventCapacity, eventPrice, updated_at, deleted, isSynced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        ON CONFLICT(eventID) DO UPDATE SET
+          eventName = excluded.eventName,
+          eventImage = excluded.eventImage,
+          eventDescription = excluded.eventDescription,
+          eventTags = excluded.eventTags,
+          telOrganizador = excluded.telOrganizador,
+          startTime = excluded.startTime,
+          endTime = excluded.endTime,
+          eventVenueID = excluded.eventVenueID,
+          eventVenueName = excluded.eventVenueName,
+          eventIslandLocation= excluded.eventIslandLocation,
+          direccionVenues = excluded.direccionVenues,
+          organizador = excluded.organizador,
+          eventCapacity = excluded.eventCapacity,
+          eventPrice = excluded.eventPrice,
+          updated_at = excluded.updated_at,
+          deleted = excluded.deleted,
+          isSynced = 1
+        WHERE excluded.updated_at >= events.updated_at
+        `,
+        [
+          e.eventID,
+          e.eventName,
+          e.eventImage,
+          e.eventDescription,
+          e.eventTags,
+          e.telOrganizador,
+          e.startTime,
+          e.endTime,
+          e.eventVenueID,
+          e.eventVenueName,
+          e.eventIslandLocation,
+          e.direccionVenues,
+          e.organizador,
+          e.eventCapacity,
+          e.eventPrice,
+          e.updated_at,
+          e.deleted,
+        ]
+      );
+    }
+
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    console.error("❌ upsertEventsFromAPI failed:", e);
+    throw e;
+  }
 };
 
 export const insertEventsFromAPI = async (events) => {
@@ -122,34 +234,131 @@ export const insertEventsFromAPI = async (events) => {
   }
 };
 
-export const getEventsByVenue = async (venueID) => {
+/** Soft delete */
+export const softDeleteEvent = async (eventID, when = Date.now()) => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM events WHERE eventVenueID = ?", [
-    venueID,
-  ]);
+  await db.runAsync(
+    `UPDATE events SET deleted = 1, updated_at = ?, isSynced = 0 WHERE eventID = ?`,
+    [when, eventID]
+  );
 };
 
-// Get all events for a specific user todavia tengo q probar
+/** Local partial update */
+export const updateEventLocal = async (patch) => {
+  const db = getDatabase();
+  const now = Date.now();
+  await db.runAsync(
+    `UPDATE events SET
+      eventName = COALESCE(?, eventName),
+      eventImage = COALESCE(?, eventImage),
+      eventDescription = COALESCE(?, eventDescription),
+      eventTags = COALESCE(?, eventTags),
+      telOrganizador = COALESCE(?, telOrganizador),
+      startTime = COALESCE(?, startTime),
+      endTime = COALESCE(?, endTime),
+      eventVenueID = COALESCE(?, eventVenueID),
+      eventVenueName = COALESCE(?, eventVenueName),
+      eventIslandLocation = COALESCE(?, eventIslandLocation),
+      direccionVenues = COALESCE(?, direccionVenues),
+      organizador = COALESCE(?, organizador),
+      eventCapacity = COALESCE(?, eventCapacity),
+      eventPrice = COALESCE(?, eventPrice),
+      updated_at = ?,
+      isSynced = 0
+    WHERE eventID = ? AND deleted = 0`,
+    [
+      patch.eventName,
+      Array.isArray(patch.eventImage)
+        ? JSON.stringify(patch.eventImage)
+        : patch.eventImage,
+      patch.eventDescription,
+      Array.isArray(patch.eventTags)
+        ? patch.eventTags.join(", ")
+        : patch.eventTags,
+      patch.telOrganizador,
+      patch.startTime,
+      patch.endTime,
+      patch.eventVenueID,
+      patch.eventVenueName,
+      patch.eventIslandLocation,
+      patch.direccionVenues,
+      patch.organizador,
+      patch.eventCapacity,
+      patch.eventPrice,
+      now,
+      patch.eventID,
+    ]
+  );
+};
+
+/** Reads */
+export const getEventsByVenue = async (eventVenueID) => {
+  const db = getDatabase();
+  return db.getAllAsync(
+    `SELECT * FROM events
+    WHERE eventVenueID = ? AND deleted = 0
+    ORDER BY startTime ASC, endTime ASC`,
+    [eventVenueID]
+  );
+};
+
 export const getEventsByUser = async (userID) => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM events WHERE eventUsers LIKE ?", [
-    `%${userID}%`,
-  ]);
+  // Join through eventUsers (composite relation). Adjust table/column names if your join table differs.
+  return db.getAllAsync(
+    `SELECT e.* FROM events e
+    JOIN eventUsers eu ON eu.eventID = e.eventID
+    WHERE eu.userID = ? AND e.deleted = 0 AND (eu.deleted IS NULL OR eu.deleted = 0)
+    ORDER BY e.startTime ASC, e.endTime ASC`,
+    [userID]
+  );
 };
 
+/** Reads */
 export const selectAllEvents = async () => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM events");
+  return db.getAllAsync(
+    `SELECT * FROM events WHERE deleted = 0 ORDER BY startTime DESC, endTime DESC`
+  );
 };
 
+export const selectEventById = async (eventID) => {
+  const db = getDatabase();
+  const rows = await db.getAllAsync(
+    `SELECT * FROM events WHERE eventID = ? AND deleted = 0`,
+    [eventID]
+  );
+  return rows?.[0] ?? null;
+};
+
+/** Sync helpers */
 export const getUnsyncedEvents = async () => {
   const db = getDatabase();
-  return await db.getAllAsync("SELECT * FROM events WHERE isSynced = 0");
+  return db.getAllAsync(
+    `SELECT * FROM events WHERE isSynced = 0 AND deleted = 0`
+  );
 };
 
 export const updateEventSynced = async (eventID) => {
   const db = getDatabase();
-  await db.runAsync("UPDATE events SET isSynced = 1 WHERE eventID = ?", [
+  await db.runAsync(`UPDATE events SET isSynced = 1 WHERE eventID = ?`, [
     eventID,
   ]);
+};
+
+export const markEventsSynced = async (ids = []) => {
+  if (!ids.length) return;
+  const db = getDatabase();
+  try {
+    await db.execAsync("BEGIN TRANSACTION");
+    for (const id of ids) {
+      await db.runAsync(`UPDATE events SET isSynced = 1 WHERE eventID = ?`, [
+        id,
+      ]);
+    }
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    throw e;
+  }
 };
