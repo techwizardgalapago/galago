@@ -71,8 +71,8 @@ const debouncedSyncAll = debounce(async () => {
         markSynced: (schedule) => updateScheduleSynced(schedule.scheduleID),
       }),
       syncTable({
-        name: "event_users",
-        getUnsynced: () => getUnsyncedRecords("event_users"),
+        name: "eventUsers",
+        getUnsynced: () => getUnsyncedRecords("eventUsers"),
         pushToBackend: (eventUser) =>
           axios.post(`${API_URL}/event-users`, eventUser),
         markSynced: (eventUser) => updateEventUserSynced(eventUser.id),

@@ -67,7 +67,7 @@ export const upsertUsersFromAPI = async (users = []) => {
   await db.runAsync(`DROP TABLE IF EXISTS events;`);
   await initEventsTable();
 
-  await db.runAsync(`DROP TABLE IF EXISTS event_users;`);
+  await db.runAsync(`DROP TABLE IF EXISTS eventUsers;`);
   await initEventUsersTable();
 
   try {
@@ -135,7 +135,7 @@ export const insertUsersFromAPI = async (users) => {
   await db.runAsync(`DROP TABLE IF EXISTS events;`);
   await initEventsTable();
 
-  await db.runAsync(`DROP TABLE IF EXISTS event_users;`);
+  await db.runAsync(`DROP TABLE IF EXISTS eventUsers;`);
   await initEventUsersTable();
 
   try {

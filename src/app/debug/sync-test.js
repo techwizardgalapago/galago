@@ -46,7 +46,7 @@ export default function SyncTestScreen() {
   };
 
   const handleCheckUnsynced = async () => {
-    const tables = ["users", "venues", "events", "schedules", "event_users"];
+    const tables = ["users", "venues", "events", "schedules", "eventUsers"];
     for (const table of tables) {
       const rows = await getUnsyncedRecords(table);
       appendLog(`📋 ${table}: ${rows.length} unsynced`);
@@ -54,7 +54,7 @@ export default function SyncTestScreen() {
   };
 
   const handleDumpTableData = async () => {
-    const tables = ["users", "venues", "events", "schedules", "event_users"];
+    const tables = ["users", "venues", "events", "schedules", "eventUsers"];
     for (const table of tables) {
       const records = await db.selectAll(table);
       appendLog(`📄 ${table}:

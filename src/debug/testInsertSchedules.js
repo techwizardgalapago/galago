@@ -1,5 +1,5 @@
 import { initializeDatabase } from "../db";
-import { insertSchedulesFromAPI, selectAllSchedules } from "../db/schedules";
+import { upsertSchedulesFromAPI, selectAllSchedules } from "../db/schedules";
 
 const API_URL = "http://18.119.60.28/api/v1/venues-schedule/"; // Replace if needed
 
@@ -14,7 +14,7 @@ export const testInsertSchedules = async () => {
     const schedules = await response.json();
 
     console.log("📥 Inserting schedules into SQLite...");
-    await insertSchedulesFromAPI(schedules);
+    await upsertSchedulesFromAPI(schedules);
 
     console.log("✅ testInsertSchedules complete. Inserted:", schedules.length);
 
