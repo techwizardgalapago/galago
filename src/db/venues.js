@@ -129,6 +129,49 @@ const mapVenueFromAPI = (venue) => {
   };
 };
 
+import { getDatabase } from './config';
+
+// Move all references from oldId -> newId in venues + events(eventVenueID)
+export const remapVenueId = async (oldVenueID, newVenueID) => {
+  if (!oldVenueID || !newVenueID || oldVenueID === newVenueID) return;
+  const db = getDatabase();
+  try {
+    await db.execAsync('BEGIN');
+    await db.runAsync('PRAGMA foreign_keys = OFF');
+
+    // 1) Actualizar referencias en events.eventVenueID
+    //    - Para evitar duplicados lógicos, si ya hay eventos con newVenueID, simplemente reasignamos.
+    await db.runAsync(
+      `UPDATE events SET eventVenueID = ?
+       WHERE eventVenueID = ?`,
+      [newVenueID, oldVenueID]
+    );
+
+    // 2) Clonar/crear el venue nuevo si no existe, copiando columnas conocidas
+    await db.runAsync(
+      `INSERT OR IGNORE INTO venues (
+        venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation,
+        venueAddress, venueContact, latitude, longitud, negocio, userID, updated_at, deleted, isSynced
+      )
+      SELECT
+        ?, venueName, venueImage, venueDescription, venueCategory, venueLocation,
+        venueAddress, venueContact, latitude, longitud, negocio, userID, updated_at, deleted, 1
+      FROM venues WHERE venueID = ?`,
+      [newVenueID, oldVenueID]
+    );
+
+    // 3) Eliminar el viejo
+    await db.runAsync(`DELETE FROM venues WHERE venueID = ?`, [oldVenueID]);
+
+    await db.runAsync('PRAGMA foreign_keys = ON');
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+};
+
+
 export const upsertVenuesFromAPI = async (venues = []) => {
   const db = getDatabase();
 

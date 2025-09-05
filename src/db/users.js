@@ -51,6 +51,48 @@ const mapUserFromAPI = (user) => {
   };
 };
 
+// Move all references from oldId -> newId in users + event_users
+export const remapUserId = async (oldUserID, newUserID) => {
+  if (!oldUserID || !newUserID || oldUserID === newUserID) return;
+  const db = getDatabase();
+  try {
+    await db.execAsync("BEGIN");
+    await db.runAsync("PRAGMA foreign_keys = OFF");
+
+    // 1) Mover join rows evitando duplicados (PK compuesta (eventID, userID))
+    await db.runAsync(
+      `INSERT OR IGNORE INTO eventUsers (eventID, userID, role, updated_at, deleted, isSynced)
+       SELECT eventID, ?, role, updated_at, deleted, isSynced
+       FROM event_users
+       WHERE userID = ?`,
+      [newUserID, oldUserID]
+    );
+    await db.runAsync(`DELETE FROM eventUsers WHERE userID = ?`, [oldUserID]);
+
+    // 2) Clonar/crear el usuario nuevo si no existe, copiando columnas conocidas
+    await db.runAsync(
+      `INSERT OR IGNORE INTO users (
+        userID, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
+        reasonForTravel, userRole, googleAccount, updated_at, deleted, isSynced
+      )
+      SELECT
+        ?, firstName, lastName, userEmail, password, countryOfOrigin, dateOfBirth,
+        reasonForTravel, userRole, googleAccount, updated_at, deleted, 1
+      FROM users WHERE userID = ?`,
+      [newUserID, oldUserID]
+    );
+
+    // 3) Eliminar el viejo (si el nuevo ya existía, solo se borra el viejo)
+    await db.runAsync(`DELETE FROM users WHERE userID = ?`, [oldUserID]);
+
+    await db.runAsync("PRAGMA foreign_keys = ON");
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    throw e;
+  }
+};
+
 /**
  * API → SQLite upsert with last-writer-wins by updated_at
  * - Marks isSynced=1 for rows applied from remote.

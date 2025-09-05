@@ -114,6 +114,53 @@ const mapEventFromAPI = (ev) => {
   };
 };
 
+import { getDatabase } from './config';
+
+// Move all references from oldId -> newId in events + event_users
+export const remapEventId = async (oldEventID, newEventID) => {
+  if (!oldEventID || !newEventID || oldEventID === newEventID) return;
+  const db = getDatabase();
+  try {
+    await db.execAsync('BEGIN');
+    await db.runAsync('PRAGMA foreign_keys = OFF');
+
+    // 1) Mover join rows (event_users) evitando duplicados
+    await db.runAsync(
+      `INSERT OR IGNORE INTO eventUsers (eventID, userID, role, updated_at, deleted, isSynced)
+       SELECT ?, userID, role, updated_at, deleted, isSynced
+       FROM event_users
+       WHERE eventID = ?`,
+      [newEventID, oldEventID]
+    );
+    await db.runAsync(`DELETE FROM eventUsers WHERE eventID = ?`, [oldEventID]);
+
+    // 2) Clonar/crear el evento nuevo si no existe, copiando columnas conocidas
+    await db.runAsync(
+      `INSERT OR IGNORE INTO events (
+        eventID, eventName, eventImage, eventDescription, eventTags, telOrganizador,
+        startTime, endTime, eventVenueID, eventVenueName, eventIslandLocation, direccionVenues,
+        organizador, eventCapacity, eventPrice, updated_at, deleted, isSynced
+      )
+      SELECT
+        ?, eventName, eventImage, eventDescription, eventTags, telOrganizador,
+        startTime, endTime, eventVenueID, eventVenueName, eventIslandLocation, direccionVenues,
+        organizador, eventCapacity, eventPrice, updated_at, deleted, 1
+      FROM events WHERE eventID = ?`,
+      [newEventID, oldEventID]
+    );
+
+    // 3) Eliminar el viejo
+    await db.runAsync(`DELETE FROM events WHERE eventID = ?`, [oldEventID]);
+
+    await db.runAsync('PRAGMA foreign_keys = ON');
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+};
+
+
 /** Local create (from UI). Marks unsynced and sets freshness. */
 export const insertEvent = async (event) => {
   const db = getDatabase();

@@ -70,6 +70,40 @@ export const insertSchedule = async (schedule) => {
   );
 };
 
+import { getDatabase } from "./config";
+
+export const remapScheduleId = async (oldScheduleID, newScheduleID) => {
+  if (!oldScheduleID || !newScheduleID || oldScheduleID === newScheduleID)
+    return;
+  const db = getDatabase();
+  try {
+    await db.execAsync("BEGIN");
+    await db.runAsync("PRAGMA foreign_keys = OFF");
+
+    // Clonar/crear el schedule nuevo si no existe
+    await db.runAsync(
+      `INSERT OR IGNORE INTO schedules (
+        scheduleID, venueID, dayOfWeek, openTime, closeTime, updated_at, deleted, isSynced
+      )
+      SELECT
+        ?, venueID, dayOfWeek, openTime, closeTime, updated_at, deleted, 1
+      FROM schedules WHERE scheduleID = ?`,
+      [newScheduleID, oldScheduleID]
+    );
+
+    // Borrar el viejo
+    await db.runAsync(`DELETE FROM schedules WHERE scheduleID = ?`, [
+      oldScheduleID,
+    ]);
+
+    await db.runAsync("PRAGMA foreign_keys = ON");
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    throw e;
+  }
+};
+
 /** API → SQLite upsert */
 export const upsertSchedulesFromAPI = async (rows = []) => {
   const db = getDatabase();

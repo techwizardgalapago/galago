@@ -23,15 +23,23 @@ export const initEventUsersTable = async () => {
   );`);
 
   // Helpful indexes
-  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_eventUsers_event   ON eventUsers(eventID);`);
-  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_eventUsers_user    ON eventUsers(userID);`);
-  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_eventUsers_updated ON eventUsers(updated_at);`);
+  await db.runAsync(
+    `CREATE INDEX IF NOT EXISTS idx_eventUsers_event   ON eventUsers(eventID);`
+  );
+  await db.runAsync(
+    `CREATE INDEX IF NOT EXISTS idx_eventUsers_user    ON eventUsers(userID);`
+  );
+  await db.runAsync(
+    `CREATE INDEX IF NOT EXISTS idx_eventUsers_updated ON eventUsers(updated_at);`
+  );
 };
 
 /** Map record from API → DB shape */
 const mapEventUserFromAPI = (eu) => {
   const updated_at = (() => {
-    const t = new Date(eu.lastModified ?? eu.updated_at ?? Date.now()).getTime();
+    const t = new Date(
+      eu.lastModified ?? eu.updated_at ?? Date.now()
+    ).getTime();
     return Number.isFinite(t) ? t : Date.now();
   })();
 
@@ -42,6 +50,43 @@ const mapEventUserFromAPI = (eu) => {
     updated_at,
     deleted: eu.deleted ? 1 : 0,
   };
+};
+
+import { getDatabase } from "./config";
+
+// Remapea la fila compuesta (eventID,userID) -> (newEventID,newUserID)
+export const remapEventUserKeys = async ({
+  oldEventID,
+  newEventID,
+  oldUserID,
+  newUserID,
+}) => {
+  const db = getDatabase();
+  try {
+    await db.execAsync("BEGIN");
+    await db.runAsync("PRAGMA foreign_keys = OFF");
+
+    // Crear destino si no existe (y no duplicar)
+    await db.runAsync(
+      `INSERT OR IGNORE INTO event_users (eventID, userID, role, updated_at, deleted, isSynced)
+       SELECT ?, ?, role, updated_at, deleted, 1
+       FROM event_users
+       WHERE eventID = ? AND userID = ?`,
+      [newEventID ?? oldEventID, newUserID ?? oldUserID, oldEventID, oldUserID]
+    );
+
+    // Borrar origen
+    await db.runAsync(
+      `DELETE FROM event_users WHERE eventID = ? AND userID = ?`,
+      [oldEventID, oldUserID]
+    );
+
+    await db.runAsync("PRAGMA foreign_keys = ON");
+    await db.execAsync("COMMIT");
+  } catch (e) {
+    await db.execAsync("ROLLBACK");
+    throw e;
+  }
 };
 
 /** Local insert */
@@ -61,7 +106,7 @@ export const insertEventUser = async (eventID, userID, role = null) => {
 export const upsertEventUsersFromAPI = async (rows = []) => {
   const db = getDatabase();
   try {
-    await db.execAsync('BEGIN TRANSACTION');
+    await db.execAsync("BEGIN TRANSACTION");
 
     for (const raw of rows) {
       const eu = mapEventUserFromAPI(raw);
@@ -80,16 +125,20 @@ export const upsertEventUsersFromAPI = async (rows = []) => {
       );
     }
 
-    await db.execAsync('COMMIT');
+    await db.execAsync("COMMIT");
   } catch (e) {
-    await db.execAsync('ROLLBACK');
-    console.error('❌ upsertEventUsersFromAPI failed:', e);
+    await db.execAsync("ROLLBACK");
+    console.error("❌ upsertEventUsersFromAPI failed:", e);
     throw e;
   }
 };
 
 /** Soft delete */
-export const softDeleteEventUser = async (eventID, userID, when = Date.now()) => {
+export const softDeleteEventUser = async (
+  eventID,
+  userID,
+  when = Date.now()
+) => {
   const db = getDatabase();
   await db.runAsync(
     `UPDATE eventUsers SET deleted = 1, updated_at = ?, isSynced = 0 WHERE eventID = ? AND userID = ?`,
@@ -121,25 +170,33 @@ export const getEventsByUser = async (userID) => {
 /** Sync helpers */
 export const getUnsyncedEventUsers = async () => {
   const db = getDatabase();
-  return db.getAllAsync(`SELECT * FROM eventUsers WHERE isSynced = 0 AND deleted = 0`);
+  return db.getAllAsync(
+    `SELECT * FROM eventUsers WHERE isSynced = 0 AND deleted = 0`
+  );
 };
 
 export const updateEventUserSynced = async (eventID, userID) => {
   const db = getDatabase();
-  await db.runAsync(`UPDATE eventUsers SET isSynced = 1 WHERE eventID = ? AND userID = ?`, [eventID, userID]);
+  await db.runAsync(
+    `UPDATE eventUsers SET isSynced = 1 WHERE eventID = ? AND userID = ?`,
+    [eventID, userID]
+  );
 };
 
 export const markEventUsersSynced = async (pairs = []) => {
   if (!pairs.length) return;
   const db = getDatabase();
   try {
-    await db.execAsync('BEGIN TRANSACTION');
+    await db.execAsync("BEGIN TRANSACTION");
     for (const { eventID, userID } of pairs) {
-      await db.runAsync(`UPDATE eventUsers SET isSynced = 1 WHERE eventID = ? AND userID = ?`, [eventID, userID]);
+      await db.runAsync(
+        `UPDATE eventUsers SET isSynced = 1 WHERE eventID = ? AND userID = ?`,
+        [eventID, userID]
+      );
     }
-    await db.execAsync('COMMIT');
+    await db.execAsync("COMMIT");
   } catch (e) {
-    await db.execAsync('ROLLBACK');
+    await db.execAsync("ROLLBACK");
     throw e;
   }
 };
