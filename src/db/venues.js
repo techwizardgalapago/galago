@@ -129,8 +129,6 @@ const mapVenueFromAPI = (venue) => {
   };
 };
 
-import { getDatabase } from './config';
-
 // Move all references from oldId -> newId in venues + events(eventVenueID)
 export const remapVenueId = async (oldVenueID, newVenueID) => {
   if (!oldVenueID || !newVenueID || oldVenueID === newVenueID) return;

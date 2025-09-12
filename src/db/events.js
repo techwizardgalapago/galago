@@ -114,8 +114,6 @@ const mapEventFromAPI = (ev) => {
   };
 };
 
-import { getDatabase } from './config';
-
 // Move all references from oldId -> newId in events + event_users
 export const remapEventId = async (oldEventID, newEventID) => {
   if (!oldEventID || !newEventID || oldEventID === newEventID) return;

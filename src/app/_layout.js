@@ -1,13 +1,15 @@
 import { Stack } from "expo-router";
+import { ActivityIndicator, View, Text } from "react-native";
 import { Provider } from "react-redux";
 import { store } from "../store";
 import { useAppInitializer } from "../hooks/useAppInitializer";
-import { ActivityIndicator, View, Text } from "react-native";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 function RootAppLayout() {
   const { ready, syncing } = useAppInitializer();
 
   if (!ready) return null;
+  useAuthGuard();
 
   return (
     <>
@@ -26,8 +28,9 @@ function RootAppLayout() {
           <Text style={{ marginTop: 4 }}>Syncing data…</Text>
         </View>
       )}
-      <Stack>
-        <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Expo Router will auto-register child routes */}
+        {/* <Stack.Screen name='(tabs)' options={{ headerShown: false }} /> */}
       </Stack>
     </>
   );

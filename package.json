@@ -1,7 +1,9 @@
 {
   "name": "galago",
   "license": "0BSD",
+  "slug": "galago",
   "version": "1.0.0",
+  "owner": "techwizardgalago",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -30,7 +32,10 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
-    "react-redux": "^9.2.0"
+    "react-redux": "^9.2.0",
+    "expo-auth-session": "~6.2.1",
+    "expo-web-browser": "~14.2.0",
+    "expo-secure-store": "~14.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

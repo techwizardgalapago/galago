@@ -52,8 +52,6 @@ const mapEventUserFromAPI = (eu) => {
   };
 };
 
-import { getDatabase } from "./config";
-
 // Remapea la fila compuesta (eventID,userID) -> (newEventID,newUserID)
 export const remapEventUserKeys = async ({
   oldEventID,

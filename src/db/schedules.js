@@ -70,8 +70,6 @@ export const insertSchedule = async (schedule) => {
   );
 };
 
-import { getDatabase } from "./config";
-
 export const remapScheduleId = async (oldScheduleID, newScheduleID) => {
   if (!oldScheduleID || !newScheduleID || oldScheduleID === newScheduleID)
     return;
