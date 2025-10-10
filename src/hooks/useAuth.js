@@ -16,7 +16,7 @@ import { loginWithGoogleService } from "../services/authService";
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  const { user, token, status, error, hydrated } = useSelector((s) => s.auth);
+  const { user, token, status, error, hydrated } = useSelector((s) => s.auth ?? initialAuthState);
 
   // hydrate token from storage once
   useEffect(() => {

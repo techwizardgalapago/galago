@@ -4,7 +4,7 @@ import NetInfo from "@react-native-community/netinfo";
 import debounce from "lodash.debounce";
 import { rehydrateReduxFromSQLite } from "../store/rehydration";
 import { initializeDatabase } from "../db";
-import { syncAllOfflineData } from "../services/syncService";
+import { pushAllChanges } from "../services/syncService";
 
 export const useAppInitializer = () => {
   const dispatch = useDispatch();
@@ -15,7 +15,7 @@ export const useAppInitializer = () => {
   const syncWithIndicator = async () => {
     setSyncing(true);
     try {
-      await syncAllOfflineData();
+      await pushAllChanges();
     } catch (err) {
       console.error("❌ Sync failed:", err);
     }

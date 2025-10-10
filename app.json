@@ -15,9 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.litdgz.galago"
+      "bundleIdentifier": "com.techwizard.galago"
     },
     "android": {
+      "package": "com.techwizard.galago",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -32,6 +33,12 @@
       "expo-router",
       "expo-web-browser",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ebacd380-8787-4eef-a035-9736022a8570"
+      }
+    }
   }
 }

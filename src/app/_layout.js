@@ -7,9 +7,22 @@ import { useAuthGuard } from "../hooks/useAuthGuard";
 
 function RootAppLayout() {
   const { ready, syncing } = useAppInitializer();
-
-  if (!ready) return null;
   useAuthGuard();
+
+  if (!ready) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#0B0F14",
+        }}
+      >
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <>
