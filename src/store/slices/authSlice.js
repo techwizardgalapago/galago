@@ -21,7 +21,9 @@ export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
 });
 
 export const login = createAsyncThunk('auth/login', async ({ email, password }) => {
-  const { token, user } = await loginService({ email, password });
+  const { token, fields } = await loginService({ email, password });
+  const user = fields[0];
+  console.log("loginService response:", { token, user });
   return { token, user };
 });
 
@@ -41,6 +43,18 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    // 🔹 NEW: set token directly (used by Google callback)
+    setToken(state, action) {
+      state.token = action.payload || null;
+      state.error = null;
+    },
+    // 🔹 Optional helpers (handy in some flows)
+    setUser(state, action) {
+      state.user = action.payload || null;
+    },
+    setHydrated(state, action) {
+      state.hydrated = action.payload ?? true;
+    },
     logout(state) {
       state.user = null;
       state.token = null;
@@ -86,5 +100,6 @@ const authSlice = createSlice({
   }
 });
 
-export const { logout } = authSlice.actions;
+// ⬅️ Export the new actions
+export const { setToken, setUser, setHydrated, logout } = authSlice.actions;
 export default authSlice.reducer;

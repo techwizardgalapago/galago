@@ -25,7 +25,10 @@ export const useAuth = () => {
 
   // if we have token but no user, try fetchMe
   useEffect(() => {
-    if (hydrated && token && !user) dispatch(fetchMe());
+    if (hydrated && token && !user) {
+      dispatch(fetchMe());
+      console.log("useAuth useEffect fetchMe", { hydrated, token, user });
+    }
   }, [hydrated, token, user, dispatch]);
 
   const doLogin = useCallback(
@@ -33,6 +36,7 @@ export const useAuth = () => {
       const res = await dispatch(login({ email, password })).unwrap();
       await authStorage.setToken(res.token);
       setAuthHeader(res.token);
+      console.log("res login:", res);
       return res;
     },
     [dispatch]
@@ -53,6 +57,7 @@ export const useAuth = () => {
   // Google: exchange idToken with backend
   const doLoginWithGoogle = useCallback(async (idToken) => {
     const res = await loginWithGoogleService({ idToken });
+    console.log("res loginWithGoogle:", res);
     if (res?.token) {
       await authStorage.setToken(res.token);
       setAuthHeader(res.token);
@@ -61,6 +66,7 @@ export const useAuth = () => {
   }, []);
 
   const doLogout = useCallback(async () => {
+    console.log("🚪 Logging out…");
     await authStorage.clearToken();
     setAuthHeader(null);
     dispatch(logout());

@@ -5,6 +5,7 @@ import debounce from "lodash.debounce";
 import { rehydrateReduxFromSQLite } from "../store/rehydration";
 import { initializeDatabase } from "../db";
 import { pushAllChanges } from "../services/syncService";
+import { OFFLINE_ENABLED } from "../constants/plataform";
 
 export const useAppInitializer = () => {
   const dispatch = useDispatch();
@@ -13,6 +14,7 @@ export const useAppInitializer = () => {
   const initializedRef = useRef(false);
 
   const syncWithIndicator = async () => {
+    if (!OFFLINE_ENABLED) return;
     setSyncing(true);
     try {
       await pushAllChanges();
@@ -24,7 +26,7 @@ export const useAppInitializer = () => {
 
   const debouncedSync = useRef(
     debounce(() => {
-      if (!initializedRef.current) return;
+      if (!initializedRef.current || !OFFLINE_ENABLED) return;
       console.log("📡 Connection stable, syncing...");
       syncWithIndicator();
     }, 5000)
@@ -33,27 +35,36 @@ export const useAppInitializer = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        await initializeDatabase();
-        await dispatch(rehydrateReduxFromSQLite());
+        if (OFFLINE_ENABLED) { 
+          await initializeDatabase();
+          await dispatch(rehydrateReduxFromSQLite());
+        } else {
+          // web: skip DB entirely
+          console.log("🌐 Web build detected: skipping SQLite init/rehydration.");
+        }
         initializedRef.current = true;
         setReady(true);
 
-        const state = await NetInfo.fetch();
-        if (state.isConnected && state.isInternetReachable) {
-          debouncedSync();
+        if (OFFLINE_ENABLED) {
+          const state = await NetInfo.fetch();
+          if (state.isConnected && state.isInternetReachable) {
+            debouncedSync();
+          }
         }
       } catch (err) {
         console.error("❌ App initialization failed:", err);
+        // Even if DB init failed on native, surface UI so app isn't stuck
+        setReady(true);
       }
     };
 
     init();
 
-    const unsubscribe = NetInfo.addEventListener((state) => {
+    const unsubscribe = OFFLINE_ENABLED ? NetInfo.addEventListener((state) => {
       if (state.isConnected && state.isInternetReachable) {
         debouncedSync();
       }
-    });
+    }) : () => {};
 
     return () => {
       unsubscribe();
@@ -61,5 +72,5 @@ export const useAppInitializer = () => {
     };
   }, []);
 
-  return { ready, syncing };
+  return { ready, syncing : OFFLINE_ENABLED ? syncing : false };
 };

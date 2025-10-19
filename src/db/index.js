@@ -6,6 +6,13 @@ import { initEventsTable } from './events';
 import { initEventUsersTable } from './eventUsers';
 
 export const initializeDatabase = async () => {
+    // Skip on web completely
+  if (Platform.OS === "web") {
+    console.log("🌐 Web build detected — skipping SQLite initialization.");
+    return;
+  }
+  
+  // Native (iOS/Android): open DB and init tables
   await initDBConnection(); // open db + enable foreign keys
 
   // Initialize all tables

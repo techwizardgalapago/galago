@@ -21,8 +21,9 @@ export async function registerService(payload) {
 }
 
 export async function fetchMeService() {
-  // const { data } = await api.get('auth/me'); comentemos hasta probar
-  const { data } = await api.get("users/:id");
+  console.log("fetchMeService called");
+  const { data } = await api.get('auth/me');
+  console.log("fetchMeService response:", data);
   return data; // user object
 }
 
@@ -30,6 +31,6 @@ export async function fetchMeService() {
 export async function loginWithGoogleService({ idToken }) {
   // const { data } = await api.post("auth/google", { idToken }); comentemos hasta probar
 
-  const { data } = await api.get("auth/google", { idToken }); //asi tengo en backend
+  const { data } = await api.get("auth/google-login", { idToken }); //asi tengo en backend
   return data; // { token, user }
 }

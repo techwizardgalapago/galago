@@ -15,15 +15,16 @@ export default function RegisterScreen() {
   const { status, error, doRegister, doLoginWithGoogle } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
 
   const onSubmit = async () => {
     setLocalError('');
-    if (!email || !password || !firstName) { setLocalError('Completa nombre, email y contraseña'); return; }
+    if (!userEmail || !password || !firstName) { setLocalError('Completa nombre, email y contraseña'); return; }
     try {
-      const payload = { firstName, lastName, email, password };
+      // El payload esta dentro de un array porque tenemos airtable en mente
+      const payload = [{ fields: {firstName, lastName, userEmail, password} }];
       const res = await doRegister(payload);
       if (!res?.token) {
         alert('Cuenta creada. Ahora inicia sesión.');
@@ -66,7 +67,7 @@ export default function RegisterScreen() {
 
       <TextInput placeholder="Nombre" placeholderTextColor="#9CA3AF" value={firstName} onChangeText={setFirstName} style={styles.input} />
       <TextInput placeholder="Apellido" placeholderTextColor="#9CA3AF" value={lastName} onChangeText={setLastName} style={styles.input} />
-      <TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="Correo electrónico" placeholderTextColor="#9CA3AF" value={email} onChangeText={setEmail} style={styles.input} />
+      <TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="Correo electrónico" placeholderTextColor="#9CA3AF" value={userEmail} onChangeText={setUserEmail} style={styles.input} />
       <TextInput placeholder="Contraseña" placeholderTextColor="#9CA3AF" secureTextEntry value={password} onChangeText={setPassword} style={styles.input} />
 
       {!!localError && <Text style={styles.error}>{localError}</Text>}

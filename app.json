@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "techwizardgalago",
     "name": "galago",
     "slug": "galago",
     "version": "1.0.0",
@@ -37,8 +38,14 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "ebacd380-8787-4eef-a035-9736022a8570"
+        "projectId": "6e8f9c42-122d-4dec-9657-16a1c9f3000c"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6e8f9c42-122d-4dec-9657-16a1c9f3000c"
     }
   }
 }

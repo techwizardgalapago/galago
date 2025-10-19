@@ -37,6 +37,14 @@ export default function LoginScreen() {
     }
   };
 
+
+  const api = process.env.EXPO_PUBLIC_API_URL; // Ej: http://localhost:8080/api/v1
+
+  const startGoogleLogin = () => {
+    const returnTo = `${window.location.origin}/(auth)/callback`;
+    window.location.href = `${api}/auth/google-login?redirect_uri=${encodeURIComponent(returnTo)}`;
+  };
+
   // Google OAuth (RN + Web)
   const redirectUri = AuthSession.makeRedirectUri({
     useProxy: Platform.OS !== "web",
@@ -105,7 +113,7 @@ export default function LoginScreen() {
 
       <TouchableOpacity
         style={styles.btnGoogle}
-        onPress={onGooglePress}
+        onPress={startGoogleLogin}
         disabled={!request}
       >
         <Text style={styles.btnGoogleText}>Continuar con Google</Text>
