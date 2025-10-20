@@ -35,8 +35,8 @@ export const register = createAsyncThunk('auth/register', async (payload) => {
 });
 
 export const fetchMe = createAsyncThunk('auth/fetchMe', async () => {
-  const user = await fetchMeService();
-  return { user };
+  const user = await fetchMeService()
+  return { user: user.user};
 });
 
 const authSlice = createSlice({
@@ -60,6 +60,11 @@ const authSlice = createSlice({
       state.token = null;
       state.status = 'idle';
       state.error = null;
+    },
+    setAuthUserPatch(state, action) {
+      const patch = action.payload || {};
+      if (!state.user) state.user = {};
+      state.user = { ...state.user, ...patch };
     },
   },
   extraReducers: (builder) => {
@@ -101,5 +106,5 @@ const authSlice = createSlice({
 });
 
 // ⬅️ Export the new actions
-export const { setToken, setUser, setHydrated, logout } = authSlice.actions;
+export const { setToken, setUser, setHydrated, logout, setAuthUserPatch } = authSlice.actions;
 export default authSlice.reducer;

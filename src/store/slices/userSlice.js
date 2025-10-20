@@ -1,66 +1,80 @@
 // src/store/slices/usersSlice.js
 import { createSlice, createEntityAdapter, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
+import { Platform } from 'react-native';
 import {
   selectAllUsers as dbSelectAllUsers,
   insertUser as dbInsertUser,
   updateUserLocal as dbUpdateUserLocal,
   softDeleteUser as dbSoftDeleteUser,
   upsertUsersFromAPI as dbUpsertUsersFromAPI,
-  getUnsyncedUsers as dbGetUnsyncedUsers,
+  getUnsyncedUsers as dbGetUnsyncedUsers, // (kept import; OK if unused)
   markUsersSynced as dbMarkUsersSynced,
 } from '../../db/users';
 
+// ---- Platform guards (no DB on web / uninitialized DB) ----
+const isWeb = Platform.OS === 'web';
+const ignoreDBIfWeb = async (fn, fallback) => {
+  if (isWeb) return fallback ?? null;
+  try {
+    return await fn();
+  } catch (e) {
+    if (/Database not initialized/i.test(e?.message)) {
+      // behave like web: skip but let Redux proceed
+      return fallback ?? null;
+    }
+    throw e;
+  }
+};
+
 // --- Adapter
 const usersAdapter = createEntityAdapter({
-  selectId: (u) => u.userID,           // 👈 tu PK
-  sortComparer: (a, b) => b.updated_at - a.updated_at, // más reciente primero
+  selectId: (u) => u.userID, // PK
+  sortComparer: (a, b) => b.updated_at - a.updated_at, // newest first
 });
 
-// --- Estado extra
+// --- Extra state
 const initialState = usersAdapter.getInitialState({
-  status: 'idle',      // 'idle' | 'loading' | 'succeeded' | 'failed'
+  status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   error: null,
   lastLoadedAt: 0,
 });
 
 // --- Thunks
 
-// Carga inicial desde SQLite
+// Load from SQLite
 export const fetchUsers = createAsyncThunk('users/fetchAll', async () => {
-  const rows = await dbSelectAllUsers();
-  return rows;
+  const rows = await ignoreDBIfWeb(() => dbSelectAllUsers(), []);
+  return rows || [];
 });
 
-// Crear local (optimista)
+// Create local (optimistic)
 export const addUser = createAsyncThunk('users/addUser', async (user) => {
-  await dbInsertUser(user); // setea isSynced=0 y updated_at=now en la capa DB
-  return user;
+  await ignoreDBIfWeb(() => dbInsertUser(user));
+  return user; // optimistic into Redux
 });
 
-// Update local (optimista)
+// Update local (optimistic)
 export const updateUser = createAsyncThunk('users/updateUser', async (patch) => {
-  await dbUpdateUserLocal(patch); // bump updated_at, isSynced=0
-  return patch; // contiene userID y campos a actualizar
+  await ignoreDBIfWeb(() => dbUpdateUserLocal(patch));
+  return patch; // contains userID + updated fields
 });
 
-// Soft-delete (optimista)
+// Soft-delete (optimistic)
 export const removeUser = createAsyncThunk('users/removeUser', async ({ userID }) => {
-  await dbSoftDeleteUser(userID); // deleted=1, isSynced=0, bump updated_at
+  await ignoreDBIfWeb(() => dbSoftDeleteUser(userID));
   return { userID };
 });
 
-// Upsert masivo desde API (frescura)
+// Upsert from API (fresh read)
 export const upsertUsersFromAPI = createAsyncThunk('users/upsertFromAPI', async (users) => {
-  await dbUpsertUsersFromAPI(users);
-  // Tras upsert, volvemos a leer para tener la vista "verdad" de SQLite
-  const rows = await dbSelectAllUsers();
-  return rows;
+  await ignoreDBIfWeb(() => dbUpsertUsersFromAPI(users));
+  const rows = await ignoreDBIfWeb(() => dbSelectAllUsers(), []);
+  return rows || [];
 });
 
-// (Opcional) Sync push → marca como synced los registros que tu servicio haya enviado
+// (Optional) mark synced
 export const markUsersSynced = createAsyncThunk('users/markSynced', async (userIDs) => {
-  await dbMarkUsersSynced(userIDs);
-  // reflejar inmediatamente en estado
+  await ignoreDBIfWeb(() => dbMarkUsersSynced(userIDs));
   return userIDs;
 });
 
@@ -69,7 +83,7 @@ const usersSlice = createSlice({
   name: 'users',
   initialState,
   reducers: {
-    // En caso de necesitar resets o flags adicionales, agrégalos aquí
+    // add custom reducers if needed
   },
   extraReducers: (builder) => {
     builder
@@ -88,10 +102,7 @@ const usersSlice = createSlice({
         state.error = action.error?.message || 'Failed to fetch users';
       })
 
-      // add (optimista: insertamos directo al fulfilled)
-      .addCase(addUser.pending, (state) => {
-        // puedes setear un flag si quieres
-      })
+      // add
       .addCase(addUser.fulfilled, (state, action) => {
         usersAdapter.upsertOne(state, action.payload);
       })
@@ -99,22 +110,21 @@ const usersSlice = createSlice({
         state.error = action.error?.message || 'Failed to add user';
       })
 
-      // update (optimista)
+      // update
       .addCase(updateUser.fulfilled, (state, action) => {
         const { userID, ...changes } = action.payload;
-        usersAdapter.updateOne(state, { id: userID, changes });
+        const existing = state.entities[userID] || { userID };
+        // upsert ensures we create the user if it isn't in the slice yet (common on web)
+        usersAdapter.upsertOne(state, { ...existing, ...changes });
       })
 
-      // soft-delete (optimista)
+      // remove
       .addCase(removeUser.fulfilled, (state, action) => {
         const { userID } = action.payload;
         usersAdapter.removeOne(state, userID);
       })
 
-      // upsertFromAPI (fresh read)
-      .addCase(upsertUsersFromAPI.pending, (state) => {
-        // opcional: state.status = 'loading';
-      })
+      // upsertFromAPI
       .addCase(upsertUsersFromAPI.fulfilled, (state, action) => {
         usersAdapter.setAll(state, action.payload);
       })
@@ -142,16 +152,19 @@ export const {
   selectIds: selectUserIds,
 } = usersAdapter.getSelectors((state) => state.users);
 
-// Ejemplos de selectores memorizados:
+// Memoized examples
 export const selectUsersByName = (nameSubstr) =>
   createSelector([selectAllUsers], (users) =>
     users.filter((u) =>
-      `${u.firstName ?? ''} ${u.lastName ?? ''}`.toLowerCase().includes((nameSubstr || '').toLowerCase())
+      `${u.firstName ?? ''} ${u.lastName ?? ''}`
+        .toLowerCase()
+        .includes((nameSubstr || '').toLowerCase())
     )
   );
 
 export const selectUnsyncedUserIds = createSelector(
   [selectAllUsers],
-  (users) => users.filter((u) => u.isSynced === 0 && u.deleted === 0).map((u) => u.userID)
+  (users) => users
+    .filter((u) => u.isSynced === 0 && u.deleted === 0)
+    .map((u) => u.userID)
 );
-

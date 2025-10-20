@@ -5,7 +5,7 @@ export default function TabLayout() {
   const isDev = __DEV__;
 
   return (
-    <Tabs>
+    <Tabs screenOptions={{ headerShown: false }}>
       <Tabs.Screen
         name='hoy-en-la-isla/index'
         options={{ title: "Hoy", tabBarLabel: "Hoy" }}
