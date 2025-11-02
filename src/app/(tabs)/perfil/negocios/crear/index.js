@@ -63,6 +63,7 @@ export default function CrearNegocioScreen() {
     latitude: '',
     longitude: '',
     negocio: true,
+    venueContact: '',
   });
 
   const [schedules, setSchedules] = useState(
@@ -75,7 +76,7 @@ export default function CrearNegocioScreen() {
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.ImagePicker.MediaType.Images,
+      mediaTypes: ImagePicker?.MediaType?.Images,
       quality: 0.9,
       allowsEditing: false,
     });
@@ -119,6 +120,7 @@ export default function CrearNegocioScreen() {
         venueDescription: form.venueDescription,
         negocio: !!form.negocio,
         userID: [authUser?.userID] || null, 
+        venueContact: form.venueContact || '',
       };
 
       const venueResp = await createVenue(fields);
@@ -252,6 +254,18 @@ export default function CrearNegocioScreen() {
           style={inputStyle}
         />
       </View>
+
+      {/* Teléfono */}
+        <View style={{ gap: 6 }}>
+        <Text style={{ fontWeight: '600' }}>Teléfono de contacto</Text>
+        <TextInput
+            value={form.venueContact}
+            onChangeText={(t) => setForm(f => ({ ...f, venueContact: t }))}
+            placeholder="+593 99 123 4567"
+            keyboardType="phone-pad"
+            style={inputStyle}
+        />
+        </View>
 
       {/* Lat/Long (opcionales) */}
       <View style={{ flexDirection: 'row', gap: 10 }}>
