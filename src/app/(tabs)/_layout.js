@@ -11,8 +11,11 @@ export default function TabLayout() {
         options={{ title: "Hoy", tabBarLabel: "Hoy" }}
       />
       <Tabs.Screen
-        name='perfil/index'
+        name='perfil'
         options={{ title: "Perfil", tabBarLabel: "Perfil" }}
+      />
+      <Tabs.Screen 
+        name="settings/index" options={{ title: 'Settings', tabBarLabel: "Settings" }} 
       />
       {isDev && (
         <Tabs.Screen

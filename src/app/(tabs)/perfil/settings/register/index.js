@@ -32,14 +32,14 @@ const TRAVEL_REASONS = [
 export default function RegisterProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth || {});
-  console.log('Current user from auth slice:', user);
 
   const [form, setForm] = useState({
   fullName: '',
   userEmail: '',
   userRole: 'Curators & Providers',
   countryOfOrigin: '',
-  reasonForTravel: '',   // now a string
+  reasonForTravel: '',
+  dateOfBirth: '',
 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -59,10 +59,10 @@ export default function RegisterProfileScreen() {
     userRole: user.userRole || 'Curators & Providers',
     countryOfOrigin: user.countryOfOrigin || '',
     reasonForTravel: reason,
+    dateOfBirth: user.dateOfBirth || '',
   });
 }, [user]);
 
-  console.log('Form state:', form);
 
   const validate = () => {
     const errs = [];
@@ -76,42 +76,43 @@ export default function RegisterProfileScreen() {
   };
 
   const onSave = async () => {
-  console.log('Saving profile...', form);
-  if (!user?.userID) return;
-  if (!validate()) return;
+    if (!user?.userID) return;
+    if (!validate()) return;
 
-  setSaving(true);
-  try {
-    const { firstName, lastName } = splitFullName(form.fullName);
+    setSaving(true);
+    try {
+      const { firstName, lastName } = splitFullName(form.fullName);
 
-    // 1) Authoritative backend write (Airtable)
-    const remote = await patchUserProfile(user.userID, {
-      firstName,
-      lastName,
-      userEmail: form.userEmail,
-      userRole: form.userRole,
-      countryOfOrigin: form.countryOfOrigin,
-      reasonForTravel: form.reasonForTravel, // string → array in service
-    });
+      // 1) Authoritative backend write (Airtable)
+      const remote = await patchUserProfile(user.userID, {
+        firstName,
+        lastName,
+        userEmail: form.userEmail,
+        userRole: form.userRole,
+        countryOfOrigin: form.countryOfOrigin,
+        reasonForTravel: form.reasonForTravel, // string → array in service
+        dateOfBirth: form.dateOfBirth, 
+      });
 
-    // 2) Mirror to local SQLite/Redux
-    // Prefer upserting what backend returned (so we match Airtable exactly)
-    if (remote?.user) {
-      // `upsertUsersFromAPI` will write to SQLite on native and to Redux (web-safe)
-      await dispatch(upsertUsersFromAPI([remote.user]));
-    } else {
-      // fallback: keep local updated with what we sent
-      await dispatch(
-        updateUser({
-          userID: user.userID,
-          firstName,
-          lastName,
-          userEmail: form.userEmail,
-          userRole: form.userRole,
-          countryOfOrigin: form.countryOfOrigin,
-          reasonForTravel: form.reasonForTravel,
-        })
-      ).unwrap();
+      // 2) Mirror to local SQLite/Redux
+      // Prefer upserting what backend returned (so we match Airtable exactly)
+      if (remote?.user) {
+        // `upsertUsersFromAPI` will write to SQLite on native and to Redux (web-safe)
+        await dispatch(upsertUsersFromAPI([remote.user]));
+      } else {
+        // fallback: keep local updated with what we sent
+        await dispatch(
+          updateUser({
+            userID: user.userID,
+            firstName,
+            lastName,
+            userEmail: form.userEmail,
+            userRole: form.userRole,
+            countryOfOrigin: form.countryOfOrigin,
+            reasonForTravel: form.reasonForTravel,
+            dateOfBirth: form.dateOfBirth,
+          })
+        ).unwrap();
     }
 
     // 3) Keep auth.user in sync
@@ -171,6 +172,32 @@ export default function RegisterProfileScreen() {
           style={inputStyle}
           // editable={!(user?.googleAccount)} // uncomment to lock email for Google users
         />
+      </View>
+
+      {/* Date of Birth */}
+      <View style={{ gap: 6 }}>
+        <Text style={{ fontWeight: '600' }}>Date of birth</Text>
+        {Platform.OS === 'web' ? (
+          <input
+            type="date"
+            value={form.dateOfBirth}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, dateOfBirth: e.target.value }))
+            }
+            style={{
+              ...baseSelectStyle,
+              width: '100%',
+              cursor: 'pointer',
+            }}
+          />
+        ) : (
+          <TextInput
+            value={form.dateOfBirth}
+            onChangeText={(t) => setForm((f) => ({ ...f, dateOfBirth: t }))}
+            placeholder="YYYY-MM-DD"
+            style={inputStyle}
+          />
+        )}
       </View>
 
       {/* Role */}

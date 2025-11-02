@@ -14,6 +14,15 @@ export default function PerfilScreen() {
           Settings
         </Text>
       </Pressable>
+
+      <Pressable
+        onPress={() => router.push('/(tabs)/perfil/negocios')}
+        style={{ padding: 12, backgroundColor: '#0a6', borderRadius: 12 }}
+      >
+        <Text style={{ color: 'white', textAlign: 'center', fontWeight: '700' }}>
+          Mis negocios
+        </Text>
+      </Pressable>
     </View>
   );
 }
