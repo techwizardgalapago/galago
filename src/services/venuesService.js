@@ -37,5 +37,54 @@ export const uploadVenueImage = async (venueID, fileOrFormData) => {
   return res.data;
 };
 
+// Opción A: tu backend soporte GET /venues/:id
+export const getVenueById = async (venueID) => {
+  const res = await api.get(`/venues/${venueID}`);
+  return res.data; // idealmente { id, fields: { ... } }
+};
+
+// Opción B: si no tienes un endpoint por id, puedes usar un batch si lo tienes (ajusta a tu API)
+// Si no existe batch, haz un Promise.all con getVenueById(ids[i])
+export const getVenuesByIds = async (ids = []) => {
+  const results = [];
+  for (const id of ids) {
+    try {
+      const v = await getVenueById(id);
+      if (v) results.push(v);
+    } catch (_) {}
+  }
+  return results;
+};
+
+// PATCH venue (solo los campos enviados)
+export const patchVenue = async (venueID, fieldsPatch) => {
+  // Ajusta al shape que espera tu backend para PATCH (Airtable: [{id, fields}] o { fields }
+  const payload = { fields: fieldsPatch };
+  const res = await api.put(`/venues/${venueID}`, fieldsPatch);
+  return res.data; // debería retornar el venue actualizado
+};
+
+// DELETE todos los horarios de un venue
+export const deleteVenueScheduleById = async (id) => {
+  // DELETE /venues-schedule/:id  (ajusta si tu backend usa otra ruta)
+  const res = await fetch(`http://localhost:8080/api/v1/venues-schedule/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error(`Delete schedule ${id} failed`);
+  return res.json().catch(()=> ({}));
+};
+
+
+export const updateVenueSchedules = async (payloadArray) => {
+  // PUT /venues-schedule con [{ id, fields: {...} }, ...]
+  console.log("payloadArray", payloadArray);
+  const res = await fetch('http://localhost:8080/api/v1/venues-schedule', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payloadArray),
+  });
+  if (!res.ok) throw new Error('Update schedules failed');
+  return res.json().catch(()=> ({}));
+};
 
 export const parseCreatedVenueId = extractCreatedVenueId;

@@ -12,7 +12,7 @@ export const initVenuesTable = async () => {
         venueAddress TEXT,
         venueContact TEXT,
         latitude REAL,
-        longitud REAL,
+        longitude REAL,
         negocio INTEGER,
         userID TEXT,
         updated_at INTEGER NOT NULL,     
@@ -29,7 +29,7 @@ export const insertVenue = async (venue) => {
   await db.runAsync(
     `INSERT INTO venues (
       venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation,
-      venueAddress, venueContact, latitude, longitud, negocio, userID,
+      venueAddress, venueContact, latitude, longitude, negocio, userID,
       updated_at, deleted, isSynced
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
 
@@ -46,7 +46,7 @@ export const insertVenue = async (venue) => {
       venue.venueAddress,
       venue.venueContact,
       venue.latitude,
-      venue.longitud,
+      venue.longitude,
       venue.negocio ? 1 : 0,
       Array.isArray(venue.userID) ? venue.userID[0] : venue.userID ?? null,
       now,
@@ -65,7 +65,7 @@ export const insertVenuesFromAPI = async (venues) => {
         `INSERT INTO venues (
           venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation, 
           venueAddress, venueContact, latitude, 
-          longitud, negocio, userID, isSynced
+          longitude, negocio, userID, isSynced
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           venue.venueID,
@@ -77,7 +77,7 @@ export const insertVenuesFromAPI = async (venues) => {
           venue.venueAddress ?? "",
           venue.venueContact ?? "",
           venue.latitude ?? 0,
-          venue.longitud ?? 0,
+          venue.longitude ?? 0,
           venue.negocio ? 1 : 0,
           Array.isArray(venue.userID) ? venue.userID[0] : venue.userID, // foreign key must match
           1, // ✅ mark as synced
@@ -119,7 +119,7 @@ const mapVenueFromAPI = (venue) => {
     venueAddress: venue.venueAddress ?? "",
     venueContact: venue.venueContact ?? "",
     latitude: Number.isFinite(venue.latitude) ? venue.latitude : 0,
-    longitud: Number.isFinite(venue.longitud) ? venue.longitud : 0,
+    longitude: Number.isFinite(venue.longitude) ? venue.longitude : 0,
     negocio: venue.negocio ? 1 : 0,
     userID: Array.isArray(venue.userID)
       ? venue.userID[0]
@@ -149,11 +149,11 @@ export const remapVenueId = async (oldVenueID, newVenueID) => {
     await db.runAsync(
       `INSERT OR IGNORE INTO venues (
         venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation,
-        venueAddress, venueContact, latitude, longitud, negocio, userID, updated_at, deleted, isSynced
+        venueAddress, venueContact, latitude, longitude, negocio, userID, updated_at, deleted, isSynced
       )
       SELECT
         ?, venueName, venueImage, venueDescription, venueCategory, venueLocation,
-        venueAddress, venueContact, latitude, longitud, negocio, userID, updated_at, deleted, 1
+        venueAddress, venueContact, latitude, longitude, negocio, userID, updated_at, deleted, 1
       FROM venues WHERE venueID = ?`,
       [newVenueID, oldVenueID]
     );
@@ -182,7 +182,7 @@ export const upsertVenuesFromAPI = async (venues = []) => {
         `
             INSERT INTO venues (
               venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation,
-              venueAddress, venueContact, latitude, longitud, negocio, userID,
+              venueAddress, venueContact, latitude, longitude, negocio, userID,
               updated_at, deleted, isSynced
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ON CONFLICT(venueID) DO UPDATE SET
@@ -194,7 +194,7 @@ export const upsertVenuesFromAPI = async (venues = []) => {
               venueAddress    = excluded.venueAddress,
               venueContact    = excluded.venueContact,
               latitude        = excluded.latitude,
-              longitud        = excluded.longitud,
+              longitude        = excluded.longitude,
               negocio         = excluded.negocio,
               userID          = excluded.userID,
               updated_at      = excluded.updated_at,
@@ -212,7 +212,7 @@ export const upsertVenuesFromAPI = async (venues = []) => {
           v.venueAddress,
           v.venueContact,
           v.latitude,
-          v.longitud,
+          v.longitude,
           v.negocio,
           v.userID,
           v.updated_at,
@@ -255,7 +255,7 @@ export const updateVenueLocal = async (patch) => {
   venueAddress = COALESCE(?, venueAddress),
   venueContact = COALESCE(?, venueContact),
   latitude = COALESCE(?, latitude),
-  longitud = COALESCE(?, longitud),
+  longitude = COALESCE(?, longitude),
   negocio = COALESCE(?, negocio),
   userID = COALESCE(?, userID),
   updated_at = ?,
@@ -272,7 +272,7 @@ export const updateVenueLocal = async (patch) => {
       patch.venueAddress,
       patch.venueContact,
       patch.latitude,
-      patch.longitud,
+      patch.longitude,
       patch.negocio != null ? (patch.negocio ? 1 : 0) : undefined,
       Array.isArray(patch.userID) ? patch.userID[0] : patch.userID,
       now,
