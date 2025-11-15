@@ -1,20 +1,21 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Platform, View, Text, TextInput, Pressable, ScrollView, Switch, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSelector, useDispatch } from 'react-redux';
 import { router } from 'expo-router';
-import { Picker } from '@react-native-picker/picker'; // ✅ para el select en native
+import { Picker } from '@react-native-picker/picker';
 
-import { createVenue, createVenueSchedules, uploadVenueImage, parseCreatedVenueId } from '../../../../../services/venuesService';
-// Intentar reflejar local si existe:
-let upsertVenuesFromAPI;
-try {
-  ({ upsertVenuesFromAPI } = require('../../../../../store/slices/venueSlice'));
-} catch (_) {}
+import { createVenue, createVenueSchedules, uploadVenueImage, parseCreatedVenueId, getVenueById } from '../../../../../services/venuesService';
+
+import { upsertVenuesFromAPIThunk } from '../../../../../store/slices/venueSlice';
+
+// (Optional) if you later want to mirror remote into Redux/SQLite after create
+// let upsertVenuesFromAPI;
+// try { ({ upsertVenuesFromAPI } = require('../../../../../store/slices/venueSlice')); } catch (_) {}
 
 const VENUE_CATEGORIES = ["Restaurante","Café","Club","Bar","Teatro","Spa","Museo","Centro Turístico","Casa Cultural","Parque"];
-const VENUE_LOCATIONS = ["Isla San Cristobal","Isla Isabela","Isla Santa Cruz"];
-const WEEKDAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+const VENUE_LOCATIONS   = ["Isla San Cristobal","Isla Isabela","Isla Santa Cruz"];
+const WEEKDAYS          = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const ALLOWED_TIMES = [
   "00:00","00:30","01:00","01:30","02:00","02:30","03:00","03:30",
   "04:00","04:30","05:00","05:30","06:00","06:30","07:00","07:30",
@@ -24,7 +25,26 @@ const ALLOWED_TIMES = [
   "20:00","20:30","21:00","21:30","22:00","22:30","23:00","23:30"
 ];
 
-// ✅ Select cross-platform de horas con el mismo look que tus inputs
+const inputStyle = {
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 12,
+  paddingHorizontal: 14,
+  paddingVertical: Platform.select({ ios: 12, android: 10, default: 8 }),
+  backgroundColor: '#fff',
+};
+const chipRow = { flexDirection: 'row', flexWrap: 'wrap', gap: 8 };
+const chip = {
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  borderRadius: 999,
+  borderWidth: 1,
+  borderColor: '#ddd',
+  backgroundColor: '#fff',
+};
+const chipActive = { backgroundColor: '#eee', borderColor: '#999' };
+const buttonStyle = { backgroundColor: '#0a6', paddingVertical: 14, borderRadius: 12 };
+
 const TimeSelect = ({ value, onChange }) => {
   if (Platform.OS === 'web') {
     return (
@@ -50,6 +70,32 @@ const TimeSelect = ({ value, onChange }) => {
   );
 };
 
+const buildDefaultSchedules = () =>
+  WEEKDAYS.map(d => ({
+    weekDay: d,
+    enabled: false,
+    segments: [{ openingTime_: '08:00', closingTime_: '22:00' }],
+  }));
+
+const validateDaySegments = (segments = []) => {
+  const toMinutes = (hhmm) => {
+    const [h, m] = (hhmm || '').split(':').map(Number);
+    return (h * 60) + (m || 0);
+  };
+  const list = segments.map(s => ({
+    from: toMinutes(s.openingTime_),
+    to: toMinutes(s.closingTime_),
+  })).sort((a,b) => a.from - b.from);
+
+  for (const seg of list) {
+    if (!(seg.from < seg.to)) return 'Rango inválido (apertura debe ser menor al cierre).';
+  }
+  for (let i=1;i<list.length;i++) {
+    if (list[i].from < list[i-1].to) return 'Rangos superpuestos en el mismo día.';
+  }
+  return '';
+};
+
 export default function CrearNegocioScreen() {
   const dispatch = useDispatch();
   const authUser = useSelector(s => s.auth?.user);
@@ -66,13 +112,14 @@ export default function CrearNegocioScreen() {
     venueContact: '',
   });
 
-  const [schedules, setSchedules] = useState(
-    WEEKDAYS.map(d => ({ weekDay: d, enabled: false, openingTime_: '08:00', closingTime_: '22:00' }))
-  );
+  // 👇 Multi-segment per day
+  const [schedules, setSchedules] = useState(buildDefaultSchedules());
 
-  const [image, setImage] = useState(null); // { uri, name, type }
+  const [image, setImage]   = useState(null); // { uri, name, type }
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]   = useState('');
+
+  const anyDayEnabled = useMemo(() => schedules.some(d => d.enabled), [schedules]);
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -88,8 +135,79 @@ export default function CrearNegocioScreen() {
     }
   };
 
-  const quickFillHours = (open = '08:00', close = '22:00') => {
-    setSchedules(prev => prev.map(s => ({ ...s, enabled: true, openingTime_: open, closingTime_: close })));
+  // ----- schedules UI helpers -----
+  const quickFillDay = (dayIdx, open = '08:00', close = '22:00') => {
+    setSchedules(prev => {
+      const copy = [...prev];
+      copy[dayIdx] = { ...copy[dayIdx], enabled: true, segments: [{ openingTime_: open, closingTime_: close }] };
+      return copy;
+    });
+  };
+
+  const copyMondayToAll = () => {
+    const monday = schedules[0];
+    if (!monday?.enabled) return;
+    setSchedules(prev =>
+      prev.map((d, i) =>
+        i === 0
+          ? d
+          : { ...d, enabled: true, segments: monday.segments.map(s => ({ openingTime_: s.openingTime_, closingTime_: s.closingTime_ })) }
+      )
+    );
+  };
+
+  const markDayClosed = (dayIdx) => {
+    setSchedules(prev => {
+      const copy = [...prev];
+      copy[dayIdx] = { ...copy[dayIdx], enabled: false, segments: [{ openingTime_: '08:00', closingTime_: '22:00' }] };
+      return copy;
+    });
+  };
+
+  const setDayEnabled = (dayIdx, v) => {
+    setSchedules(prev => {
+      const copy = [...prev];
+      const day  = { ...copy[dayIdx] };
+      day.enabled = v;
+      if (v && (!day.segments || day.segments.length === 0)) {
+        day.segments = [{ openingTime_: '08:00', closingTime_: '22:00' }];
+      }
+      copy[dayIdx] = day;
+      return copy;
+    });
+  };
+
+  const setSegmentValue = (dayIdx, segIdx, patch) => {
+    setSchedules(prev => {
+      const copy = [...prev];
+      const day  = { ...copy[dayIdx] };
+      const segs = [...day.segments];
+      segs[segIdx] = { ...segs[segIdx], ...patch };
+      day.segments = segs;
+      copy[dayIdx] = day;
+      return copy;
+    });
+  };
+
+  const addSegment = (dayIdx) => {
+    setSchedules(prev => {
+      const copy = [...prev];
+      const day  = { ...copy[dayIdx] };
+      day.segments = [...day.segments, { openingTime_: '15:00', closingTime_: '20:00' }];
+      copy[dayIdx] = day;
+      return copy;
+    });
+  };
+
+  const removeSegment = (dayIdx, segIdx) => {
+    setSchedules(prev => {
+      const copy = [...prev];
+      const day  = { ...copy[dayIdx] };
+      const segs = day.segments.filter((_, i) => i !== segIdx);
+      day.segments = segs.length ? segs : [{ openingTime_: '08:00', closingTime_: '22:00' }];
+      copy[dayIdx] = day;
+      return copy;
+    });
   };
 
   const validate = () => {
@@ -98,7 +216,13 @@ export default function CrearNegocioScreen() {
     if (!form.venueCategory?.trim()) errs.push('Categoría requerida');
     if (!form.venueLocation?.trim()) errs.push('Ubicación requerida');
     if (!form.venueDescription?.trim()) errs.push('Descripción requerida');
-    // lat/long opcionales
+
+    for (const day of schedules) {
+      if (!day.enabled) continue;
+      const msg = validateDaySegments(day.segments);
+      if (msg) { errs.push(`(${day.weekDay}) ${msg}`); break; }
+    }
+
     setError(errs[0] || '');
     return errs.length === 0;
   };
@@ -119,71 +243,59 @@ export default function CrearNegocioScreen() {
         venueName: form.venueName,
         venueDescription: form.venueDescription,
         negocio: !!form.negocio,
-        userID: [authUser?.userID] || null, 
+        userID: [authUser?.userID] || null,
         venueContact: form.venueContact || '',
       };
 
       const venueResp = await createVenue(fields);
-      let venueID = parseCreatedVenueId(venueResp) || venueResp?.venueID || venueResp?.id;
+      const venueID = parseCreatedVenueId(venueResp) || venueResp?.venueID || venueResp?.id;
       if (!venueID) throw new Error('No se recibió el ID del venue creado');
-      console.log('Venue creado con ID:', venueID);
 
-      // 2) Crear horarios si hay días habilitados
-      const activeSchedules = schedules.filter(s => s.enabled);
-      if (activeSchedules.length > 0) {
-        // Validar horas contra la whitelist
-        for (const s of activeSchedules) {
-          if (!isAllowed(s.openingTime_) || !isAllowed(s.closingTime_)) {
-            setError(`Horario inválido para ${s.weekDay}. Usa tiempos como 08:00, 12:30, 22:00.`);
+      // 2) Crear horarios (multi-segmento por día → varias filas)
+      const payload = [];
+      for (const day of schedules) {
+        if (!day.enabled) continue;
+        for (const seg of day.segments) {
+          if (!isAllowed(seg.openingTime_) || !isAllowed(seg.closingTime_)) {
+            setError(`Horario inválido para ${day.weekDay}. Usa tiempos como 08:00, 12:30, 22:00.`);
             setSaving(false);
             return;
           }
+          payload.push({
+            fields: {
+              linkedVenue: [venueID],
+              weekDay: day.weekDay,
+              openingTime_: seg.openingTime_,
+              closingTime_: seg.closingTime_,
+            },
+          });
         }
-
-        const schedulePayload = activeSchedules.map(s => ({
-          fields: {
-            linkedVenue: [venueID],
-            weekDay: s.weekDay,
-            openingTime_: s.openingTime_,
-            closingTime_: s.closingTime_,
-          },
-        }));
-        console.log('Creando horarios con payload:', schedulePayload);
-        await createVenueSchedules(schedulePayload);
+      }
+      if (payload.length > 0) {
+        await createVenueSchedules(payload);
       }
 
       // 3) Subir imagen opcional
       if (image) {
         if (Platform.OS === 'web') {
-          const res = await fetch(image.uri);
-          console.log('Fetched image for upload:', res);
+          const res  = await fetch(image.uri);
           const blob = await res.blob();
-          console.log('Image blob:', blob);
-          const file = new File(
-                [blob],
-                image.name || 'venue.jpg',
-                { type: blob.type || image.type || 'image/jpeg' }
-            );
+          const file = new File([blob], image.name || 'venue.jpg', { type: blob.type || image.type || 'image/jpeg' });
           const formData = new FormData();
           formData.append('image', file);
-          for (const [k, v] of formData.entries()) {
-            console.log('FD entry:', k, v, v?.name, v?.type, v?.size);
-          }
-          console.log('Uploading image with formData:', formData);
           await uploadVenueImage(venueID, formData);
         } else {
           await uploadVenueImage(venueID, image);
         }
       }
 
-      // 4) Reflejar local si existe el thunk (opcional)
-      if (upsertVenuesFromAPI) {
-        // Si tu API devuelve el record completo del venue, puedes pasarlo aquí
-        // await dispatch(upsertVenuesFromAPI([remoteVenue]));
+      // 4) (Opcional) reflejar en Redux/SQLite si quieres
+      const venueFull = await getVenueById(venueID);
+      if (venueFull && upsertVenuesFromAPIThunk) {
+        dispatch(upsertVenuesFromAPIThunk([venueFull]));
       }
-
       // 5) Volver a "Mis negocios"
-      router.replace('/(tabs)/perfil/negocios');
+      router.replace('/(tabs)/perfil');
     } catch (e) {
       console.error('Crear negocio falló:', e);
       setError('No se pudo registrar el negocio.');
@@ -235,12 +347,14 @@ export default function CrearNegocioScreen() {
             {VENUE_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
           </select>
         ) : (
-          <TextInput
-            value={form.venueLocation}
-            onChangeText={(t) => setForm(f => ({ ...f, venueLocation: t }))}
-            placeholder="Isla Santa Cruz"
-            style={inputStyle}
-          />
+          <View style={{ ...inputStyle, paddingHorizontal: 0 }}>
+            <Picker
+              selectedValue={form.venueLocation}
+              onValueChange={(v)=>setForm(f=>({...f, venueLocation:v}))}
+            >
+              {VENUE_LOCATIONS.map(c=><Picker.Item key={c} label={c} value={c} />)}
+            </Picker>
+          </View>
         )}
       </View>
 
@@ -256,16 +370,16 @@ export default function CrearNegocioScreen() {
       </View>
 
       {/* Teléfono */}
-        <View style={{ gap: 6 }}>
+      <View style={{ gap: 6 }}>
         <Text style={{ fontWeight: '600' }}>Teléfono de contacto</Text>
         <TextInput
-            value={form.venueContact}
-            onChangeText={(t) => setForm(f => ({ ...f, venueContact: t }))}
-            placeholder="+593 99 123 4567"
-            keyboardType="phone-pad"
-            style={inputStyle}
+          value={form.venueContact}
+          onChangeText={(t) => setForm(f => ({ ...f, venueContact: t }))}
+          placeholder="+593 99 123 4567"
+          keyboardType="phone-pad"
+          style={inputStyle}
         />
-        </View>
+      </View>
 
       {/* Lat/Long (opcionales) */}
       <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -312,49 +426,62 @@ export default function CrearNegocioScreen() {
         />
       </View>
 
-      {/* Horarios */}
-      <View style={{ gap: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontWeight: '700' }}>Horarios</Text>
-          <Pressable onPress={() => quickFillHours()} style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#eee', borderRadius: 10 }}>
-            <Text>Rellenar 08:00–22:00</Text>
+      {/* ---- Horarios multi-segmento ---- */}
+      <View style={{ gap: 6, marginTop: 8 }}>
+        {/* util: copiar lunes a todos */}
+        <View style={{ flexDirection:'row', gap:8, flexWrap:'wrap' }}>
+          <Pressable onPress={copyMondayToAll} style={{ paddingHorizontal:10, paddingVertical:6, backgroundColor:'#eee', borderRadius:8 }}>
+            <Text>Copiar lunes a todos</Text>
           </Pressable>
         </View>
 
-        {schedules.map((s, idx) => (
-          <View key={s.weekDay} style={{ borderWidth: 1, borderColor: '#eee', borderRadius: 10, padding: 10, marginTop: 8 }}>
+        {schedules.map((day, dayIdx) => (
+          <View key={day.weekDay} style={{ borderWidth: 1, borderColor: '#eee', borderRadius: 10, padding: 10, marginTop: 8 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontWeight: '600' }}>{s.weekDay}</Text>
+              <Text style={{ fontWeight: '600' }}>{day.weekDay}</Text>
               <Switch
-                value={s.enabled}
-                onValueChange={(v) => setSchedules(prev => {
-                  const copy = [...prev];
-                  copy[idx] = { ...copy[idx], enabled: v };
-                  return copy;
-                })}
+                value={day.enabled}
+                onValueChange={(v) => setDayEnabled(dayIdx, v)}
               />
             </View>
 
-            {s.enabled && (
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-                {/* ✅ reemplazo: selects de hora uniformes */}
-                <TimeSelect
-                  value={s.openingTime_}
-                  onChange={(val) => setSchedules(prev => {
-                    const copy = [...prev];
-                    copy[idx] = { ...copy[idx], openingTime_: val };
-                    return copy;
-                  })}
-                />
-                <TimeSelect
-                  value={s.closingTime_}
-                  onChange={(val) => setSchedules(prev => {
-                    const copy = [...prev];
-                    copy[idx] = { ...copy[idx], closingTime_: val };
-                    return copy;
-                  })}
-                />
-              </View>
+            {day.enabled && (
+              <>
+                <View style={{ flexDirection:'row', gap:8, marginTop:6, flexWrap:'wrap' }}>
+                  <Pressable onPress={()=>quickFillDay(dayIdx)} style={{ paddingHorizontal:10, paddingVertical:6, backgroundColor:'#eee', borderRadius:8 }}>
+                    <Text>Rellenar 08:00–22:00</Text>
+                  </Pressable>
+                  <Pressable onPress={()=>markDayClosed(dayIdx)} style={{ paddingHorizontal:10, paddingVertical:6, backgroundColor:'#eee', borderRadius:8 }}>
+                    <Text>Marcar cerrado</Text>
+                  </Pressable>
+                </View>
+
+                {day.segments.map((seg, segIdx) => (
+                  <View key={segIdx} style={{ flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'center' }}>
+                    <TimeSelect
+                      value={seg.openingTime_}
+                      onChange={(val) => setSegmentValue(dayIdx, segIdx, { openingTime_: val })}
+                    />
+                    <TimeSelect
+                      value={seg.closingTime_}
+                      onChange={(val) => setSegmentValue(dayIdx, segIdx, { closingTime_: val })}
+                    />
+                    <Pressable
+                      onPress={() => removeSegment(dayIdx, segIdx)}
+                      style={{ paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#eee', borderRadius: 8 }}
+                    >
+                      <Text>Eliminar</Text>
+                    </Pressable>
+                  </View>
+                ))}
+
+                <Pressable
+                  onPress={() => addSegment(dayIdx)}
+                  style={{ marginTop: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#eee', borderRadius: 8, alignSelf: 'flex-start' }}
+                >
+                  <Text>+ Añadir franja</Text>
+                </Pressable>
+              </>
             )}
           </View>
         ))}
@@ -389,29 +516,3 @@ export default function CrearNegocioScreen() {
     </ScrollView>
   );
 }
-
-const inputStyle = {
-  borderWidth: 1,
-  borderColor: '#ddd',
-  borderRadius: 12,
-  paddingHorizontal: 14,
-  paddingVertical: Platform.select({ ios: 12, android: 10, default: 8 }),
-  backgroundColor: '#fff',
-};
-
-const chipRow = { flexDirection: 'row', flexWrap: 'wrap', gap: 8 };
-const chip = {
-  paddingHorizontal: 12,
-  paddingVertical: 8,
-  borderRadius: 999,
-  borderWidth: 1,
-  borderColor: '#ddd',
-  backgroundColor: '#fff',
-};
-const chipActive = { backgroundColor: '#eee', borderColor: '#999' };
-
-const buttonStyle = {
-  backgroundColor: '#0a6',
-  paddingVertical: 14,
-  borderRadius: 12,
-};
