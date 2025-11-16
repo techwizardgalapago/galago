@@ -5,6 +5,11 @@ export default function NegociosLayout() {
     <Stack screenOptions={{ headerShown: true }}>
       <Stack.Screen name="index" options={{ title: 'Mis negocios' }} />
       <Stack.Screen name="crear/index" options={{ title: 'Registra tu negocio', headerBackTitle: 'Mis negocios' }} />
+      {/* 👇 Cuando entres a /negocios/[venueID], ocultamos el header de este Stack */}
+      <Stack.Screen
+        name="[venueID]"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }
