@@ -33,7 +33,7 @@ export default function AuthCallback() {
         setAuthHeader(token);
         dispatch(setToken(token));
         console.log("[callback] ✅ Token saved & Redux updated, going home");
-        router.replace("/");
+        router.replace("/perfil");
       } catch (err) {
         console.error("[callback] ❌ Error handling token:", err);
         router.replace("/login");

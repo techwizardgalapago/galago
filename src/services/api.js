@@ -2,7 +2,7 @@
 // src/services/api.js
 // -------------------------------------------------
 import axios from 'axios';
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://18.119.60.28/api/v1/';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.galago.ec/api/v1/';
 
 export const api = axios.create({ baseURL: API_URL, timeout: 15000 });
 

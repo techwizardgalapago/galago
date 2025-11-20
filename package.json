@@ -12,20 +12,24 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "build:web": "rimraf dist && expo export -p web",
+    "serve:web": "expo serve"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
     "@react-native-community/netinfo": "11.4.1",
+    "@react-native-picker/picker": "2.11.1",
     "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.10.0",
     "expo": "~53.0.9",
     "expo-auth-session": "~6.2.1",
     "expo-constants": "~17.1.6",
+    "expo-image-picker": "~16.1.4",
     "expo-linking": "~7.1.5",
     "expo-router": "~5.0.7",
     "expo-secure-store": "~14.2.4",
-    "expo-sqlite": "^15.2.12",
+    "expo-sqlite": "~15.2.14",
     "expo-status-bar": "~2.2.3",
     "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
@@ -36,9 +40,7 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
-    "react-redux": "^9.2.0",
-    "@react-native-picker/picker": "2.11.1",
-    "expo-image-picker": "~16.1.4"
+    "react-redux": "^9.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
