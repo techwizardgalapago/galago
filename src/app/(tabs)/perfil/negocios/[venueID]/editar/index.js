@@ -630,14 +630,25 @@ export default function EditVenueScreen() {
           </View>
         ))}
 
-        {/* Imagen opcional */}
+        {/* Logo */}
         <View style={{ gap: 6, marginTop: 8 }}>
-          <Text style={{ fontWeight: '700' }}>Imagen (opcional)</Text>
+          <Text style={{ fontWeight: '700' }}>Logo</Text>
+          <Text
+            style={{
+              fontSize: 12,
+              opacity: 0.7,
+            }}
+          >
+            Sube el logo de tu negocio en formato JPG o PNG, máximo 2&nbsp;MB.
+            Asegúrate de que tu imagen sea horizontal o cuadrada para evitar recortes incómodos.
+          </Text>
+
           {image ? (
             <View style={{ gap: 8 }}>
               <Image
                 source={{ uri: image.uri }}
-                style={{ width: '100%', height: 160, borderRadius: 10 }}
+                style={{ width: 120, height: 120, borderRadius: 16 }}
+                resizeMode="contain"
               />
               <Pressable
                 onPress={() => setImage(null)}
@@ -647,7 +658,7 @@ export default function EditVenueScreen() {
                   borderRadius: 10,
                 }}
               >
-                <Text>Quitar imagen</Text>
+                <Text>Quitar logo</Text>
               </Pressable>
             </View>
           ) : (
@@ -666,12 +677,12 @@ export default function EditVenueScreen() {
                   fontWeight: '700',
                 }}
               >
-                Seleccionar imagen
+                Seleccionar logo
               </Text>
             </Pressable>
           )}
         </View>
-
+        
         {!!error && <Text style={{ color: '#c00' }}>{error}</Text>}
 
         <Pressable
