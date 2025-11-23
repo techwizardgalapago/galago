@@ -40,6 +40,9 @@ const VENUE_CATEGORIES = [
   'Centro Turístico',
   'Casa Cultural',
   'Parque',
+  'Tienda',
+  'Souvenirs',
+  'Otro'
 ];
 const VENUE_LOCATIONS = ['Isla San Cristobal', 'Isla Isabela', 'Isla Santa Cruz'];
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];

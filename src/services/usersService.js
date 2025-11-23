@@ -15,6 +15,7 @@ export const patchUserProfile = async (userID, data) => {
     reasonForTravel: Array.isArray(data.reasonForTravel)
       ? data.reasonForTravel
       : (data.reasonForTravel ? [data.reasonForTravel] : []),
+      genero: data.genero, // <-- NEW FIELD
   };
   const res = await api.put(`/users/${userID}`, body);
   

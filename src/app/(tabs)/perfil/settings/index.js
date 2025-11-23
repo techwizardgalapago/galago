@@ -20,7 +20,7 @@ export default function SettingsScreen() {
               fontWeight: '700',
             }}
           >
-            Complete your profile
+            Complete su perfil
           </Text>
         </Pressable>
       </View>

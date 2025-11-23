@@ -14,6 +14,15 @@ import { fetchMe } from '../../../../../store/slices/authSlice';
 import { splitFullName, joinFullName } from '../../../../../features/users/profileComplition';
 import { patchUserProfile } from '../../../../../services/usersService';
 
+// ------------------------
+// NEW GENDER OPTIONS
+// ------------------------
+const GENDER_OPTIONS = [
+  'Masculino',
+  'Femenino',
+  'Utilizo otra palabra para definirme'
+];
+
 const USER_ROLES = ['Curators & Providers', 'Explorer'];
 const TRAVEL_REASONS = [
   'Holidays & Leisure',
@@ -37,11 +46,16 @@ export default function RegisterProfileScreen() {
     countryOfOrigin: '',
     reasonForTravel: '',
     dateOfBirth: '',
+    genero: '',       // <-- NEW FIELD
   });
+  console.log('Form state:', form);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // ------------------------------------------------
+  // LOAD EXISTING USER PROFILE
+  // ------------------------------------------------
   useEffect(() => {
     if (!user) return;
 
@@ -57,9 +71,13 @@ export default function RegisterProfileScreen() {
       countryOfOrigin: user.countryOfOrigin || '',
       reasonForTravel: reason,
       dateOfBirth: user.dateOfBirth || '',
+      genero: user.genero || '', // <-- LOAD GENDER
     });
   }, [user]);
 
+  // ------------------------------------------------
+  // VALIDATION
+  // ------------------------------------------------
   const validate = () => {
     const errs = [];
     if (!form.fullName.trim()) errs.push('Name is required');
@@ -67,16 +85,22 @@ export default function RegisterProfileScreen() {
       errs.push('Valid email required');
     if (!form.countryOfOrigin) errs.push('Country is required');
     if (!form.reasonForTravel) errs.push('Reason for travel is required');
+    if (!form.genero) errs.push('Gender is required');  // <-- NEW VALIDATION
+
     setError(errs[0] || '');
     return errs.length === 0;
   };
 
+  // ------------------------------------------------
+  // SAVE PROFILE
+  // ------------------------------------------------
   const onSave = async () => {
     if (!validate()) return;
 
     setSaving(true);
     try {
       const { firstName, lastName } = splitFullName(form.fullName);
+      console.log('Saving profile with data:', { firstName, lastName, ...form });
 
       const remote = await patchUserProfile(user.userID, {
         firstName,
@@ -86,7 +110,9 @@ export default function RegisterProfileScreen() {
         countryOfOrigin: form.countryOfOrigin,
         reasonForTravel: form.reasonForTravel,
         dateOfBirth: form.dateOfBirth,
+        genero: form.genero, // <-- SAVE GENDER
       });
+      console.log('Profile updated', remote);
 
       if (remote?.user) {
         await dispatch(upsertUsersFromAPI([remote.user]));
@@ -106,16 +132,19 @@ export default function RegisterProfileScreen() {
     }
   };
 
+  // ------------------------------------------------
+  // RENDER
+  // ------------------------------------------------
   return (
     <Container>
       <ScrollView contentContainerStyle={{ gap: 16, paddingVertical: 20 }}>
-        <Text style={{ fontSize: 24, fontWeight: '700' }}>Complete your profile</Text>
+        <Text style={{ fontSize: 24, fontWeight: '700' }}>Complete su perfil</Text>
 
-        {/* Full name */}
+        {/* Full Name */}
         <View style={{ gap: 6 }}>
-          <Text style={{ fontWeight: '600' }}>Fullname</Text>
+          <Text style={{ fontWeight: '600' }}>Nombre y Apellido</Text>
           <Input
-            placeholder="Full name"
+            placeholder="Nombre y Apellido"
             value={form.fullName}
             onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
           />
@@ -123,18 +152,18 @@ export default function RegisterProfileScreen() {
 
         {/* Email */}
         <View style={{ gap: 6 }}>
-          <Text style={{ fontWeight: '600' }}>Email</Text>
+          <Text style={{ fontWeight: '600' }}>Correo Electrónico</Text>
           <Input
-            placeholder="Email"
+            placeholder="Correo Electrónico"
             value={form.userEmail}
             onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
             keyboardType="email-address"
           />
         </View>
 
-        {/* Date of birth → type="date" on web, Input on native */}
+        {/* Date of Birth */}
         <View style={{ gap: 6 }}>
-          <Text style={{ fontWeight: '600' }}>Date of birth</Text>
+          <Text style={{ fontWeight: '600' }}>Fecha de Nacimiento</Text>
           {Platform.OS === 'web' ? (
             <View
               style={{
@@ -176,8 +205,17 @@ export default function RegisterProfileScreen() {
           )}
         </View>
 
+        {/* Gender */}
+        <Text style={{ fontWeight: '600' }}>Género</Text>
+        <Select
+          value={form.genero}
+          onChange={(v) => setForm(f => ({ ...f, genero: v }))}
+          options={GENDER_OPTIONS}
+          placeholder="Seleccione género"
+        />
+
         {/* Role */}
-        <Text style={{ fontWeight: '600' }}>Role</Text>
+        <Text style={{ fontWeight: '600' }}>Rol</Text>
         <Select
           value={form.userRole}
           onChange={(v) => setForm(f => ({ ...f, userRole: v }))}
@@ -185,7 +223,7 @@ export default function RegisterProfileScreen() {
         />
 
         {/* Country */}
-        <Text style={{ fontWeight: '600' }}>Country of origin</Text>
+        <Text style={{ fontWeight: '600' }}>País de Origen</Text>
         <Select
           value={form.countryOfOrigin}
           onChange={(v) => setForm(f => ({ ...f, countryOfOrigin: v }))}
@@ -193,8 +231,8 @@ export default function RegisterProfileScreen() {
           placeholder="Select your country"
         />
 
-        {/* Reason for travel */}
-        <Text style={{ fontWeight: '600' }}>Reason for travel</Text>
+        {/* Reason for Travel */}
+        <Text style={{ fontWeight: '600' }}>Motivo del Viaje</Text>
         <Select
           value={form.reasonForTravel}
           onChange={(v) => setForm(f => ({ ...f, reasonForTravel: v }))}
