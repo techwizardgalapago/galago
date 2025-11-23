@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/index.js
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,77 @@ import {
   FlatList,
   ActivityIndicator,
   Platform,
-} from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import { router } from "expo-router";
-import Container from "../../../../components/Container"; // ⬅️ adjust path/alias to your setup
-import { fetchVenues, fetchUserVenuesRemote } from "../../../../store/slices/venueSlice";
+} from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { router } from 'expo-router';
 
-const isWeb = Platform.OS === "web";
+import Container from '../../../../components/Container';
+import {
+  fetchVenues,
+  fetchUserVenuesRemote,
+} from '../../../../store/slices/venueSlice';
+
+const isWeb = Platform.OS === 'web';
 
 const blurActive = () => {
   if (!isWeb) return;
-  const el = typeof document !== "undefined" ? document.activeElement : null;
-  if (el && typeof el.blur === "function") el.blur();
+  const el = typeof document !== 'undefined' ? document.activeElement : null;
+  if (el && typeof el.blur === 'function') el.blur();
 };
+
+const Header = () => (
+  <View
+    style={{
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    }}
+  >
+    <Text style={{ fontSize: 20, fontWeight: '700' }}>Mis negocios</Text>
+
+    <Pressable
+      onPress={() => {
+        blurActive();
+        router.push('/(tabs)/perfil/negocios/crear');
+      }}
+      style={{
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        backgroundColor: '#111',
+        borderRadius: 999,
+      }}
+    >
+      <Text style={{ color: 'white', fontWeight: '700' }}>Registrar negocio</Text>
+    </Pressable>
+  </View>
+);
+
+const VenueCard = ({ venue }) => (
+  <Pressable
+    onPress={() => {
+      blurActive();
+      router.push(`/(tabs)/perfil/negocios/${venue.venueID}`);
+    }}
+    style={{
+      padding: 12,
+      borderWidth: 1,
+      borderColor: '#eee',
+      borderRadius: 12,
+      marginTop: 10,
+    }}
+  >
+    <Text style={{ fontWeight: '700', fontSize: 16 }}>
+      {venue.venueName || 'Sin nombre'}
+    </Text>
+    <Text style={{ opacity: 0.8 }}>
+      {venue.venueCategory} · {venue.venueLocation}
+    </Text>
+    {!!venue.venueContact && (
+      <Text style={{ opacity: 0.8, marginTop: 2 }}>{venue.venueContact}</Text>
+    )}
+  </Pressable>
+);
 
 export default function MisNegociosScreen() {
   const dispatch = useDispatch();
@@ -31,22 +89,24 @@ export default function MisNegociosScreen() {
   // - Web: fetch from backend by IDs (no SQLite)
   // - Native: fetch from SQLite
   useEffect(() => {
+    if (status !== 'idle') return;
+
     if (isWeb) {
-      if (status === "idle" && userVenueIds.length) {
+      if (userVenueIds.length) {
         dispatch(fetchUserVenuesRemote(userVenueIds));
       }
     } else {
-      if (status === "idle") {
-        dispatch(fetchVenues());
-      }
+      dispatch(fetchVenues());
     }
-  }, [dispatch, status, isWeb, userVenueIds.join("|")]);
+  }, [dispatch, status, userVenueIds.join('|')]);
 
-  // Log only when the set of venueIDs changes
+  // Debug log only when ids change
   useEffect(() => {
-    const key = (venues || []).map((v) => v.venueID).join("|");
-    if (key) console.log("MisNegociosScreen - venues from state:", venues);
-  }, [(venues || []).map((v) => v.venueID).join("|")]);
+    const key = (venues || []).map((v) => v.venueID).join('|');
+    if (key) {
+      console.log('MisNegociosScreen - venues from state:', venues);
+    }
+  }, [(venues || []).map((v) => v.venueID).join('|')]);
 
   // Robust filter: userID can be array or string
   const myVenues = useMemo(() => {
@@ -59,87 +119,29 @@ export default function MisNegociosScreen() {
     });
   }, [venues, authUser?.userID]);
 
+  const isLoading = status === 'loading';
+  const isEmpty = !isLoading && myVenues.length === 0;
+
   return (
     <Container>
-      {/* Header row */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <Text style={{ fontSize: 20, fontWeight: "700" }}>Mis negocios</Text>
+      <Header />
 
-        <Pressable
-          onPress={() => {
-            blurActive();
-            router.push("/(tabs)/perfil/negocios/crear");
-          }}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            backgroundColor: "#111",
-            borderRadius: 12,
-          }}
-        >
-          <Text style={{ color: "white", fontWeight: "700" }}>
-            Registrar negocio
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Content area (list / empty / loading) */}
-      {status === "loading" && (
+      {isLoading && (
         <View style={{ paddingVertical: 24 }}>
           <ActivityIndicator />
         </View>
       )}
 
-      {status !== "loading" && myVenues.length === 0 ? (
+      {isEmpty ? (
         <View style={{ paddingVertical: 24 }}>
-          <Text style={{ opacity: 0.6 }}>
-            Aún no tienes negocios registrados.
-          </Text>
+          <Text style={{ opacity: 0.6 }}>Aún no tienes negocios registrados.</Text>
         </View>
       ) : (
         <FlatList
           data={myVenues}
           keyExtractor={(v) => v.venueID}
           contentContainerStyle={{ paddingBottom: 24 }}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => {
-                blurActive();
-                router.push(`/(tabs)/perfil/negocios/${item.venueID}`);
-              }}
-              style={{
-                padding: 12,
-                borderWidth: 1,
-                borderColor: "#eee",
-                borderRadius: 12,
-                marginTop: 10,
-              }}
-            >
-              <Text
-                style={{
-                  fontWeight: "700",
-                  fontSize: 16,
-                }}
-              >
-                {item.venueName || "Sin nombre"}
-              </Text>
-              <Text style={{ opacity: 0.8 }}>
-                {item.venueCategory} · {item.venueLocation}
-              </Text>
-              {!!item.venueContact && (
-                <Text style={{ opacity: 0.8, marginTop: 2 }}>
-                  {item.venueContact}
-                </Text>
-              )}
-            </Pressable>
-          )}
+          renderItem={({ item }) => <VenueCard venue={item} />}
         />
       )}
     </Container>
