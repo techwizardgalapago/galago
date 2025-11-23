@@ -2,7 +2,10 @@
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
-
+config.transformer = {
+    ...config.transformer,
+    babelTransformerPath: require.resolve('react-native-svg-transformer'),
+}
 // Asegurar que Metro trate `.wasm` como asset válido
 config.resolver.assetExts = [...config.resolver.assetExts, 'wasm'];
 

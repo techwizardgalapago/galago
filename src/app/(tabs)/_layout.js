@@ -6,11 +6,12 @@ export default function TabLayout() {
 
   return (
     <Tabs screenOptions={{ headerShown: false }}>
-      {isDev && (
         <Tabs.Screen
         name='hoy-en-la-isla/index'
-        options={{ title: "Hoy", tabBarLabel: "Hoy" }}
-      />)}
+        options={{ title: "Hoy", 
+          tabBarLabel: "Hoy",
+         }}
+      />
       <Tabs.Screen
         name='perfil'
         options={{ title: "Perfil", tabBarLabel: "Perfil" }}
@@ -18,15 +19,6 @@ export default function TabLayout() {
       <Tabs.Screen 
         name="settings/index" options={{ title: 'Settings', tabBarLabel: "Settings" }} 
       />
-      {isDev && (
-        <Tabs.Screen
-          name='debug'
-          options={{
-            title: "Debug",
-            tabBarIcon: ({ color }) => <Text style={{ color }}>🔧</Text>,
-          }}
-        />
-      )}
     </Tabs>
   );
 }

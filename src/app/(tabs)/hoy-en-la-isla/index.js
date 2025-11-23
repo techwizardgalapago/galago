@@ -1,9 +1,12 @@
 import { View, Text } from "react-native";
 
+import Container from "../../../components/Container";
 export default function HoyEnLaIslaScreen() {
   return (
-    <View>
-      <Text>Hoy en la isla +</Text>
-    </View>
+    <Container>
+      <View style={{ height: 32 }} >
+        <Text style={{fontSize:34}}>Coming soon</Text>
+      </View>
+    </Container>
   );
 }

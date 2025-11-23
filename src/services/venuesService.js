@@ -67,7 +67,7 @@ export const patchVenue = async (venueID, fieldsPatch) => {
 // DELETE todos los horarios de un venue
 export const deleteVenueScheduleById = async (id) => {
   // DELETE /venues-schedule/:id  (ajusta si tu backend usa otra ruta)
-  const res = await fetch(`http://localhost:8080/api/v1/venues-schedule/${id}`, {
+  const res = await fetch(`https://api.galago.ec/api/v1/venues-schedule/${id}`, {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error(`Delete schedule ${id} failed`);
@@ -78,7 +78,7 @@ export const deleteVenueScheduleById = async (id) => {
 export const updateVenueSchedules = async (payloadArray) => {
   // PUT /venues-schedule con [{ id, fields: {...} }, ...]
   console.log("payloadArray", payloadArray);
-  const res = await fetch('http://localhost:8080/api/v1/venues-schedule', {
+  const res = await fetch('https://api.galago.ec/api/v1/venues-schedule', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payloadArray),
