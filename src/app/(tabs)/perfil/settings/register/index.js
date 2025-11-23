@@ -1,5 +1,6 @@
+// src/app/(tabs)/perfil/settings/register/index.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { router } from 'expo-router';
 
@@ -109,24 +110,66 @@ export default function RegisterProfileScreen() {
       <ScrollView contentContainerStyle={{ gap: 16, paddingVertical: 20 }}>
         <Text style={{ fontSize: 24, fontWeight: '700' }}>Complete your profile</Text>
 
+        {/* Full name */}
         <Input
           placeholder="Full name"
           value={form.fullName}
           onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
         />
 
+        {/* Email */}
         <Input
           placeholder="Email"
           value={form.userEmail}
           onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
+          keyboardType="email-address"
         />
 
-        <Input
-          placeholder="YYYY-MM-DD"
-          value={form.dateOfBirth}
-          onChangeText={(t) => setForm(f => ({ ...f, dateOfBirth: t }))}
-        />
+        {/* Date of birth → type="date" on web, Input on native */}
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontWeight: '600' }}>Date of birth</Text>
+          {Platform.OS === 'web' ? (
+            <View
+              style={{
+                display: 'flex',
+                height: 34,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                alignItems: 'center',
+                borderRadius: 50,
+                backgroundColor: '#EDEDED',
+                maxWidth: 333,
+                width: '100%',
+              }}
+            >
+              <input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, dateOfBirth: e.target.value }))
+                }
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: 14,
+                }}
+              />
+            </View>
+          ) : (
+            <Input
+              placeholder="YYYY-MM-DD"
+              value={form.dateOfBirth}
+              onChangeText={(t) =>
+                setForm((f) => ({ ...f, dateOfBirth: t }))
+              }
+            />
+          )}
+        </View>
 
+        {/* Role */}
         <Text style={{ fontWeight: '600' }}>Role</Text>
         <Select
           value={form.userRole}
@@ -134,6 +177,7 @@ export default function RegisterProfileScreen() {
           options={USER_ROLES}
         />
 
+        {/* Country */}
         <Text style={{ fontWeight: '600' }}>Country of origin</Text>
         <Select
           value={form.countryOfOrigin}
@@ -142,6 +186,7 @@ export default function RegisterProfileScreen() {
           placeholder="Select your country"
         />
 
+        {/* Reason for travel */}
         <Text style={{ fontWeight: '600' }}>Reason for travel</Text>
         <Select
           value={form.reasonForTravel}
