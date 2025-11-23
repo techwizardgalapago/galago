@@ -23,6 +23,7 @@ const TRAVEL_REASONS = [
   'Tourism Industry Work',
   'Volunteer & Nonprofit Work',
   'Arts & Cultural Projects',
+  'Local Resident'
 ];
 
 export default function RegisterProfileScreen() {
@@ -111,19 +112,25 @@ export default function RegisterProfileScreen() {
         <Text style={{ fontSize: 24, fontWeight: '700' }}>Complete your profile</Text>
 
         {/* Full name */}
-        <Input
-          placeholder="Full name"
-          value={form.fullName}
-          onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
-        />
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontWeight: '600' }}>Fullname</Text>
+          <Input
+            placeholder="Full name"
+            value={form.fullName}
+            onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
+          />
+        </View>
 
         {/* Email */}
-        <Input
-          placeholder="Email"
-          value={form.userEmail}
-          onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
-          keyboardType="email-address"
-        />
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontWeight: '600' }}>Email</Text>
+          <Input
+            placeholder="Email"
+            value={form.userEmail}
+            onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
+            keyboardType="email-address"
+          />
+        </View>
 
         {/* Date of birth → type="date" on web, Input on native */}
         <View style={{ gap: 6 }}>
