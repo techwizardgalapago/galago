@@ -28,6 +28,7 @@ import {
 
 import { upsertVenuesFromAPIThunk } from '../../../../../store/slices/venueSlice';
 
+// ---------- Constantes ----------
 const VENUE_CATEGORIES = [
   'Restaurante',
   'Café',
@@ -41,10 +42,13 @@ const VENUE_CATEGORIES = [
   'Parque',
   'Tienda',
   'Souvenirs',
-  'Otro'
+  'Otro',
 ];
+
 const VENUE_LOCATIONS = ['Isla San Cristobal', 'Isla Isabela', 'Isla Santa Cruz'];
+
 const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
 const ALLOWED_TIMES = [
   '00:00','00:30','01:00','01:30','02:00','02:30','03:00','03:30',
   '04:00','04:30','05:00','05:30','06:00','06:30','07:00','07:30',
@@ -54,7 +58,7 @@ const ALLOWED_TIMES = [
   '20:00','20:30','21:00','21:30','22:00','22:30','23:00','23:30',
 ];
 
-// still used for TimeSelect + multiline description
+// ---------- Estilos base ----------
 const inputStyle = {
   borderWidth: 1,
   borderColor: '#ddd',
@@ -75,17 +79,16 @@ const chip = {
 const chipActive = { backgroundColor: '#eee', borderColor: '#999' };
 const buttonStyle = { backgroundColor: '#0a6', paddingVertical: 14, borderRadius: 12 };
 
-const TimeSelect = ({ value, onChange }) => {
-  return (
-    <Select
-      value={value}
-      onChange={onChange}
-      options={ALLOWED_TIMES}
-      placeholder={null}         // no “Select…” option for time
-      style={{ flex: 1 }}        // so two can sit in a row
-    />
-  );
-};
+// ---------- Componentes auxiliares ----------
+const TimeSelect = ({ value, onChange }) => (
+  <Select
+    value={value}
+    onChange={onChange}
+    options={ALLOWED_TIMES}
+    placeholder={null}
+    style={{ flex: 1 }}
+  />
+);
 
 const buildDefaultSchedules = () =>
   WEEKDAYS.map((d) => ({
@@ -115,6 +118,88 @@ const validateDaySegments = (segments = []) => {
   return '';
 };
 
+// ---------- Helpers para Google Maps (link → lat/lng) ----------
+const extractLatLngFromGoogleMapsUrl = (url) => {
+  try {
+    if (!url) return null;
+    const cleanUrl = url.trim();
+
+    // Caso 1: patrón @lat,lng
+    // Ej: https://www.google.com/maps/place/.../@-2.1709979,-79.9223592,17z
+    const atPattern = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const atMatch = cleanUrl.match(atPattern);
+    if (atMatch) {
+      return {
+        latitude: parseFloat(atMatch[1]),
+        longitude: parseFloat(atMatch[2]),
+      };
+    }
+
+    // Caso 2: query=lat,lng
+    // Ej: https://www.google.com/maps/search/?api=1&query=-2.17099,-79.92235
+    const queryPattern = /[?&]query=(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const queryMatch = cleanUrl.match(queryPattern);
+    if (queryMatch) {
+      return {
+        latitude: parseFloat(queryMatch[1]),
+        longitude: parseFloat(queryMatch[2]),
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error extrayendo lat/lng desde URL:', error);
+    return null;
+  }
+};
+
+// Detectar links cortos tipo app
+const isShortMapsLink = (url) =>
+  !!url && (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps'));
+
+// En native podrías intentar esto; en web no sirve por CORS, así que lo evitamos allá.
+const resolveShortMapsUrl = async (shortUrl) => {
+  try {
+    if (!shortUrl) return null;
+
+    const response = await fetch(shortUrl, {
+      method: 'GET',
+      redirect: 'follow',
+    });
+
+    return response?.url || shortUrl;
+  } catch (error) {
+    console.error('Error resolviendo link corto de Maps:', error);
+    return null;
+  }
+};
+
+const getCoordsFromGoogleMapsLink = async (url) => {
+  if (!url) return null;
+
+  const short = isShortMapsLink(url);
+  let finalUrl = url;
+
+  if (short) {
+    // En web NO podemos seguir redirecciones de maps.app.goo.gl por CORS
+    if (Platform.OS === 'web') {
+      console.warn(
+        'Links cortos de Google Maps no se pueden resolver en Web por CORS. Usa el link largo desde el navegador.'
+      );
+      return null;
+    }
+
+    // En iOS/Android sí intentamos resolver
+    const resolved = await resolveShortMapsUrl(url);
+    if (resolved) {
+      finalUrl = resolved;
+    }
+  }
+
+  return extractLatLngFromGoogleMapsUrl(finalUrl);
+};
+
+// ---------- Componente principal ----------
 export default function CrearNegocioScreen() {
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
@@ -125,7 +210,7 @@ export default function CrearNegocioScreen() {
     venueLocation: VENUE_LOCATIONS[0],
     venueAddress: '',
     venueDescription: '',
-    latitude: '',
+    latitude: '',   // se llenará al guardar si hay link válido
     longitude: '',
     negocio: true,
     venueContact: '',
@@ -135,6 +220,9 @@ export default function CrearNegocioScreen() {
   const [image, setImage] = useState(null); // { uri, name, type }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Link de Google Maps
+  const [mapsUrl, setMapsUrl] = useState('');
 
   const anyDayEnabled = useMemo(
     () => schedules.some((d) => d.enabled),
@@ -155,7 +243,7 @@ export default function CrearNegocioScreen() {
     }
   };
 
-  // ----- schedules UI helpers -----
+  // ---------- Helpers de horarios ----------
   const quickFillDay = (dayIdx, open = '08:00', close = '22:00') => {
     setSchedules((prev) => {
       const copy = [...prev];
@@ -250,6 +338,7 @@ export default function CrearNegocioScreen() {
     });
   };
 
+  // ---------- Validaciones ----------
   const validate = () => {
     const errs = [];
     if (!form.venueName?.trim()) errs.push('Nombre del negocio es requerido');
@@ -272,16 +361,40 @@ export default function CrearNegocioScreen() {
 
   const isAllowed = (t) => ALLOWED_TIMES.includes(t);
 
+  // ---------- Guardar ----------
   const onSave = async () => {
     if (!validate()) return;
     setSaving(true);
+
     try {
+      let latitudeStr = form.latitude;
+      let longitudeStr = form.longitude;
+
+      // 1) Resolver coords desde el link de Google Maps si:
+      // - hay link Y
+      // - no se llenaron coords manualmente
+      if (mapsUrl && (!latitudeStr || !longitudeStr)) {
+        const coords = await getCoordsFromGoogleMapsLink(mapsUrl);
+        if (!coords) {
+          setError(
+            Platform.OS === 'web'
+              ? 'No pude leer la ubicación del link. Usa el enlace completo desde Google Maps en el navegador (no el link corto de la app).'
+              : 'No pude leer la ubicación del link de Google Maps. Revisa el enlace.'
+          );
+          setSaving(false);
+          return;
+        }
+        latitudeStr = String(coords.latitude);
+        longitudeStr = String(coords.longitude);
+      }
+
+      // 2) Construir fields para crear venue
       const fields = {
         venueCategory: form.venueCategory,
         venueLocation: form.venueLocation,
         venueAddress: form.venueAddress || '',
-        latitude: form.latitude ? Number(form.latitude) : undefined,
-        longitude: form.longitude ? Number(form.longitude) : undefined,
+        latitude: latitudeStr ? Number(latitudeStr) : undefined,
+        longitude: longitudeStr ? Number(longitudeStr) : undefined,
         venueName: form.venueName,
         venueDescription: form.venueDescription,
         negocio: !!form.negocio,
@@ -294,6 +407,7 @@ export default function CrearNegocioScreen() {
         parseCreatedVenueId(venueResp) || venueResp?.venueID || venueResp?.id;
       if (!venueID) throw new Error('No se recibió el ID del venue creado');
 
+      // 3) Crear horarios
       const payload = [];
       for (const day of schedules) {
         if (!day.enabled) continue;
@@ -315,10 +429,12 @@ export default function CrearNegocioScreen() {
           });
         }
       }
+
       if (payload.length > 0) {
         await createVenueSchedules(payload);
       }
 
+      // 4) Subir logo si existe
       if (image) {
         if (Platform.OS === 'web') {
           const res = await fetch(image.uri);
@@ -336,6 +452,7 @@ export default function CrearNegocioScreen() {
         }
       }
 
+      // 5) Actualizar Redux con el venue completo
       const venueFull = await getVenueById(venueID);
       if (venueFull && upsertVenuesFromAPIThunk) {
         dispatch(upsertVenuesFromAPIThunk([venueFull]));
@@ -350,6 +467,7 @@ export default function CrearNegocioScreen() {
     }
   };
 
+  // ---------- Render ----------
   return (
     <Container>
       <ScrollView
@@ -393,7 +511,7 @@ export default function CrearNegocioScreen() {
           </View>
         </View>
 
-        {/* Ubicación */}
+        {/* Ubicación (isla) */}
         <View style={{ gap: 6 }}>
           <Text style={{ fontWeight: '600' }}>Ubicación</Text>
           <Select
@@ -431,30 +549,26 @@ export default function CrearNegocioScreen() {
           />
         </View>
 
-        {/* Lat/Long (opcionales) */}
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <View style={{ flex: 1, gap: 6 }}>
-            <Text style={{ fontWeight: '600' }}>Latitud (opcional)</Text>
-            <Input
-              value={form.latitude}
-              onChangeText={(t) =>
-                setForm((f) => ({ ...f, latitude: t }))
-              }
-              placeholder="-0.747383"
-              keyboardType="decimal-pad"
-            />
-          </View>
-          <View style={{ flex: 1, gap: 6 }}>
-            <Text style={{ fontWeight: '600' }}>Longitud (opcional)</Text>
-            <Input
-              value={form.longitude}
-              onChangeText={(t) =>
-                setForm((f) => ({ ...f, longitude: t }))
-              }
-              placeholder="-90.313163"
-              keyboardType="decimal-pad"
-            />
-          </View>
+        {/* Ubicación vía link de Google Maps */}
+        <View style={{ gap: 6 }}>
+          <Text style={{ fontWeight: '600' }}>Ubicación (link de Google Maps)</Text>
+          <Input
+            value={mapsUrl}
+            onChangeText={setMapsUrl}
+            placeholder="Pega aquí el link de Google Maps del negocio"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+            Tip: copia el link desde Google Maps en el navegador. Evita los links cortos de la app
+            (maps.app.goo.gl).
+          </Text>
+          {isShortMapsLink(mapsUrl) && (
+            <Text style={{ fontSize: 12, color: 'red', marginTop: 4 }}>
+              Parece que este link es de la app (maps.app.goo.gl). Abre Google Maps en el navegador,
+              copia el enlace completo y pégalo aquí.
+            </Text>
+          )}
         </View>
 
         {/* Descripción */}
@@ -491,7 +605,7 @@ export default function CrearNegocioScreen() {
           />
         </View>
 
-        {/* ---- Horarios multi-segmento ---- */}
+        {/* Horarios multi-segmento */}
         <View style={{ gap: 6, marginTop: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <Pressable
@@ -579,17 +693,13 @@ export default function CrearNegocioScreen() {
                       <TimeSelect
                         value={seg.openingTime_}
                         onChange={(val) =>
-                          setSegmentValue(dayIdx, segIdx, {
-                            openingTime_: val,
-                          })
+                          setSegmentValue(dayIdx, segIdx, { openingTime_: val })
                         }
                       />
                       <TimeSelect
                         value={seg.closingTime_}
                         onChange={(val) =>
-                          setSegmentValue(dayIdx, segIdx, {
-                            closingTime_: val,
-                          })
+                          setSegmentValue(dayIdx, segIdx, { closingTime_: val })
                         }
                       />
                       <Pressable

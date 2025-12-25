@@ -56,7 +56,7 @@ const VENUE_CATEGORIES = [
   'Parque',
   'Tienda',
   'Souvenirs',
-  'Otro'
+  'Otro',
 ];
 const VENUE_LOCATIONS = ['Isla San Cristobal', 'Isla Isabela', 'Isla Santa Cruz'];
 
@@ -91,6 +91,86 @@ const Field = ({ label, children }) => (
 
 const btn = { backgroundColor: '#111', paddingVertical: 14, borderRadius: 12 };
 
+// ---------- Helpers para Google Maps (link → lat/lng) ----------
+const extractLatLngFromGoogleMapsUrl = (url) => {
+  try {
+    if (!url) return null;
+    const cleanUrl = url.trim();
+
+    // Caso 1: patrón @lat,lng
+    // Ej: https://www.google.com/maps/place/.../@-2.1709979,-79.9223592,17z
+    const atPattern = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const atMatch = cleanUrl.match(atPattern);
+    if (atMatch) {
+      return {
+        latitude: parseFloat(atMatch[1]),
+        longitude: parseFloat(atMatch[2]),
+      };
+    }
+
+    // Caso 2: query=lat,lng
+    // Ej: https://www.google.com/maps/search/?api=1&query=-2.17099,-79.92235
+    const queryPattern = /[?&]query=(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const queryMatch = cleanUrl.match(queryPattern);
+    if (queryMatch) {
+      return {
+        latitude: parseFloat(queryMatch[1]),
+        longitude: parseFloat(queryMatch[2]),
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error extrayendo lat/lng desde URL:', error);
+    return null;
+  }
+};
+
+const isShortMapsLink = (url) =>
+  !!url && (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps'));
+
+// En native podrías intentar esto; en web no sirve por CORS, así que lo evitamos allá.
+const resolveShortMapsUrl = async (shortUrl) => {
+  try {
+    if (!shortUrl) return null;
+
+    const response = await fetch(shortUrl, {
+      method: 'GET',
+      redirect: 'follow',
+    });
+
+    return response?.url || shortUrl;
+  } catch (error) {
+    console.error('Error resolviendo link corto de Maps:', error);
+    return null;
+  }
+};
+
+const getCoordsFromGoogleMapsLink = async (url) => {
+  if (!url) return null;
+
+  const short = isShortMapsLink(url);
+  let finalUrl = url;
+
+  if (short) {
+    // En web NO podemos seguir redirecciones de maps.app.goo.gl por CORS
+    if (Platform.OS === 'web') {
+      console.warn(
+        'Links cortos de Google Maps no se pueden resolver en Web por CORS. Usa el link largo desde el navegador.'
+      );
+      return null;
+    }
+
+    // En iOS/Android sí intentamos resolver
+    const resolved = await resolveShortMapsUrl(url);
+    if (resolved) {
+      finalUrl = resolved;
+    }
+  }
+
+  return extractLatLngFromGoogleMapsUrl(finalUrl);
+};
+
 export default function EditVenueScreen() {
   const { venueID } = useLocalSearchParams();
   const dispatch = useDispatch();
@@ -115,6 +195,9 @@ export default function EditVenueScreen() {
   const [image, setImage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Link de Google Maps (para actualizar coords desde aquí si el usuario quiere)
+  const [mapsUrl, setMapsUrl] = useState('');
 
   const anyDayEnabled = useMemo(
     () => schedules.some((d) => d.enabled),
@@ -147,6 +230,9 @@ export default function EditVenueScreen() {
       console.log('No VenueSchedules found, using default schedules.');
       setSchedules(buildDefaultSchedules());
     }
+
+    // mapsUrl empieza vacío; el usuario pega uno nuevo si quiere actualizar coords
+    setMapsUrl('');
   }, [venue]);
 
   // ---- horarios helpers ----
@@ -286,12 +372,32 @@ export default function EditVenueScreen() {
     if (!validate()) return;
     setSaving(true);
     try {
+      // coords base: las que están en el form
+      let latitudeStr = form.latitude;
+      let longitudeStr = form.longitude;
+
+      // Si el usuario pegó un link de Maps, intentamos usarlas primero
+      if (mapsUrl) {
+        const coords = await getCoordsFromGoogleMapsLink(mapsUrl);
+        if (!coords) {
+          setError(
+            Platform.OS === 'web'
+              ? 'No pude leer la ubicación del link. Usa el enlace completo desde Google Maps en el navegador (no el link corto de la app).'
+              : 'No pude leer la ubicación del link de Google Maps. Revisa el enlace.'
+          );
+          setSaving(false);
+          return;
+        }
+        latitudeStr = String(coords.latitude);
+        longitudeStr = String(coords.longitude);
+      }
+
       const fields = {
         venueCategory: form.venueCategory,
         venueLocation: form.venueLocation,
         venueAddress: form.venueAddress || '',
-        latitude: form.latitude ? Number(form.latitude) : undefined,
-        longitude: form.longitude ? Number(form.longitude) : undefined,
+        latitude: latitudeStr ? Number(latitudeStr) : undefined,
+        longitude: longitudeStr ? Number(longitudeStr) : undefined,
         venueName: form.venueName,
         venueDescription: form.venueDescription,
         negocio: !!form.negocio,
@@ -445,6 +551,28 @@ export default function EditVenueScreen() {
           />
         </Field>
 
+        {/* Link de Google Maps para actualizar coordenadas */}
+        <Field label="Ubicación (link de Google Maps)">
+          <Input
+            value={mapsUrl}
+            onChangeText={setMapsUrl}
+            placeholder="Pega aquí el link de Google Maps del negocio"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+            Tip: copia el link desde Google Maps en el navegador. Evita los links cortos de la app
+            (maps.app.goo.gl).
+          </Text>
+          {isShortMapsLink(mapsUrl) && (
+            <Text style={{ fontSize: 12, color: 'red', marginTop: 4 }}>
+              Parece que este link es de la app (maps.app.goo.gl). Abre Google Maps en el navegador,
+              copia el enlace completo y pégalo aquí.
+            </Text>
+          )}
+        </Field>
+
+        {/* Lat / Long manual (para ver/corregir directamente) */}
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Field label="Latitud (opcional)">
             <Input
