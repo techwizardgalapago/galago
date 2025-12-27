@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/index.js
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { router } from 'expo-router';
 
 import Container from '../../../../components/Container';
+import { useNetworkStatus } from '../../../../hooks/useNetwork';
 import {
   fetchVenues,
   fetchUserVenuesRemote,
+  fetchUserVenuesByUserId,
 } from '../../../../store/slices/venueSlice';
 
 const isWeb = Platform.OS === 'web';
@@ -84,21 +86,33 @@ export default function MisNegociosScreen() {
   const authUser = useSelector((s) => s.auth?.user);
   const userVenueIds = authUser?.userVenues || [];
   const { list: venues, status } = useSelector((s) => s.venues);
+  const isOnline = useNetworkStatus();
+  const userID = authUser?.userID;
+  const lastRemoteKeyRef = useRef('');
 
-  // Fetch strategy:
-  // - Web: fetch from backend by IDs (no SQLite)
-  // - Native: fetch from SQLite
   useEffect(() => {
-    if (status !== 'idle') return;
+    const idsKey = userVenueIds.join('|');
+    if (!isOnline) return;
 
-    if (isWeb) {
-      if (userVenueIds.length) {
-        dispatch(fetchUserVenuesRemote(userVenueIds));
-      }
-    } else {
+    if (userVenueIds.length && idsKey !== lastRemoteKeyRef.current) {
+      lastRemoteKeyRef.current = idsKey;
+      dispatch(fetchUserVenuesRemote(userVenueIds));
+      return;
+    }
+
+    if (!userVenueIds.length && userID && idsKey !== lastRemoteKeyRef.current) {
+      lastRemoteKeyRef.current = userID;
+      dispatch(fetchUserVenuesByUserId(userID));
+    }
+  }, [dispatch, userVenueIds, isOnline, userID]);
+
+  useEffect(() => {
+    if (isWeb) return;
+    if (isOnline && userVenueIds.length) return;
+    if (status === 'idle') {
       dispatch(fetchVenues());
     }
-  }, [dispatch, status, userVenueIds.join('|')]);
+  }, [dispatch, status, isOnline, userVenueIds.length]);
 
   // Debug log only when ids change
   useEffect(() => {

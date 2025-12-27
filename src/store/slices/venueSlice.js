@@ -7,7 +7,7 @@ import {
   updateVenueLocal as dbUpdateVenueLocal,
   upsertVenuesFromAPI as dbUpsertVenuesFromAPI,
 } from "../../db/venues";
-import { getVenuesByIds } from "../../services/venuesService";
+import { getVenuesByIds, getVenuesByUserId } from "../../services/venuesService";
 
 // -------- Platform guards (como en usersSlice) --------
 const isWeb = Platform.OS === "web";
@@ -97,6 +97,28 @@ export const fetchUserVenuesRemote = createAsyncThunk(
   }
 );
 
+// Trae venues por userID; útil cuando el usuario no trae userVenues[] en auth
+export const fetchUserVenuesByUserId = createAsyncThunk(
+  "venues/fetchUserVenuesByUserId",
+  async (userID) => {
+    if (!userID) return [];
+    const remote = await getVenuesByUserId(userID);
+    const mapped = (remote || []).map(mapRemoteVenue).filter(Boolean);
+
+    const filtered = mapped.filter((v) => {
+      const val = v?.userID;
+      if (Array.isArray(val)) return val.includes(userID);
+      return val === userID;
+    });
+
+    if (isWeb) return filtered;
+
+    await dbUpsertVenuesFromAPI(filtered);
+    const all = await dbSelectAllVenues();
+    return all || [];
+  }
+);
+
 // -------- Slice --------
 const venuesSlice = createSlice({
   name: "venues",
@@ -177,6 +199,20 @@ const venuesSlice = createSlice({
         state.status = "succeeded";
       })
       .addCase(fetchUserVenuesRemote.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error?.message;
+      });
+
+    builder
+      .addCase(fetchUserVenuesByUserId.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(fetchUserVenuesByUserId.fulfilled, (state, action) => {
+        state.list = action.payload || [];
+        state.status = "succeeded";
+      })
+      .addCase(fetchUserVenuesByUserId.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error?.message;
       });

@@ -1,5 +1,15 @@
 import { getDatabase } from "./config";
 
+const ensureUserRow = async (db, userID) => {
+  if (!userID) return;
+  const now = Date.now();
+  await db.runAsync(
+    `INSERT OR IGNORE INTO users (userID, updated_at, deleted, isSynced)
+     VALUES (?, ?, 0, 1)`,
+    [userID, now]
+  );
+};
+
 export const initVenuesTable = async () => {
   const db = getDatabase();
   await db.runAsync(`CREATE TABLE IF NOT EXISTS venues (
@@ -20,10 +30,22 @@ export const initVenuesTable = async () => {
         isSynced INTEGER DEFAULT 0,
         FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
       );`);
+
+  // Ensure legacy schemas get missing columns without wiping data.
+  const cols = await db.getAllAsync(`PRAGMA table_info(venues)`);
+  const colNames = new Set((cols || []).map((c) => c?.name));
+  if (!colNames.has("longitude")) {
+    await db.runAsync(`ALTER TABLE venues ADD COLUMN longitude REAL`);
+  }
+  if (!colNames.has("latitude")) {
+    await db.runAsync(`ALTER TABLE venues ADD COLUMN latitude REAL`);
+  }
 };
 
 export const insertVenue = async (venue) => {
   const db = getDatabase();
+  const venueUserId = Array.isArray(venue.userID) ? venue.userID[0] : venue.userID ?? null;
+  await ensureUserRow(db, venueUserId);
 
   const now = Date.now();
   await db.runAsync(
@@ -48,7 +70,7 @@ export const insertVenue = async (venue) => {
       venue.latitude,
       venue.longitude,
       venue.negocio ? 1 : 0,
-      Array.isArray(venue.userID) ? venue.userID[0] : venue.userID ?? null,
+      venueUserId,
       now,
     ]
   );
@@ -61,6 +83,8 @@ export const insertVenuesFromAPI = async (venues) => {
     await db.execAsync("BEGIN TRANSACTION");
 
     for (const venue of venues) {
+      const venueUserId = Array.isArray(venue.userID) ? venue.userID[0] : venue.userID ?? null;
+      await ensureUserRow(db, venueUserId);
       await db.runAsync(
         `INSERT INTO venues (
           venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation, 
@@ -79,7 +103,7 @@ export const insertVenuesFromAPI = async (venues) => {
           venue.latitude ?? 0,
           venue.longitude ?? 0,
           venue.negocio ? 1 : 0,
-          Array.isArray(venue.userID) ? venue.userID[0] : venue.userID, // foreign key must match
+          venueUserId, // foreign key must match
           1, // ✅ mark as synced
         ]
       );
@@ -178,6 +202,7 @@ export const upsertVenuesFromAPI = async (venues = []) => {
 
     for (const raw of venues) {
       const v = mapVenueFromAPI(raw);
+      await ensureUserRow(db, v.userID);
       await db.runAsync(
         `
             INSERT INTO venues (

@@ -9,23 +9,25 @@ function RootAppLayout() {
   const { ready, syncing } = useAppInitializer();
   useAuthGuard();
 
-  if (!ready) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#0B0F14",
-        }}
-      >
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
   return (
     <>
+      {!ready && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#0B0F14",
+            zIndex: 999,
+          }}
+        >
+          <ActivityIndicator />
+        </View>
+      )}
       {syncing && (
         <View
           style={{
@@ -42,7 +44,7 @@ function RootAppLayout() {
         </View>
       )}
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Expo Router will auto-register child routes */}
+        {/* Expo Router will auto-register  child routes */}
         {/* <Stack.Screen name='(tabs)' options={{ headerShown: false }} /> */}
       </Stack>
     </>

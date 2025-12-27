@@ -56,6 +56,18 @@ export const getVenuesByIds = async (ids = []) => {
   return results;
 };
 
+// GET venues by user; tries filtered endpoint first, falls back to full list
+export const getVenuesByUserId = async (userID) => {
+  if (!userID) return [];
+  try {
+    const res = await api.get(`/venues`, { params: { userID } });
+    return res.data;
+  } catch (err) {
+    const res = await api.get(`/venues`);
+    return res.data;
+  }
+};
+
 // PATCH venue (solo los campos enviados)
 export const patchVenue = async (venueID, fieldsPatch) => {
   // Ajusta al shape que espera tu backend para PATCH (Airtable: [{id, fields}] o { fields }

@@ -1,6 +1,3 @@
-// -------------------------------------------------
-// src/app/(auth)/login.js
-// -------------------------------------------------
 import React, { useState } from "react";
 import {
   View,
@@ -10,19 +7,25 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { useAuth } from "../../hooks/useAuth";
-import { Link } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import * as Google from "expo-auth-session/providers/google";
+import { useDispatch } from "react-redux";
+import { useAuth } from "../../hooks/useAuth";
+import { Link } from "expo-router";
+import { authStorage } from "../../utils/authStorage";
+import { setAuthHeader } from "../../services/api";
+import { setToken } from "../../store/slices/authSlice";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
-  const { status, error, doLogin, doLoginWithGoogle } = useAuth();
+  const { status, error, doLogin } = useAuth();
+  const dispatch = useDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
+
+  const api = process.env.EXPO_PUBLIC_API_URL;
 
   const onSubmit = async () => {
     setLocalError("");
@@ -37,40 +40,54 @@ export default function LoginScreen() {
     }
   };
 
-
-  const api = process.env.EXPO_PUBLIC_API_URL; // Ej: http://localhost:8080/api/v1
-
-  const startGoogleLogin = () => {
-    const returnTo = `${window.location.origin}/(auth)/callback`;
-    window.location.href = `${api}/auth/google-login?redirect_uri=${encodeURIComponent(returnTo)}`;
+  const extractTokenFromUrl = (url) => {
+    if (!url) return null;
+    const hash = url.split("#")[1] || "";
+    const query = url.split("?")[1] || "";
+    const params = hash || query;
+    if (!params) return null;
+    try {
+      const usp = new URLSearchParams(params);
+      return usp.get("token");
+    } catch {
+      const match = params
+        .split("&")
+        .map((p) => p.split("="))
+        .find(([k]) => k === "token");
+      return match ? match[1] : null;
+    }
   };
 
-  // Google OAuth (RN + Web)
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: Platform.OS !== "web",
-  });
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
-    scopes: ["profile", "email"],
-    responseType: "id_token",
-    extraParams: { prompt: "select_account" },
-  });
-
-  const onGooglePress = async () => {
+  const startGoogleLogin = async () => {
     try {
-      const res = await promptAsync({ useProxy: Platform.OS !== "web" });
-      if (res?.type === "success") {
-        const idToken = res.params?.id_token || res.authentication?.idToken;
-        if (!idToken) throw new Error("No id_token from Google");
-        await doLoginWithGoogle(idToken);
+      const redirectUri = AuthSession.makeRedirectUri({
+        useProxy: Platform.OS !== "web",
+        path: "callback",
+      });
+      const url = `${api}/auth/google-login?redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}`;
+
+      const res = await WebBrowser.openAuthSessionAsync(url, redirectUri);
+
+      if (res.type !== "success" || !res.url) {
+        if (res.type !== "dismiss" && res.type !== "cancel") {
+          setLocalError("No se pudo completar el login con Google.");
+        }
+        return;
       }
-    } catch (err) {
-      setLocalError(err?.message || "Google sign-in failed");
+
+      const token = extractTokenFromUrl(res.url);
+      if (!token) {
+        setLocalError("No se recibio token de Google.");
+        return;
+      }
+
+      await authStorage.setToken(token);
+      setAuthHeader(token);
+      dispatch(setToken(token));
+    } catch (e) {
+      setLocalError(e?.message || "Error de autenticacion con Google");
     }
   };
 
@@ -79,19 +96,16 @@ export default function LoginScreen() {
       <Text style={styles.title}>Iniciar sesión</Text>
 
       <TextInput
-        autoCapitalize='none'
-        autoComplete='email'
-        keyboardType='email-address'
-        placeholder='Correo electrónico'
-        placeholderTextColor='#9CA3AF'
+        autoCapitalize="none"
+        keyboardType="email-address"
+        placeholder="Correo electrónico"
         value={email}
         onChangeText={setEmail}
         style={styles.input}
       />
 
       <TextInput
-        placeholder='Contraseña'
-        placeholderTextColor='#9CA3AF'
+        placeholder="Contraseña"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -101,30 +115,23 @@ export default function LoginScreen() {
       {!!localError && <Text style={styles.error}>{localError}</Text>}
       {!!error && <Text style={styles.error}>{String(error)}</Text>}
 
-      <TouchableOpacity
-        style={styles.btn}
-        onPress={onSubmit}
-        disabled={status === "loading"}
-      >
+      <TouchableOpacity style={styles.btn} onPress={onSubmit}>
         <Text style={styles.btnText}>
           {status === "loading" ? "Entrando…" : "Entrar"}
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.btnGoogle}
-        onPress={startGoogleLogin}
-        disabled={!request}
-      >
+      <TouchableOpacity style={styles.btnGoogle} onPress={startGoogleLogin}>
         <Text style={styles.btnGoogleText}>Continuar con Google</Text>
       </TouchableOpacity>
 
       <Text style={styles.alt}>
-        ¿No tienes cuenta? <Link href='/(auth)/register'>Crear cuenta</Link>
+        ¿No tienes cuenta? <Link href="/(auth)/register">Crear cuenta</Link>
       </Text>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

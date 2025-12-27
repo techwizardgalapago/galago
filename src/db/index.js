@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { initializeDatabase as initDBConnection } from './config';
 import { initUsersTable } from './users';
 import { initVenuesTable } from './venues';
