@@ -68,6 +68,13 @@ export default function LoginScreen() {
         redirectUri
       )}`;
 
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined") {
+          window.location.assign(url);
+        }
+        return;
+      }
+
       const res = await WebBrowser.openAuthSessionAsync(url, redirectUri);
 
       if (res.type !== "success" || !res.url) {
