@@ -1,4 +1,4 @@
-import { TextInput, StyleSheet } from 'react-native';
+import { TextInput, StyleSheet, Platform } from 'react-native';
 
 export default function AuthInput({
   style,
@@ -16,12 +16,13 @@ export default function AuthInput({
 
 const styles = StyleSheet.create({
   input: {
-    width: '100%',
+    width: Platform.OS === 'web' ? 303 : '100%',
     height: 34,
     backgroundColor: '#EDEDED',
     borderRadius: 50,
     paddingHorizontal: 16,
     fontSize: 14,
     color: '#1B2222',
+    alignSelf: Platform.OS === 'web' ? 'center' : 'stretch',
   },
 });

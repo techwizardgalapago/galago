@@ -185,10 +185,13 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: "row",
     gap: 10,
+    width: Platform.OS === "web" ? 303 : "100%",
+    alignSelf: "center",
     marginTop: 8,
   },
   button: {
     flex: 1,
+    minWidth: 0,
   },
   link: {
     marginTop: 8,

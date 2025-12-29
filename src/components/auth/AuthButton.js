@@ -1,4 +1,4 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, Text, StyleSheet, Platform } from 'react-native';
 
 export default function AuthButton({
   label,
@@ -21,6 +21,8 @@ export default function AuthButton({
       ]}
     >
       <Text
+        numberOfLines={1}
+        ellipsizeMode="clip"
         style={[
           styles.textBase,
           isOutline ? styles.textOutline : styles.textPrimary,
@@ -52,6 +54,8 @@ const styles = StyleSheet.create({
   textBase: {
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: Platform.OS === 'web' ? 16 : 12,
   },
   textPrimary: {
     color: '#FDFDFC',
