@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
-    lineHeight: Platform.OS === 'web' ? 16 : 12,
+    lineHeight: Platform.select({ web: 16, ios: 18, android: 16 }),
   },
   textPrimary: {
     color: '#FDFDFC',

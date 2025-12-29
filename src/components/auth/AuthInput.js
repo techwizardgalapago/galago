@@ -17,12 +17,15 @@ export default function AuthInput({
 const styles = StyleSheet.create({
   input: {
     width: Platform.OS === 'web' ? 303 : '100%',
-    height: 34,
+    height: 40,
     backgroundColor: '#EDEDED',
     borderRadius: 50,
     paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'android' ? 8 : 6,
     fontSize: 14,
+    lineHeight: 18,
     color: '#1B2222',
     alignSelf: Platform.OS === 'web' ? 'center' : 'stretch',
+    textAlignVertical: 'center',
   },
 });

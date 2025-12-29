@@ -1,4 +1,4 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, Text, StyleSheet, View } from 'react-native';
 
 export default function AuthLink({
   label,
@@ -13,7 +13,7 @@ export default function AuthLink({
   );
 
   if (!onPress) {
-    return <Text style={[styles.text, textStyle]}>{label}</Text>;
+    return <View style={style}>{content}</View>;
   }
 
   return (

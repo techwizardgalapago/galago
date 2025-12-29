@@ -153,9 +153,11 @@ const styles = StyleSheet.create({
     marginBottom: 108,
     paddingTop: 136,
     paddingHorizontal: 30,
-    paddingBottom: 24,
+    paddingBottom: 30,
+    position: "relative",
   },
   content: {
+    flex: 1,
     alignItems: "center",
     gap: 20,
   },
@@ -194,8 +196,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   link: {
-    marginTop: 8,
-    paddingVertical: 12,
+    position: "absolute",
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: "center",
   },
   error: {
     color: "#D93B3B",
