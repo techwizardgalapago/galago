@@ -6,6 +6,8 @@ config.transformer = {
     ...config.transformer,
     babelTransformerPath: require.resolve('react-native-svg-transformer'),
 }
+config.resolver.assetExts = config.resolver.assetExts.filter((ext) => ext !== 'svg');
+config.resolver.sourceExts = [...config.resolver.sourceExts, 'svg'];
 // Asegurar que Metro trate `.wasm` como asset válido
 config.resolver.assetExts = [...config.resolver.assetExts, 'wasm'];
 
