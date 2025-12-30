@@ -78,9 +78,11 @@ export default function RegisterScreen() {
             style={styles.button}
           />
 
-          <Text style={styles.alt}>
-            ¿Ya tienes cuenta? <Link href="/(auth)/login">Inicia sesión</Link>
-          </Text>
+          <View style={styles.altBottom}>
+            <Text style={styles.alt}>
+              ¿Ya tienes cuenta? <Link href="/(auth)/login">Inicia sesión</Link>
+            </Text>
+          </View>
         </View>
       </AuthCard>
     </AuthBackground>
@@ -109,5 +111,12 @@ const styles = StyleSheet.create({
     width: 303,
   },
   error: { color: '#D93B3B', textAlign: 'center' },
-  alt: { color: '#99A0A0', marginTop: 12, textAlign: 'center' },
+  altBottom: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  alt: { color: '#99A0A0', textAlign: 'center' },
 });
