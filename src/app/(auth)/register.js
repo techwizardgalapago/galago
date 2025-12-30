@@ -2,17 +2,17 @@
 // src/app/(auth)/register.js
 // -------------------------------------------------
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
-
-WebBrowser.maybeCompleteAuthSession();
+import AuthBackground from '../../components/auth/AuthBackground';
+import AuthCard from '../../components/auth/AuthCard';
+import AuthTitle from '../../components/auth/AuthTitle';
+import AuthInput from '../../components/auth/AuthInput';
+import AuthButton from '../../components/auth/AuthButton';
 
 export default function RegisterScreen() {
-  const { status, error, doRegister, doLoginWithGoogle } = useAuth();
+  const { status, error, doRegister } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -34,66 +34,80 @@ export default function RegisterScreen() {
     }
   };
 
-  // --- Google OAuth (Sign up / Sign in) ---
-  const redirectUri = AuthSession.makeRedirectUri({ useProxy: Platform.OS !== 'web' });
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    redirectUri,
-    scopes: ['profile', 'email'],
-    responseType: 'id_token',
-    extraParams: { prompt: 'select_account' },
-  });
-
-  const onGooglePress = async () => {
-    try {
-      const res = await promptAsync({ useProxy: Platform.OS !== 'web' });
-      if (res?.type === 'success') {
-        const idToken = res.params?.id_token || res.authentication?.idToken;
-        if (!idToken) throw new Error('No id_token from Google');
-        // Backend should create the user if not existing, and return { token, user }
-        await doLoginWithGoogle(idToken);
-      }
-    } catch (err) {
-      setLocalError(err?.message || 'Google sign-in failed');
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Crear cuenta</Text>
+    <AuthBackground>
+      <AuthCard style={styles.card}>
+        <View style={styles.content}>
+          <AuthTitle>Bienvenidx!</AuthTitle>
 
-      <TextInput placeholder="Nombre" placeholderTextColor="#9CA3AF" value={firstName} onChangeText={setFirstName} style={styles.input} />
-      <TextInput placeholder="Apellido" placeholderTextColor="#9CA3AF" value={lastName} onChangeText={setLastName} style={styles.input} />
-      <TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="Correo electrónico" placeholderTextColor="#9CA3AF" value={userEmail} onChangeText={setUserEmail} style={styles.input} />
-      <TextInput placeholder="Contraseña" placeholderTextColor="#9CA3AF" secureTextEntry value={password} onChangeText={setPassword} style={styles.input} />
+          <View style={styles.form}>
+            <AuthInput
+              placeholder="Nombre"
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+            <AuthInput
+              placeholder="Apellido"
+              value={lastName}
+              onChangeText={setLastName}
+            />
+            <AuthInput
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholder="Correo electrónico"
+              value={userEmail}
+              onChangeText={setUserEmail}
+            />
+            <AuthInput
+              placeholder="Contraseña"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
 
-      {!!localError && <Text style={styles.error}>{localError}</Text>}
-      {!!error && <Text style={styles.error}>{String(error)}</Text>}
+          {!!localError && <Text style={styles.error}>{localError}</Text>}
+          {!!error && <Text style={styles.error}>{String(error)}</Text>}
 
-      <TouchableOpacity style={styles.btn} onPress={onSubmit} disabled={status === 'loading'}>
-        <Text style={styles.btnText}>{status === 'loading' ? 'Creando…' : 'Crear cuenta'}</Text>
-      </TouchableOpacity>
+          <AuthButton
+            label={status === 'loading' ? 'Creando…' : 'Regístrate'}
+            variant="outline"
+            onPress={onSubmit}
+            disabled={status === 'loading'}
+            style={styles.button}
+          />
 
-      <TouchableOpacity style={styles.btnGoogle} onPress={onGooglePress} disabled={!request}>
-        <Text style={styles.btnGoogleText}>Continuar con Google</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.alt}>¿Ya tienes cuenta? <Link href="/(auth)/login">Inicia sesión</Link></Text>
-    </View>
+          <Text style={styles.alt}>
+            ¿Ya tienes cuenta? <Link href="/(auth)/login">Inicia sesión</Link>
+          </Text>
+        </View>
+      </AuthCard>
+    </AuthBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#0B0F14', justifyContent: 'center' },
-  title: { color: 'white', fontSize: 24, fontWeight: '800', marginBottom: 16, textAlign: 'center' },
-  input: { backgroundColor: '#121821', borderColor: '#1F2A37', borderWidth: 1, color: 'white', padding: 12, borderRadius: 12, marginBottom: 12 },
-  btn: { backgroundColor: '#2563EB', padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 4 },
-  btnText: { color: 'white', fontWeight: '700' },
-  btnGoogle: { backgroundColor: '#FFFFFF', padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  btnGoogleText: { color: '#111827', fontWeight: '700' },
-  error: { color: '#FCA5A5', marginBottom: 8, textAlign: 'center' },
-  alt: { color: '#9CA3AF', marginTop: 12, textAlign: 'center' },
+  card: {
+    height: 800,
+    marginBottom: 52,
+    paddingTop: 88,
+    paddingHorizontal: 30,
+    paddingBottom: 30,
+    position: 'relative',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 20,
+  },
+  form: {
+    width: '100%',
+    gap: 20,
+  },
+  button: {
+    width: 303,
+  },
+  error: { color: '#D93B3B', textAlign: 'center' },
+  alt: { color: '#99A0A0', marginTop: 12, textAlign: 'center' },
 });
