@@ -13,7 +13,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "build:web": "rimraf dist && expo export -p web",
+    "build:web": "rimraf dist && expo export -p web --clear",
     "serve:web": "expo serve"
   },
   "dependencies": {
