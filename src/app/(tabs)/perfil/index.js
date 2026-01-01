@@ -1,5 +1,6 @@
 // src/app/(tabs)/perfil/index.js
 import { View, Text, StyleSheet, Platform, useWindowDimensions } from "react-native";
+import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import AuthBackground from "../../../components/auth/AuthBackground";
@@ -8,13 +9,17 @@ import AuthButton from "../../../components/auth/AuthButton";
 import ProfileAvatarBadge from "../../../components/profile/ProfileAvatarBadge";
 import ProfileTabs from "../../../components/profile/ProfileTabs";
 import ProfileEventCard from "../../../components/profile/ProfileEventCard";
+import { joinFullName } from "../../../features/users/profileComplition";
 
 export default function PerfilScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const user = useSelector((s) => s.auth?.user);
   const topGap = 108;
   const topInset = Platform.OS === "ios" ? insets.top : 0;
   const cardHeight = Math.max(windowHeight - topGap - topInset, 0);
+  const fullName =
+    user?.fullName || joinFullName(user?.firstName, user?.lastName) || "—";
 
   return (
     <AuthBackground>
@@ -23,7 +28,7 @@ export default function PerfilScreen() {
           <View style={styles.section}>
             <View style={styles.profileBlock}>
               <ProfileAvatarBadge />
-              <Text style={styles.name}>Joche Vega</Text>
+              <Text style={styles.name}>{fullName}</Text>
             </View>
 
             <View style={styles.buttonRow}>

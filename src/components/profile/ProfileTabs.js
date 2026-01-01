@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 
 export default function ProfileTabs({ tabs, activeKey, onChange }) {
   return (
@@ -11,7 +11,11 @@ export default function ProfileTabs({ tabs, activeKey, onChange }) {
             onPress={() => onChange?.(tab.key)}
             style={styles.tab}
           >
-            <Text style={[styles.label, isActive ? styles.active : styles.inactive]}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="clip"
+              style={[styles.label, isActive ? styles.active : styles.inactive]}
+            >
               {tab.label}
             </Text>
             {isActive ? <View style={styles.dot} /> : null}
@@ -26,13 +30,15 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 45,
+    paddingHorizontal: Platform.OS === 'ios' ? 24 : 45,
     width: '100%',
   },
   tab: {
+    flex: 1,
     alignItems: 'center',
     gap: 2,
-    minWidth: 80,
+    minWidth: 0,
+    paddingHorizontal: 6,
   },
   label: {
     fontSize: 16,
