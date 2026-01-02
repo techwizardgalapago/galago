@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/[venueID]/index.js
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, Image, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,6 +9,7 @@ import AuthBackground from '../../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../../components/auth/AuthCard';
 import { selectVenueByIdFromState } from '../../../../../store/slices/venueSlice';
 import { fetchSchedulesByVenue } from '../../../../../store/slices/schedulesByVenueSlice';
+import { getVenueById } from '../../../../../services/venuesService';
 
 const WEEKDAYS_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const EMPTY_SCHEDULES = [];
@@ -22,6 +23,7 @@ export default function VenueDetailScreen() {
     const value = s.schedulesByVenue?.schedulesByVenueID?.[venueID];
     return value || EMPTY_SCHEDULES;
   });
+  const [remoteSchedules, setRemoteSchedules] = useState(EMPTY_SCHEDULES);
   const topGap = 108;
   const topInset = Platform.OS === 'ios' ? insets.top : 0;
   console.log('VenueDetailScreen - venue from state:', venue);
@@ -32,22 +34,43 @@ export default function VenueDetailScreen() {
     dispatch(fetchSchedulesByVenue(venueID));
   }, [dispatch, venueID]);
 
-  if (!venue) {
-    return (
-      <AuthBackground>
-        <View style={styles.missingWrapper}>
-          <Text style={styles.missingText}>No se encontró el negocio.</Text>
-        </View>
-      </AuthBackground>
-    );
-  }
+  useEffect(() => {
+    let active = true;
+    if (!venueID) return undefined;
+    if (Platform.OS === 'web') return undefined;
+    const loadRemoteSchedules = async () => {
+      try {
+        const res = await getVenueById(venueID);
+        const record = res?.fields ? res.fields : res;
+        const nextSchedules = Array.isArray(record?.VenueSchedules)
+          ? record.VenueSchedules
+          : [];
+        if (active) setRemoteSchedules(nextSchedules);
+      } catch (e) {
+        console.warn('VenueDetailScreen - getVenueById failed:', e?.message || e);
+      }
+    };
+    loadRemoteSchedules();
+    return () => {
+      active = false;
+    };
+  }, [venueID]);
+
+  useEffect(() => {
+    if (!venueID) return;
+    console.log('VenueDetailScreen - schedulesByVenue:', {
+      venueID,
+      count: schedulesByVenue.length,
+      sample: schedulesByVenue[0] || null,
+    });
+  }, [venueID, schedulesByVenue]);
 
   // --- Imagen principal (maneja array o string JSON) ---
   let firstImage = null;
   try {
-    if (Array.isArray(venue.venueImage)) {
+    if (Array.isArray(venue?.venueImage)) {
       firstImage = venue.venueImage[0] || null;
-    } else if (typeof venue.venueImage === 'string' && venue.venueImage.trim()) {
+    } else if (typeof venue?.venueImage === 'string' && venue.venueImage.trim()) {
       const parsed = JSON.parse(venue.venueImage);
       if (Array.isArray(parsed)) firstImage = parsed[0] || null;
     }
@@ -63,7 +86,11 @@ export default function VenueDetailScreen() {
       Array.isArray(venue?.VenueSchedules) && venue.VenueSchedules.length
         ? venue.VenueSchedules
         : [];
-    const raw = rawFromVenue.length ? rawFromVenue : schedulesByVenue;
+    const raw = rawFromVenue.length
+      ? rawFromVenue
+      : schedulesByVenue.length
+      ? schedulesByVenue
+      : remoteSchedules;
     const asObjects = (raw || []).map((r) => (r?.fields ? r.fields : r));
 
     const normalizeWeekDay = (value) => {
@@ -130,7 +157,7 @@ export default function VenueDetailScreen() {
       if (da !== db) return da - db;
         return (a.openingTime_ || '').localeCompare(b.openingTime_ || '');
       });
-  }, [venue?.VenueSchedules, schedulesByVenue]);
+  }, [venue?.VenueSchedules, schedulesByVenue, remoteSchedules]);
 
   const schedulesByDay = useMemo(() => {
     const map = {};
@@ -181,6 +208,16 @@ export default function VenueDetailScreen() {
       ? { key: 'rating', label: normalizedRating, variant: 'rating' }
       : null,
   ].filter(Boolean);
+
+  if (!venue) {
+    return (
+      <AuthBackground>
+        <View style={styles.missingWrapper}>
+          <Text style={styles.missingText}>No se encontró el negocio.</Text>
+        </View>
+      </AuthBackground>
+    );
+  }
 
   return (
     <AuthBackground>
