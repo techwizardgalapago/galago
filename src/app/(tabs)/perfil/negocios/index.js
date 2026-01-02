@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
   useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -145,82 +146,81 @@ export default function MisNegociosScreen() {
             borderBottomRightRadius: 0,
             paddingTop: 30,
             paddingBottom: 24,
-            gap: 50,
           }}
         >
-          <Header />
+          <ScrollView contentContainerStyle={{ gap: 50, paddingBottom: 24 }}>
+            <Header />
 
-          {isLoading && (
-            <View style={{ paddingHorizontal: 30 }}>
-              <ActivityIndicator />
-            </View>
-          )}
-
-          {isEmpty ? (
-            <View style={{ paddingHorizontal: 30 }}>
-              <Text style={{ opacity: 0.6 }}>
-                Aún no tienes negocios registrados.
-              </Text>
-            </View>
-          ) : (
-            <View style={{ gap: 28 }}>
-              <FlatList
-                data={myVenues}
-                keyExtractor={(v) => v.venueID}
-                renderItem={({ item }) => (
-                  <Pressable
-                    onPress={() => {
-                      blurActive();
-                      router.push(`/(tabs)/perfil/negocios/${item.venueID}`);
-                    }}
-                  >
-                    <PlaceCard
-                      imageUri={getVenueImageUrl(item)}
-                      title={item.venueName || 'Sin nombre'}
-                      location={item.venueLocation || ''}
-                      rating="4.0"
-                      category={item.venueCategory || 'Ecuatoriana'}
-                      price="$$$$"
-                    />
-                  </Pressable>
-                )}
-                contentContainerStyle={{ gap: 18 }}
-              />
+            {isLoading && (
               <View style={{ paddingHorizontal: 30 }}>
-                <Text style={{ fontSize: 20, fontWeight: '500', color: '#1B2222' }}>
-                  Eventos Organizados Por Ti
+                <ActivityIndicator />
+              </View>
+            )}
+
+            {isEmpty ? (
+              <View style={{ paddingHorizontal: 30 }}>
+                <Text style={{ opacity: 0.6 }}>
+                  Aún no tienes negocios registrados.
                 </Text>
               </View>
-              <ProfileEventCard
-                time="25 MAR — MARTES, 15:00"
-                title="Festival de Arte en la Playa"
-                location="La Nube, Isla Santa Cruz"
-                tags={['#exhibiciones', '#aire libre', '#talleres']}
+            ) : (
+              <View style={{ gap: 28 }}>
+                <View style={{ gap: 18 }}>
+                  {myVenues.map((item) => (
+                    <Pressable
+                      key={item.venueID}
+                      onPress={() => {
+                        blurActive();
+                        router.push(`/(tabs)/perfil/negocios/${item.venueID}`);
+                      }}
+                    >
+                      <PlaceCard
+                        imageUri={getVenueImageUrl(item)}
+                        title={item.venueName || 'Sin nombre'}
+                        location={item.venueLocation || ''}
+                        rating="4.0"
+                        category={item.venueCategory || 'Ecuatoriana'}
+                        price="$$$$"
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+                <View style={{ paddingHorizontal: 30 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '500', color: '#1B2222' }}>
+                    Eventos Organizados Por Ti
+                  </Text>
+                </View>
+                <ProfileEventCard
+                  time="25 MAR — MARTES, 15:00"
+                  title="Festival de Arte en la Playa"
+                  location="La Nube, Isla Santa Cruz"
+                  tags={['#exhibiciones', '#aire libre', '#talleres']}
+                />
+              </View>
+            )}
+
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: 10,
+                paddingHorizontal: 30,
+                justifyContent: 'center',
+              }}
+            >
+              <AuthButton
+                label="Nuevo evento"
+                onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
+                style={{ flex: 1, backgroundColor: '#F26719' }}
+                textStyle={{ color: 'white' }}
+              />
+              <AuthButton
+                label="Registrar negocio"
+                onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
+                style={{ flex: 1, backgroundColor: '#EDEDEC' }}
+                textStyle={{ color: '#1B2222' }}
               />
             </View>
-          )}
-
-          <View
-            style={{
-              flexDirection: 'row',
-              gap: 10,
-              paddingHorizontal: 30,
-              justifyContent: 'center',
-            }}
-          >
-            <AuthButton
-              label="Nuevo evento"
-              onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
-              style={{ flex: 1, backgroundColor: '#F26719' }}
-              textStyle={{ color: 'white' }}
-            />
-            <AuthButton
-              label="Registrar negocio"
-              onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
-              style={{ flex: 1, backgroundColor: '#EDEDEC' }}
-              textStyle={{ color: '#1B2222' }}
-            />
-          </View>
+          </ScrollView>
         </AuthCard>
       </View>
     </AuthBackground>
