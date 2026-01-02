@@ -19,6 +19,7 @@ import AuthCard from '../../../../../components/auth/AuthCard';
 import AuthButton from '../../../../../components/auth/AuthButton';
 import AuthInput from '../../../../../components/auth/AuthInput';
 import Select from '../../../../../components/Select';
+import { useMedia } from '../../../../../hooks/useMedia';
 
 import {
   createVenue,
@@ -62,6 +63,7 @@ const ALLOWED_TIMES = [
 
 // ---------- Estilos base ----------
 const buttonStyle = { backgroundColor: '#0a6', paddingVertical: 14, borderRadius: 12 };
+const selectFullStyle = { maxWidth: '100%', height: 40 };
 
 // ---------- Componentes auxiliares ----------
 const TimeSelect = ({ value, onChange }) => (
@@ -187,6 +189,8 @@ const getCoordsFromGoogleMapsLink = async (url) => {
 export default function CrearNegocioScreen() {
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
+  const { isDesktop, isWide } = useMedia();
+  const isDesktopLayout = isDesktop || isWide;
 
   const [form, setForm] = useState({
     venueName: '',
@@ -488,6 +492,7 @@ export default function CrearNegocioScreen() {
                   fontWeight: '600',
                   color: '#1B2222',
                   textAlign: 'center',
+                  marginBottom: 4,
                 }}
               >
                 Registra tu negocio
@@ -503,89 +508,185 @@ export default function CrearNegocioScreen() {
                 (para más información contactese con nuestro equipo)
               </Text>
             </View>
-            <AuthInput
-              value={form.venueName}
-              onChangeText={(t) => setForm((f) => ({ ...f, venueName: t }))}
-              placeholder="Nombre del establecimiento"
-            />
-
-            <AuthInput
-              value={form.venueAddress}
-              onChangeText={(t) =>
-                setForm((f) => ({ ...f, venueAddress: t }))
-              }
-              placeholder="Dirección"
-            />
-
-            <Text style={{ fontSize: 14, color: '#1B2222' }}>
-              Información de contacto:
-            </Text>
-            <AuthInput
-              value={form.venueContact}
-              onChangeText={(t) =>
-                setForm((f) => ({ ...f, venueContact: t }))
-              }
-              placeholder="Número de contacto"
-              keyboardType="phone-pad"
-            />
-
-            <Text style={{ fontSize: 14, color: '#1B2222' }}>Ubicación:</Text>
-            <Select
-              value={form.venueLocation}
-              onChange={(val) =>
-                setForm((f) => ({ ...f, venueLocation: val }))
-              }
-              options={VENUE_LOCATIONS}
-              placeholder="Seleccionar"
-            />
-
-            <Text style={{ fontSize: 14, color: '#1B2222' }}>Categoria:</Text>
-            <Select
-              value={form.venueCategory}
-              onChange={(val) => setForm((f) => ({ ...f, venueCategory: val }))}
-              options={VENUE_CATEGORIES}
-              placeholder="Seleccionar"
-            />
-
-            <Text style={{ fontSize: 14, color: '#1B2222' }}>
-              Ubicación (link de Google Maps):
-            </Text>
-            <AuthInput
-              value={mapsUrl}
-              onChangeText={setMapsUrl}
-              placeholder="Pega el link de Google Maps"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>
-                Imágenes:
-              </Text>
-              <Pressable
-                onPress={pickImage}
-                style={{
-                  backgroundColor: '#EDEDED',
-                  height: 34,
-                  borderRadius: 50,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  paddingHorizontal: 16,
-                }}
-              >
-                <Text style={{ color: '#99A0A0', fontSize: 14 }}>
-                  Seleccionar
+            {isDesktopLayout ? (
+              <View style={{ flexDirection: 'row', gap: 24 }}>
+              <View style={{ flex: 1, gap: 25 }}>
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                  Nombre del establecimiento:
                 </Text>
-              </Pressable>
-            </View>
-
-            {image ? (
-              <Image
-                source={{ uri: image.uri }}
-                style={{ width: 100, height: 100, borderRadius: 10 }}
-                resizeMode="cover"
-              />
-            ) : null}
+                <AuthInput
+                  value={form.venueName}
+                  onChangeText={(t) => setForm((f) => ({ ...f, venueName: t }))}
+                  placeholder="Nombre del establecimiento"
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>Dirección:</Text>
+                <AuthInput
+                  value={form.venueAddress}
+                  onChangeText={(t) =>
+                    setForm((f) => ({ ...f, venueAddress: t }))
+                  }
+                    placeholder="Dirección"
+                  />
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Información de contacto:
+                  </Text>
+                  <AuthInput
+                    value={form.venueContact}
+                    onChangeText={(t) =>
+                      setForm((f) => ({ ...f, venueContact: t }))
+                    }
+                    placeholder="Número de contacto"
+                    keyboardType="phone-pad"
+                  />
+                </View>
+                <View style={{ flex: 1, gap: 25 }}>
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>Ubicación:</Text>
+                  <Select
+                    value={form.venueLocation}
+                    onChange={(val) =>
+                      setForm((f) => ({ ...f, venueLocation: val }))
+                    }
+                    options={VENUE_LOCATIONS}
+                    placeholder="Seleccionar"
+                    style={selectFullStyle}
+                  />
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>Categoria:</Text>
+                  <Select
+                    value={form.venueCategory}
+                    onChange={(val) =>
+                      setForm((f) => ({ ...f, venueCategory: val }))
+                    }
+                    options={VENUE_CATEGORIES}
+                    placeholder="Seleccionar"
+                    style={selectFullStyle}
+                  />
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Ubicación (link de Google Maps):
+                  </Text>
+                  <AuthInput
+                    value={mapsUrl}
+                    onChangeText={setMapsUrl}
+                    placeholder="Pega el link de Google Maps"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>
+                      Imágenes:
+                    </Text>
+                    <Pressable
+                      onPress={pickImage}
+                      style={{
+                        backgroundColor: '#EDEDED',
+                        height: 34,
+                        borderRadius: 50,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingHorizontal: 16,
+                      }}
+                    >
+                      <Text style={{ color: '#99A0A0', fontSize: 14 }}>
+                        Seleccionar
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {image ? (
+                    <Image
+                      source={{ uri: image.uri }}
+                      style={{ width: 100, height: 100, borderRadius: 10 }}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                </View>
+              </View>
+            ) : (
+              <>
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                  Nombre del establecimiento:
+                </Text>
+                <AuthInput
+                  value={form.venueName}
+                  onChangeText={(t) => setForm((f) => ({ ...f, venueName: t }))}
+                  placeholder="Nombre del establecimiento"
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>Dirección:</Text>
+                <AuthInput
+                  value={form.venueAddress}
+                  onChangeText={(t) =>
+                    setForm((f) => ({ ...f, venueAddress: t }))
+                  }
+                  placeholder="Dirección"
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                  Información de contacto:
+                </Text>
+                <AuthInput
+                  value={form.venueContact}
+                  onChangeText={(t) =>
+                    setForm((f) => ({ ...f, venueContact: t }))
+                  }
+                  placeholder="Número de contacto"
+                  keyboardType="phone-pad"
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>Ubicación:</Text>
+                <Select
+                  value={form.venueLocation}
+                  onChange={(val) =>
+                    setForm((f) => ({ ...f, venueLocation: val }))
+                  }
+                  options={VENUE_LOCATIONS}
+                  placeholder="Seleccionar"
+                  style={selectFullStyle}
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>Categoria:</Text>
+                <Select
+                  value={form.venueCategory}
+                  onChange={(val) =>
+                    setForm((f) => ({ ...f, venueCategory: val }))
+                  }
+                  options={VENUE_CATEGORIES}
+                  placeholder="Seleccionar"
+                  style={selectFullStyle}
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                  Ubicación (link de Google Maps):
+                </Text>
+                <AuthInput
+                  value={mapsUrl}
+                  onChangeText={setMapsUrl}
+                  placeholder="Pega el link de Google Maps"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>
+                    Imágenes:
+                  </Text>
+                  <Pressable
+                    onPress={pickImage}
+                    style={{
+                      backgroundColor: '#EDEDED',
+                      height: 34,
+                      borderRadius: 50,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 16,
+                    }}
+                  >
+                    <Text style={{ color: '#99A0A0', fontSize: 14 }}>
+                      Seleccionar
+                    </Text>
+                  </Pressable>
+                </View>
+                {image ? (
+                  <Image
+                    source={{ uri: image.uri }}
+                    style={{ width: 100, height: 100, borderRadius: 10 }}
+                    resizeMode="cover"
+                  />
+                ) : null}
+              </>
+            )}
 
             <Text style={{ fontSize: 14, color: '#1B2222' }}>
               Horarios de apertura:
