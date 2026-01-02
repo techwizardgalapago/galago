@@ -14,9 +14,12 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
 
-import Container from '../../../../../../components/Container';
-import Input from '../../../../../../components/Input';
+import AuthBackground from '../../../../../../components/auth/AuthBackground';
+import AuthCard from '../../../../../../components/auth/AuthCard';
+import AuthButton from '../../../../../../components/auth/AuthButton';
+import AuthInput from '../../../../../../components/auth/AuthInput';
 import Select from '../../../../../../components/Select';
+import { useMedia } from '../../../../../../hooks/useMedia';
 
 import {
   selectVenueByIdFromState,
@@ -61,35 +64,22 @@ const VENUE_CATEGORIES = [
 const VENUE_LOCATIONS = ['Isla San Cristobal', 'Isla Isabela', 'Isla Santa Cruz'];
 
 const inputStyle = {
-  borderWidth: 1,
-  borderColor: '#ddd',
-  borderRadius: 12,
-  paddingHorizontal: 14,
-  paddingVertical: Platform.select({ ios: 12, android: 10, default: 8 }),
-  backgroundColor: '#fff',
+  backgroundColor: '#EDEDED',
+  borderRadius: 10,
+  paddingHorizontal: 16,
+  paddingVertical: 14,
 };
 
 // ⬇️ ahora TimeSelect usa el Select global (mismo estilo que tus selects)
-const TimeSelect = ({ value, onChange }) => {
-  return (
-    <Select
-      value={value}
-      onChange={onChange}
-      options={ALLOWED_TIMES}
-      placeholder={null}
-      style={{ flex: 1 }}
-    />
-  );
-};
-
-const Field = ({ label, children }) => (
-  <View style={{ flex: 1, gap: 6 }}>
-    <Text style={{ fontWeight: '600' }}>{label}</Text>
-    {children}
-  </View>
+const TimeSelect = ({ value, onChange }) => (
+  <Select
+    value={value}
+    onChange={onChange}
+    options={ALLOWED_TIMES}
+    placeholder={null}
+    style={{ flex: 1, maxWidth: 96 }}
+  />
 );
-
-const btn = { backgroundColor: '#111', paddingVertical: 14, borderRadius: 12 };
 
 // ---------- Helpers para Google Maps (link → lat/lng) ----------
 const extractLatLngFromGoogleMapsUrl = (url) => {
@@ -176,6 +166,8 @@ export default function EditVenueScreen() {
   const dispatch = useDispatch();
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));
   const authUser = useSelector((s) => s.auth?.user);
+  const { isDesktop, isWide } = useMedia();
+  const isDesktopLayout = isDesktop || isWide;
 
   const [form, setForm] = useState({
     venueName: '',
@@ -481,354 +473,423 @@ export default function EditVenueScreen() {
 
   if (!venue) {
     return (
-      <Container centered>
-        <Text>Cargando…</Text>
-      </Container>
+      <AuthBackground>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <AuthCard
+            style={{
+              height: 744,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              paddingTop: 20,
+              paddingBottom: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text>Cargando…</Text>
+          </AuthCard>
+        </View>
+      </AuthBackground>
     );
   }
 
   return (
-    <Container>
-      <ScrollView
-        contentContainerStyle={{
-          paddingVertical: 16,
-          paddingBottom: 32,
-          gap: 12,
-        }}
-      >
-        <Text style={{ fontSize: 22, fontWeight: '700' }}>Editar negocio</Text>
-
-        <Field label="Nombre">
-          <Input
-            value={form.venueName}
-            onChangeText={(t) =>
-              setForm((f) => ({ ...f, venueName: t }))
-            }
-            placeholder="Mi Café Galápagos"
-          />
-        </Field>
-
-        <Field label="Categoría">
-          <Select
-            value={form.venueCategory}
-            onChange={(v) =>
-              setForm((f) => ({ ...f, venueCategory: v }))
-            }
-            options={VENUE_CATEGORIES}
-            placeholder={null}
-          />
-        </Field>
-
-        <Field label="Ubicación">
-          <Select
-            value={form.venueLocation}
-            onChange={(v) =>
-              setForm((f) => ({ ...f, venueLocation: v }))
-            }
-            options={VENUE_LOCATIONS}
-            placeholder={null}
-          />
-        </Field>
-
-        <Field label="Dirección">
-          <Input
-            value={form.venueAddress}
-            onChangeText={(t) =>
-              setForm((f) => ({ ...f, venueAddress: t }))
-            }
-            placeholder="Av. Charles Darwin"
-          />
-        </Field>
-
-        <Field label="Teléfono de contacto">
-          <Input
-            value={form.venueContact}
-            onChangeText={(t) =>
-              setForm((f) => ({ ...f, venueContact: t }))
-            }
-            keyboardType="phone-pad"
-            placeholder="+593 99 123 4567"
-          />
-        </Field>
-
-        {/* Link de Google Maps para actualizar coordenadas */}
-        <Field label="Ubicación (link de Google Maps)">
-          <Input
-            value={mapsUrl}
-            onChangeText={setMapsUrl}
-            placeholder="Pega aquí el link de Google Maps del negocio"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <Text style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
-            Tip: copia el link desde Google Maps en el navegador. Evita los links cortos de la app
-            (maps.app.goo.gl).
-          </Text>
-          {isShortMapsLink(mapsUrl) && (
-            <Text style={{ fontSize: 12, color: 'red', marginTop: 4 }}>
-              Parece que este link es de la app (maps.app.goo.gl). Abre Google Maps en el navegador,
-              copia el enlace completo y pégalo aquí.
-            </Text>
-          )}
-        </Field>
-
-        {/* Lat / Long manual (para ver/corregir directamente) */}
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <Field label="Latitud (opcional)">
-            <Input
-              value={form.latitude}
-              onChangeText={(t) =>
-                setForm((f) => ({ ...f, latitude: t }))
-              }
-              placeholder="-0.747383"
-              keyboardType="decimal-pad"
-            />
-          </Field>
-          <Field label="Longitud (opcional)">
-            <Input
-              value={form.longitude}
-              onChangeText={(t) =>
-                setForm((f) => ({ ...f, longitude: t }))
-              }
-              placeholder="-90.313163"
-              keyboardType="decimal-pad"
-            />
-          </Field>
-        </View>
-
-        <Field label="Descripción">
-          <TextInput
-            value={form.venueDescription}
-            onChangeText={(t) =>
-              setForm((f) => ({ ...f, venueDescription: t }))
-            }
-            placeholder="Describe tu negocio..."
-            multiline
-            style={[inputStyle, { minHeight: 90, textAlignVertical: 'top' }]}
-          />
-        </Field>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Text style={{ fontWeight: '600' }}>¿Es negocio?</Text>
-          <Switch
-            value={form.negocio}
-            onValueChange={(v) =>
-              setForm((f) => ({ ...f, negocio: v }))
-            }
-          />
-        </View>
-
-        {/* Utilidades horarios */}
-        <View
+    <AuthBackground>
+      <ScrollView contentContainerStyle={{ paddingTop: 108, flexGrow: 1, justifyContent: 'flex-end' }}>
+        <AuthCard
           style={{
-            marginTop: 8,
-            flexDirection: 'row',
-            gap: 8,
-            flexWrap: 'wrap',
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+            paddingTop: 20,
+            paddingBottom: 24,
           }}
         >
-          <Pressable
-            onPress={copyMondayToAll}
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              backgroundColor: '#eee',
-              borderRadius: 8,
-            }}
-          >
-            <Text>Copiar lunes a todos</Text>
-          </Pressable>
-        </View>
-
-        {/* Horarios multi-franja */}
-        {schedules.map((day, dayIdx) => (
-          <View
-            key={day.weekDay}
-            style={{
-              borderWidth: 1,
-              borderColor: '#eee',
-              borderRadius: 10,
-              padding: 10,
-              marginTop: 8,
-            }}
-          >
+          <View style={{ gap: 25, paddingHorizontal: 30, paddingBottom: 32 }}>
             <View
               style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
+                paddingVertical: 16,
                 alignItems: 'center',
-              }}
-            >
-              <Text style={{ fontWeight: '600' }}>{day.weekDay}</Text>
-              <Switch
-                value={day.enabled}
-                onValueChange={(v) => setDayEnabled(dayIdx, v)}
-              />
-            </View>
-
-            {day.enabled && (
-              <>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    gap: 8,
-                    marginTop: 6,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <Pressable
-                    onPress={() => quickFillDay(dayIdx)}
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                      backgroundColor: '#eee',
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Text>Rellenar 08:00–22:00</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => markDayClosed(dayIdx)}
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
-                      backgroundColor: '#eee',
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Text>Marcar cerrado</Text>
-                  </Pressable>
-                </View>
-
-                {day.segments.map((seg, segIdx) => (
-                  <View
-                    key={segIdx}
-                    style={{
-                      flexDirection: 'row',
-                      gap: 10,
-                      marginTop: 8,
-                      alignItems: 'center',
-                    }}
-                  >
-                    <TimeSelect
-                      value={seg.openingTime_}
-                      onChange={(val) =>
-                        setSegmentValue(dayIdx, segIdx, {
-                          openingTime_: val,
-                        })
-                      }
-                    />
-                    <TimeSelect
-                      value={seg.closingTime_}
-                      onChange={(val) =>
-                        setSegmentValue(dayIdx, segIdx, {
-                          closingTime_: val,
-                        })
-                      }
-                    />
-                    <Pressable
-                      onPress={() => removeSegment(dayIdx, segIdx)}
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        backgroundColor: '#eee',
-                        borderRadius: 8,
-                      }}
-                    >
-                      <Text>Eliminar</Text>
-                    </Pressable>
-                  </View>
-                ))}
-
-                <Pressable
-                  onPress={() => addSegment(dayIdx)}
-                  style={{
-                    marginTop: 8,
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                    backgroundColor: '#eee',
-                    borderRadius: 8,
-                    alignSelf: 'flex-start',
-                  }}
-                >
-                  <Text>+ Añadir franja</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        ))}
-
-        {/* Logo */}
-        <View style={{ gap: 6, marginTop: 8 }}>
-          <Text style={{ fontWeight: '700' }}>Logo</Text>
-          <Text
-            style={{
-              fontSize: 12,
-              opacity: 0.7,
-            }}
-          >
-            Sube el logo de tu negocio en formato JPG o PNG, máximo 2&nbsp;MB.
-            Asegúrate de que tu imagen sea horizontal o cuadrada para evitar recortes incómodos.
-          </Text>
-
-          {image ? (
-            <View style={{ gap: 8 }}>
-              <Image
-                source={{ uri: image.uri }}
-                style={{ width: 120, height: 120, borderRadius: 16 }}
-                resizeMode="contain"
-              />
-              <Pressable
-                onPress={() => setImage(null)}
-                style={{
-                  padding: 10,
-                  backgroundColor: '#eee',
-                  borderRadius: 10,
-                }}
-              >
-                <Text>Quitar logo</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              onPress={pickImage}
-              style={{
-                padding: 12,
-                backgroundColor: '#111',
-                borderRadius: 12,
               }}
             >
               <Text
                 style={{
-                  color: 'white',
+                  fontSize: 26,
+                  fontWeight: '600',
+                  color: '#1B2222',
                   textAlign: 'center',
-                  fontWeight: '700',
+                  marginBottom: 4,
                 }}
               >
-                Seleccionar logo
+                Editar negocio
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#1B2222',
+                  textAlign: 'center',
+                  opacity: 0.9,
+                }}
+              >
+                (para más información contactese con nuestro equipo)
+              </Text>
+            </View>
+
+            {isDesktopLayout ? (
+              <View style={{ flexDirection: 'row', gap: 24 }}>
+                <View style={{ flex: 1, gap: 25 }}>
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Nombre del establecimiento:
+                  </Text>
+                  <AuthInput
+                    value={form.venueName}
+                    onChangeText={(t) =>
+                      setForm((f) => ({ ...f, venueName: t }))
+                    }
+                    placeholder="Nombre del establecimiento"
+                  />
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Dirección:
+                  </Text>
+                  <AuthInput
+                    value={form.venueAddress}
+                    onChangeText={(t) =>
+                      setForm((f) => ({ ...f, venueAddress: t }))
+                    }
+                    placeholder="Dirección"
+                  />
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Información de contacto:
+                  </Text>
+                  <AuthInput
+                    value={form.venueContact}
+                    onChangeText={(t) =>
+                      setForm((f) => ({ ...f, venueContact: t }))
+                    }
+                    placeholder="Número de contacto"
+                    keyboardType="phone-pad"
+                  />
+                </View>
+                <View style={{ flex: 1, gap: 25 }}>
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Ubicación:
+                  </Text>
+                  <Select
+                    value={form.venueLocation}
+                    onChange={(val) =>
+                      setForm((f) => ({ ...f, venueLocation: val }))
+                    }
+                    options={VENUE_LOCATIONS}
+                    placeholder="Seleccionar"
+                    style={{ maxWidth: '100%', height: 40 }}
+                  />
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Categoria:
+                  </Text>
+                  <Select
+                    value={form.venueCategory}
+                    onChange={(val) =>
+                      setForm((f) => ({ ...f, venueCategory: val }))
+                    }
+                    options={VENUE_CATEGORIES}
+                    placeholder="Seleccionar"
+                    style={{ maxWidth: '100%', height: 40 }}
+                  />
+                  <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                    Ubicación (link de Google Maps):
+                  </Text>
+                  <AuthInput
+                    value={mapsUrl}
+                    onChangeText={setMapsUrl}
+                    placeholder="Pega el link de Google Maps"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>
+                      Imágenes:
+                    </Text>
+                    <Pressable
+                      onPress={pickImage}
+                      style={{
+                        backgroundColor: '#EDEDED',
+                        height: 34,
+                        borderRadius: 50,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingHorizontal: 16,
+                      }}
+                    >
+                      <Text style={{ color: '#99A0A0', fontSize: 14 }}>
+                        Seleccionar
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {image ? (
+                    <Image
+                      source={{ uri: image.uri }}
+                      style={{ width: 100, height: 100, borderRadius: 10 }}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                </View>
+              </View>
+            ) : (
+              <>
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                  Nombre del establecimiento:
+                </Text>
+                <AuthInput
+                  value={form.venueName}
+                  onChangeText={(t) =>
+                    setForm((f) => ({ ...f, venueName: t }))
+                  }
+                  placeholder="Nombre del establecimiento"
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>Dirección:</Text>
+                <AuthInput
+                  value={form.venueAddress}
+                  onChangeText={(t) =>
+                    setForm((f) => ({ ...f, venueAddress: t }))
+                  }
+                  placeholder="Dirección"
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                  Información de contacto:
+                </Text>
+                <AuthInput
+                  value={form.venueContact}
+                  onChangeText={(t) =>
+                    setForm((f) => ({ ...f, venueContact: t }))
+                  }
+                  placeholder="Número de contacto"
+                  keyboardType="phone-pad"
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>Ubicación:</Text>
+                <Select
+                  value={form.venueLocation}
+                  onChange={(val) =>
+                    setForm((f) => ({ ...f, venueLocation: val }))
+                  }
+                  options={VENUE_LOCATIONS}
+                  placeholder="Seleccionar"
+                  style={{ maxWidth: '100%', height: 40 }}
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>Categoria:</Text>
+                <Select
+                  value={form.venueCategory}
+                  onChange={(val) =>
+                    setForm((f) => ({ ...f, venueCategory: val }))
+                  }
+                  options={VENUE_CATEGORIES}
+                  placeholder="Seleccionar"
+                  style={{ maxWidth: '100%', height: 40 }}
+                />
+                <Text style={{ fontSize: 14, color: '#1B2222' }}>
+                  Ubicación (link de Google Maps):
+                </Text>
+                <AuthInput
+                  value={mapsUrl}
+                  onChangeText={setMapsUrl}
+                  placeholder="Pega el link de Google Maps"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>
+                    Imágenes:
+                  </Text>
+                  <Pressable
+                    onPress={pickImage}
+                    style={{
+                      backgroundColor: '#EDEDED',
+                      height: 34,
+                      borderRadius: 50,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 16,
+                    }}
+                  >
+                    <Text style={{ color: '#99A0A0', fontSize: 14 }}>
+                      Seleccionar
+                    </Text>
+                  </Pressable>
+                </View>
+                {image ? (
+                  <Image
+                    source={{ uri: image.uri }}
+                    style={{ width: 100, height: 100, borderRadius: 10 }}
+                    resizeMode="cover"
+                  />
+                ) : null}
+              </>
+            )}
+
+            <Text style={{ fontSize: 14, color: '#1B2222' }}>
+              Horarios de apertura:
+            </Text>
+            <Pressable
+              onPress={copyMondayToAll}
+              style={{
+                backgroundColor: '#EDEDED',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                height: 30,
+                alignSelf: 'flex-start',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 12, color: '#1B2222' }}>
+                Copiar lunes a todos
               </Text>
             </Pressable>
-          )}
-        </View>
-        
-        {!!error && <Text style={{ color: '#c00' }}>{error}</Text>}
 
-        <Pressable
-          onPress={onSave}
-          disabled={saving}
-          style={[btn, saving && { opacity: 0.6 }]}
-        >
-          <Text
-            style={{
-              color: 'white',
-              fontWeight: '700',
-              textAlign: 'center',
-            }}
-          >
-            {saving ? 'Guardando…' : 'Guardar cambios'}
-          </Text>
-        </Pressable>
+            {schedules.map((day, dayIdx) => (
+              <View key={day.weekDay} style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>
+                    {day.weekDay}:
+                  </Text>
+                  <Switch
+                    value={day.enabled}
+                    onValueChange={(v) => setDayEnabled(dayIdx, v)}
+                  />
+                </View>
+                {day.enabled ? (
+                  <>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Pressable
+                        onPress={() => quickFillDay(dayIdx)}
+                        style={{
+                          backgroundColor: '#EDEDED',
+                          borderRadius: 10,
+                          paddingHorizontal: 12,
+                          height: 30,
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, color: '#1B2222' }}>
+                          Rellenar 08:00–22:00
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => markDayClosed(dayIdx)}
+                        style={{
+                          backgroundColor: '#EDEDED',
+                          borderRadius: 10,
+                          paddingHorizontal: 12,
+                          height: 30,
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, color: '#1B2222' }}>
+                          Marcar cerrado
+                        </Text>
+                      </Pressable>
+                    </View>
+                    {day.segments.map((seg, segIdx) => (
+                      <View key={segIdx} style={{ flexDirection: 'row', gap: 10 }}>
+                        <TimeSelect
+                          value={seg.openingTime_}
+                          onChange={(val) =>
+                            setSegmentValue(dayIdx, segIdx, {
+                              openingTime_: val,
+                            })
+                          }
+                        />
+                        <TimeSelect
+                          value={seg.closingTime_}
+                          onChange={(val) =>
+                            setSegmentValue(dayIdx, segIdx, {
+                              closingTime_: val,
+                            })
+                          }
+                        />
+                        {day.segments.length > 1 ? (
+                          <Pressable
+                            onPress={() => removeSegment(dayIdx, segIdx)}
+                            style={{
+                              backgroundColor: '#EDEDED',
+                              borderRadius: 10,
+                              paddingHorizontal: 10,
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text style={{ fontSize: 12, color: '#1B2222' }}>
+                              Eliminar
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    ))}
+                    <Pressable
+                      onPress={() => addSegment(dayIdx)}
+                      style={{
+                        backgroundColor: '#EDEDED',
+                        borderRadius: 10,
+                        paddingHorizontal: 12,
+                        height: 30,
+                        alignSelf: 'flex-start',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: '#1B2222' }}>
+                        + Añadir franja
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : null}
+              </View>
+            ))}
+
+            <Text style={{ fontSize: 14, color: '#1B2222' }}>
+              Descripción del local:
+            </Text>
+            <TextInput
+              value={form.venueDescription}
+              onChangeText={(t) =>
+                setForm((f) => ({ ...f, venueDescription: t }))
+              }
+              placeholder="Descripción"
+              multiline
+              style={{ ...inputStyle, minHeight: 94, textAlignVertical: 'top' }}
+            />
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text style={{ fontSize: 14, color: '#1B2222' }}>¿Es negocio?</Text>
+              <Switch
+                value={form.negocio}
+                onValueChange={(v) => setForm((f) => ({ ...f, negocio: v }))}
+              />
+            </View>
+
+            {!!error && <Text style={{ color: '#c00' }}>{error}</Text>}
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+              <AuthButton
+                label="Regresar"
+                variant="outline"
+                onPress={() => router.back()}
+                style={{ flex: 1, backgroundColor: '#9B9B9B' }}
+                textStyle={{ color: '#1B2222' }}
+              />
+              <AuthButton
+                label={saving ? 'Guardando…' : 'Guardar cambios'}
+                onPress={onSave}
+                disabled={saving}
+                style={{ flex: 1, backgroundColor: '#F49DB6' }}
+                textStyle={{ color: '#1B2222' }}
+              />
+            </View>
+          </View>
+        </AuthCard>
       </ScrollView>
-    </Container>
+    </AuthBackground>
   );
 }
