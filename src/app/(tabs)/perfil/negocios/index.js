@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/index.js
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,17 @@ import {
   FlatList,
   ActivityIndicator,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { router } from 'expo-router';
 
-import Container from '../../../../components/Container';
+import AuthBackground from '../../../../components/auth/AuthBackground';
+import AuthCard from '../../../../components/auth/AuthCard';
+import AuthButton from '../../../../components/auth/AuthButton';
+import PlaceCard from '../../../../components/profile/PlaceCard';
+import ProfileEventCard from '../../../../components/profile/ProfileEventCard';
 import { useNetworkStatus } from '../../../../hooks/useNetwork';
 import {
   fetchVenues,
@@ -28,57 +34,24 @@ const blurActive = () => {
 };
 
 const Header = () => (
-  <View
-    style={{
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 12,
-    }}
-  >
-    <Text style={{ fontSize: 20, fontWeight: '700' }}>Mis negocios</Text>
-
+  <View style={{ alignItems: 'center', flexDirection: 'row', paddingHorizontal: 30 }}>
+    <Text style={{ fontSize: 20, fontWeight: '500', color: '#1B2222', flex: 1 }}>
+      Gestiona Tus Negocios
+    </Text>
     <Pressable
-      onPress={() => {
-        blurActive();
-        router.push('/(tabs)/perfil/negocios/crear');
-      }}
+      onPress={() => router.back()}
       style={{
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        backgroundColor: '#111',
-        borderRadius: 999,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F2F2F2',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
-      <Text style={{ color: 'white', fontWeight: '700' }}>Registrar negocio</Text>
+      <Text style={{ fontSize: 18, color: '#111' }}>×</Text>
     </Pressable>
   </View>
-);
-
-const VenueCard = ({ venue }) => (
-  <Pressable
-    onPress={() => {
-      blurActive();
-      router.push(`/(tabs)/perfil/negocios/${venue.venueID}`);
-    }}
-    style={{
-      padding: 12,
-      borderWidth: 1,
-      borderColor: '#eee',
-      borderRadius: 12,
-      marginTop: 10,
-    }}
-  >
-    <Text style={{ fontWeight: '700', fontSize: 16 }}>
-      {venue.venueName || 'Sin nombre'}
-    </Text>
-    <Text style={{ opacity: 0.8 }}>
-      {venue.venueCategory} · {venue.venueLocation}
-    </Text>
-    {!!venue.venueContact && (
-      <Text style={{ opacity: 0.8, marginTop: 2 }}>{venue.venueContact}</Text>
-    )}
-  </Pressable>
 );
 
 export default function MisNegociosScreen() {
@@ -89,6 +62,11 @@ export default function MisNegociosScreen() {
   const isOnline = useNetworkStatus();
   const userID = authUser?.userID;
   const lastRemoteKeyRef = useRef('');
+  const [containerHeight, setContainerHeight] = useState(0);
+  const { height: windowHeight } = useWindowDimensions();
+  const topGap = 108;
+  const availableHeight = containerHeight || windowHeight;
+  const cardHeight = Math.max(availableHeight - topGap, 0);
 
   useEffect(() => {
     const idsKey = userVenueIds.join('|');
@@ -137,27 +115,84 @@ export default function MisNegociosScreen() {
   const isEmpty = !isLoading && myVenues.length === 0;
 
   return (
-    <Container>
-      <Header />
+    <AuthBackground>
+      <View
+        style={{ flex: 1, justifyContent: 'flex-end' }}
+        onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      >
+        <AuthCard
+          style={{
+            height: cardHeight,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+            paddingTop: 80,
+            paddingBottom: 24,
+            gap: 50,
+          }}
+        >
+          <Header />
 
-      {isLoading && (
-        <View style={{ paddingVertical: 24 }}>
-          <ActivityIndicator />
-        </View>
-      )}
+          {isLoading && (
+            <View style={{ paddingHorizontal: 30 }}>
+              <ActivityIndicator />
+            </View>
+          )}
 
-      {isEmpty ? (
-        <View style={{ paddingVertical: 24 }}>
-          <Text style={{ opacity: 0.6 }}>Aún no tienes negocios registrados.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={myVenues}
-          keyExtractor={(v) => v.venueID}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          renderItem={({ item }) => <VenueCard venue={item} />}
-        />
-      )}
-    </Container>
+          {isEmpty ? (
+            <View style={{ paddingHorizontal: 30 }}>
+              <Text style={{ opacity: 0.6 }}>
+                Aún no tienes negocios registrados.
+              </Text>
+            </View>
+          ) : (
+            <View style={{ gap: 28 }}>
+              <PlaceCard
+                imageUri="http://localhost:3845/assets/e1be4b0a29877406301d0fec06795764143f2112.png"
+                title="Chiquiburger"
+                location="San Cristobal"
+                rating="4.0"
+                category="Ecuatoriana"
+                price="$$$$"
+              />
+              <View style={{ paddingHorizontal: 30 }}>
+                <Text style={{ fontSize: 20, fontWeight: '500', color: '#1B2222' }}>
+                  Eventos Organizados Por Ti
+                </Text>
+              </View>
+              <ProfileEventCard
+                time="25 MAR — MARTES, 15:00"
+                title="Festival de Arte en la Playa"
+                location="La Nube, Isla Santa Cruz"
+                tags={['#exhibiciones', '#aire libre', '#talleres']}
+              />
+            </View>
+          )}
+
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: 10,
+              paddingHorizontal: 30,
+              justifyContent: 'center',
+            }}
+          >
+            <AuthButton
+              label="Nuevo evento"
+              onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
+              style={{ flex: 1, backgroundColor: '#F26719' }}
+              textStyle={{ color: 'white' }}
+            />
+            <AuthButton
+              label="Registrar negocio"
+              onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
+              style={{ flex: 1, backgroundColor: '#EDEDEC' }}
+              textStyle={{ color: '#1B2222' }}
+            />
+          </View>
+        </AuthCard>
+      </View>
+    </AuthBackground>
   );
 }

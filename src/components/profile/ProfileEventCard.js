@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function ProfileEventCard({ time, title, location }) {
+export default function ProfileEventCard({ time, title, location, tags }) {
   return (
     <View style={styles.row}>
       <View style={styles.accent} />
@@ -12,6 +12,15 @@ export default function ProfileEventCard({ time, title, location }) {
         <Text style={styles.location} numberOfLines={1}>
           {location}
         </Text>
+        {tags?.length ? (
+          <View style={styles.tags}>
+            {tags.map((tag) => (
+              <View key={tag} style={styles.tag}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -34,7 +43,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     paddingVertical: 20,
-    gap: 6,
+    gap: 10,
   },
   time: {
     fontSize: 13,
@@ -50,5 +59,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '300',
     color: '#99A0A0',
+  },
+  tags: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  tag: {
+    backgroundColor: 'rgba(230,83,0,0.1)',
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    height: 26,
+    justifyContent: 'center',
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#E65300',
   },
 });
