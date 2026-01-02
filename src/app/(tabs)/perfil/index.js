@@ -9,6 +9,7 @@ import AuthButton from "../../../components/auth/AuthButton";
 import ProfileAvatarBadge from "../../../components/profile/ProfileAvatarBadge";
 import ProfileTabs from "../../../components/profile/ProfileTabs";
 import ProfileEventCard from "../../../components/profile/ProfileEventCard";
+import PlaceCard from "../../../components/profile/PlaceCard";
 import { joinFullName } from "../../../features/users/profileComplition";
 
 export default function PerfilScreen() {
@@ -52,13 +53,16 @@ export default function PerfilScreen() {
               { key: "saved", label: "Sitios guardados" },
               { key: "places", label: "Mis lugares" },
             ]}
-            activeKey="agenda"
+            activeKey="saved"
           />
 
-          <ProfileEventCard
-            time="14 MAR — SABADO,  15:00"
-            title="Festival de Arte en la Playa"
-            location="La Nube, Isla Santa Cruz"
+          <PlaceCard
+            imageUri="http://localhost:3845/assets/8f3b703d2ec1c2c8c7ac7943b1e03040da211ef5.png"
+            title="Shawarmi"
+            location="Isla Isabela"
+            rating="4.3"
+            category="Ecuatoriana"
+            price="$$$$"
           />
         </AuthCard>
       </View>
