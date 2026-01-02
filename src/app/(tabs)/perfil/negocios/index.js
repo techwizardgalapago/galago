@@ -54,6 +54,22 @@ const Header = () => (
   </View>
 );
 
+const getVenueImageUrl = (venue) => {
+  let firstImage = null;
+  try {
+    if (Array.isArray(venue?.venueImage)) {
+      firstImage = venue.venueImage[0] || null;
+    } else if (typeof venue?.venueImage === 'string' && venue.venueImage.trim()) {
+      const parsed = JSON.parse(venue.venueImage);
+      if (Array.isArray(parsed)) firstImage = parsed[0] || null;
+    }
+  } catch {
+    return null;
+  }
+
+  return firstImage?.thumbnails?.large?.url || firstImage?.url || null;
+};
+
 export default function MisNegociosScreen() {
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
@@ -127,7 +143,7 @@ export default function MisNegociosScreen() {
             borderTopRightRadius: 20,
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
-            paddingTop: 80,
+            paddingTop: 30,
             paddingBottom: 24,
             gap: 50,
           }}
@@ -148,13 +164,25 @@ export default function MisNegociosScreen() {
             </View>
           ) : (
             <View style={{ gap: 28 }}>
-              <PlaceCard
-                imageUri="http://localhost:3845/assets/e1be4b0a29877406301d0fec06795764143f2112.png"
-                title="Chiquiburger"
-                location="San Cristobal"
-                rating="4.0"
-                category="Ecuatoriana"
-                price="$$$$"
+              <FlatList
+                data={myVenues}
+                keyExtractor={(v) => v.venueID}
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => {
+                      blurActive();
+                      router.push(`/(tabs)/perfil/negocios/${item.venueID}`);
+                    }}
+                  >
+                    <PlaceCard
+                      imageUri={getVenueImageUrl(item)}
+                      title={item.venueName || 'Sin nombre'}
+                      location={item.venueLocation || ''}
+                      category={item.venueCategory || ''}
+                    />
+                  </Pressable>
+                )}
+                contentContainerStyle={{ gap: 18 }}
               />
               <View style={{ paddingHorizontal: 30 }}>
                 <Text style={{ fontSize: 20, fontWeight: '500', color: '#1B2222' }}>
