@@ -626,7 +626,7 @@ export default function EditVenueScreen() {
                         paddingHorizontal: 16,
                       }}
                     >
-                      <Text style={{ color: '#99A0A0', fontSize: 14 }}>
+                      <Text style={{ color: '#000', fontSize: 14 }}>
                         Seleccionar
                       </Text>
                     </Pressable>
@@ -716,7 +716,7 @@ export default function EditVenueScreen() {
                       paddingHorizontal: 16,
                     }}
                   >
-                    <Text style={{ color: '#99A0A0', fontSize: 14 }}>
+                    <Text style={{ color: '#000', fontSize: 14 }}>
                       Seleccionar
                     </Text>
                   </Pressable>
