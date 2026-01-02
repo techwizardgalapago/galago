@@ -15,18 +15,23 @@ import { joinFullName } from "../../../features/users/profileComplition";
 
 export default function PerfilScreen() {
   const [activeTab, setActiveTab] = useState("saved");
+  const [containerHeight, setContainerHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const user = useSelector((s) => s.auth?.user);
   const topGap = 108;
   const topInset = Platform.OS === "ios" ? insets.top : 0;
-  const cardHeight = Math.max(windowHeight - topGap - topInset, 0);
+  const availableHeight = containerHeight || windowHeight;
+  const cardHeight = Math.max(availableHeight - topGap - topInset, 0);
   const fullName =
     user?.fullName || joinFullName(user?.firstName, user?.lastName) || "—";
 
   return (
     <AuthBackground>
-      <View style={styles.root}>
+      <View
+        style={styles.root}
+        onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      >
         <AuthCard style={[styles.card, { height: cardHeight }]}>
           <View style={styles.section}>
             <View style={styles.profileBlock}>
