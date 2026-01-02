@@ -39,7 +39,7 @@ const Header = () => (
       Gestiona Tus Negocios
     </Text>
     <Pressable
-      onPress={() => router.back()}
+      onPress={() => router.push('/(tabs)/perfil')}
       style={{
         width: 32,
         height: 32,
@@ -178,7 +178,9 @@ export default function MisNegociosScreen() {
                       imageUri={getVenueImageUrl(item)}
                       title={item.venueName || 'Sin nombre'}
                       location={item.venueLocation || ''}
-                      category={item.venueCategory || ''}
+                      rating="4.0"
+                      category={item.venueCategory || 'Ecuatoriana'}
+                      price="$$$$"
                     />
                   </Pressable>
                 )}
