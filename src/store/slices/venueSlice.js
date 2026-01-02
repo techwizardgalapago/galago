@@ -7,6 +7,7 @@ import {
   updateVenueLocal as dbUpdateVenueLocal,
   upsertVenuesFromAPI as dbUpsertVenuesFromAPI,
 } from "../../db/venues";
+import { upsertSchedulesFromAPI as dbUpsertSchedulesFromAPI } from "../../db/schedules";
 import { getVenuesByIds, getVenuesByUserId } from "../../services/venuesService";
 
 // -------- Platform guards (como en usersSlice) --------
@@ -37,6 +38,42 @@ const mapRemoteVenue = (r) => {
   // Último recurso: si trae id pero no fields
   if (r.id) return { venueID: r.id, ...r };
   return null;
+};
+
+const extractSchedulesFromVenues = (venues = []) => {
+  const schedules = [];
+  (venues || []).forEach((venue) => {
+    const list = venue?.VenueSchedules;
+    if (!Array.isArray(list)) return;
+    list.forEach((item) => {
+      const fields = item?.fields ? item.fields : item;
+      const scheduleID =
+        item?.scheduleID ?? item?.id ?? fields?.scheduleID ?? fields?.id;
+      const venueID =
+        fields?.venueID ??
+        (Array.isArray(fields?.linkedVenue) ? fields.linkedVenue[0] : null) ??
+        venue?.venueID;
+      if (!scheduleID || !venueID) return;
+      schedules.push({
+        scheduleID,
+        venueID,
+        dayOfWeek: fields?.dayOfWeek ?? fields?.weekDay ?? fields?.day ?? null,
+        openTime:
+          fields?.openTime ??
+          fields?.openingTime_ ??
+          fields?.openingTime ??
+          null,
+        closeTime:
+          fields?.closeTime ??
+          fields?.closingTime_ ??
+          fields?.closingTime ??
+          null,
+        deleted: fields?.deleted ?? false,
+        updated_at: fields?.updated_at ?? fields?.lastModified ?? null,
+      });
+    });
+  });
+  return schedules;
 };
 
 // -------- Thunks --------
@@ -71,7 +108,12 @@ export const upsertVenuesFromAPIThunk = createAsyncThunk(
       return mapped;
     }
     // Native: persiste + lee verdad local
-    await dbUpsertVenuesFromAPI(remoteVenues || []);
+    const mapped = (remoteVenues || []).map(mapRemoteVenue).filter(Boolean);
+    await dbUpsertVenuesFromAPI(mapped);
+    const schedules = extractSchedulesFromVenues(mapped);
+    if (schedules.length) {
+      await dbUpsertSchedulesFromAPI(schedules);
+    }
     const rows = await dbSelectAllVenues();
     return rows || [];
   }
@@ -92,6 +134,10 @@ export const fetchUserVenuesRemote = createAsyncThunk(
     }
     // Native: reflejar en SQLite y luego devolver verdad local
     await dbUpsertVenuesFromAPI(mapped);
+    const schedules = extractSchedulesFromVenues(mapped);
+    if (schedules.length) {
+      await dbUpsertSchedulesFromAPI(schedules);
+    }
     const all = await dbSelectAllVenues();
     return all || [];
   }
@@ -114,6 +160,10 @@ export const fetchUserVenuesByUserId = createAsyncThunk(
     if (isWeb) return filtered;
 
     await dbUpsertVenuesFromAPI(filtered);
+    const schedules = extractSchedulesFromVenues(filtered);
+    if (schedules.length) {
+      await dbUpsertSchedulesFromAPI(schedules);
+    }
     const all = await dbSelectAllVenues();
     return all || [];
   }
