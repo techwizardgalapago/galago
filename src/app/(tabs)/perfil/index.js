@@ -1,5 +1,6 @@
 // src/app/(tabs)/perfil/index.js
 import { View, Text, StyleSheet, Platform, useWindowDimensions } from "react-native";
+import { useState } from "react";
 import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -13,6 +14,7 @@ import PlaceCard from "../../../components/profile/PlaceCard";
 import { joinFullName } from "../../../features/users/profileComplition";
 
 export default function PerfilScreen() {
+  const [activeTab, setActiveTab] = useState("saved");
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const user = useSelector((s) => s.auth?.user);
@@ -53,17 +55,32 @@ export default function PerfilScreen() {
               { key: "saved", label: "Sitios guardados" },
               { key: "places", label: "Mis lugares" },
             ]}
-            activeKey="saved"
+            activeKey={activeTab}
+            onChange={setActiveTab}
           />
 
-          <PlaceCard
-            imageUri="http://localhost:3845/assets/8f3b703d2ec1c2c8c7ac7943b1e03040da211ef5.png"
-            title="Shawarmi"
-            location="Isla Isabela"
-            rating="4.3"
-            category="Ecuatoriana"
-            price="$$$$"
-          />
+          {activeTab === "agenda" ? (
+            <ProfileEventCard
+              time="14 MAR — SABADO,  15:00"
+              title="Festival de Arte en la Playa"
+              location="La Nube, Isla Santa Cruz"
+            />
+          ) : activeTab === "saved" ? (
+            <PlaceCard
+              imageUri="http://localhost:3845/assets/8f3b703d2ec1c2c8c7ac7943b1e03040da211ef5.png"
+              title="Shawarmi"
+              location="Isla Isabela"
+              rating="4.3"
+              category="Ecuatoriana"
+              price="$$$$"
+            />
+          ) : (
+            <PlaceCard
+              imageUri="http://localhost:3845/assets/a3f20e0c3dfebaa77127b55bc2623843a28b40c6.png"
+              title="La Loberia"
+              location="Isla San Cristobal"
+            />
+          )}
         </AuthCard>
       </View>
     </AuthBackground>
