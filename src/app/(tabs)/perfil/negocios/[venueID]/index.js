@@ -1,23 +1,36 @@
 // src/app/(tabs)/perfil/negocios/[venueID]/index.js
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, Pressable, Image, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AuthBackground from '../../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../../components/auth/AuthCard';
 import { selectVenueByIdFromState } from '../../../../../store/slices/venueSlice';
+import { fetchSchedulesByVenue } from '../../../../../store/slices/schedulesByVenueSlice';
 
 const WEEKDAYS_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+const EMPTY_SCHEDULES = [];
 
 export default function VenueDetailScreen() {
   const { venueID } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));
+  const schedulesByVenue = useSelector((s) => {
+    const value = s.schedulesByVenue?.schedulesByVenueID?.[venueID];
+    return value || EMPTY_SCHEDULES;
+  });
   const topGap = 108;
   const topInset = Platform.OS === 'ios' ? insets.top : 0;
   console.log('VenueDetailScreen - venue from state:', venue);
+
+  useEffect(() => {
+    if (!venueID) return;
+    if (Platform.OS === 'web') return;
+    dispatch(fetchSchedulesByVenue(venueID));
+  }, [dispatch, venueID]);
 
   if (!venue) {
     return (
@@ -46,21 +59,78 @@ export default function VenueDetailScreen() {
 
   // --- Normalizar horarios si existen ---
   const normalizedSchedules = useMemo(() => {
-    const raw = venue.VenueSchedules || [];
-    const asObjects = raw.map((r) => (r?.fields ? r.fields : r));
+    const rawFromVenue =
+      Array.isArray(venue?.VenueSchedules) && venue.VenueSchedules.length
+        ? venue.VenueSchedules
+        : [];
+    const raw = rawFromVenue.length ? rawFromVenue : schedulesByVenue;
+    const asObjects = (raw || []).map((r) => (r?.fields ? r.fields : r));
+
+    const normalizeWeekDay = (value) => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === 'number') return WEEKDAYS_ORDER[value] || null;
+      const rawValue = String(value).trim();
+      if (!rawValue) return null;
+      const normalized = rawValue
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+      const map = {
+        lunes: 'Lunes',
+        martes: 'Martes',
+        miercoles: 'Miércoles',
+        jueves: 'Jueves',
+        viernes: 'Viernes',
+        sabado: 'Sábado',
+        domingo: 'Domingo',
+        monday: 'Lunes',
+        tuesday: 'Martes',
+        wednesday: 'Miércoles',
+        thursday: 'Jueves',
+        friday: 'Viernes',
+        saturday: 'Sábado',
+        sunday: 'Domingo',
+      };
+      if (map[normalized]) return map[normalized];
+      const asNumber = Number(normalized);
+      if (!Number.isNaN(asNumber)) return WEEKDAYS_ORDER[asNumber] || null;
+      return null;
+    };
 
     const orderMap = WEEKDAYS_ORDER.reduce((acc, d, idx) => {
       acc[d] = idx;
       return acc;
     }, {});
 
-    return [...asObjects].sort((a, b) => {
-      const da = orderMap[a.weekDay] ?? 99;
-      const db = orderMap[b.weekDay] ?? 99;
+    return asObjects
+      .map((item) => {
+        const weekDay = normalizeWeekDay(item.weekDay ?? item.dayOfWeek ?? item.day);
+        if (!weekDay) return null;
+        return {
+          ...item,
+          weekDay,
+          openingTime_:
+            item.openingTime_ ??
+            item.openingTime ??
+            item.openTime ??
+            item.open ??
+            null,
+          closingTime_:
+            item.closingTime_ ??
+            item.closingTime ??
+            item.closeTime ??
+            item.close ??
+            null,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const da = orderMap[a.weekDay] ?? 99;
+        const db = orderMap[b.weekDay] ?? 99;
       if (da !== db) return da - db;
-      return (a.openingTime_ || '').localeCompare(b.openingTime_ || '');
-    });
-  }, [venue.VenueSchedules]);
+        return (a.openingTime_ || '').localeCompare(b.openingTime_ || '');
+      });
+  }, [venue?.VenueSchedules, schedulesByVenue]);
 
   const schedulesByDay = useMemo(() => {
     const map = {};
@@ -121,6 +191,12 @@ export default function VenueDetailScreen() {
         ]}
       >
         <AuthCard style={styles.card}>
+          <Pressable
+            onPress={() => router.push('/(tabs)/perfil/negocios')}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={18} color="#1B2222" />
+          </Pressable>
           <View style={styles.section}>
             <View style={styles.heroWrap}>
               {imageUrl ? (
@@ -224,9 +300,6 @@ export default function VenueDetailScreen() {
             </View>
 
             <View style={styles.actionRow}>
-              <Pressable style={[styles.actionButton, styles.actionNeutral]} onPress={router.back}>
-                <Ionicons name="arrow-back" size={18} color="#1B2222" />
-              </Pressable>
               <Pressable style={[styles.actionButton, styles.actionYellow]} onPress={() => {}}>
                 <Ionicons name="star" size={18} color="#FDFDFC" />
               </Pressable>
@@ -259,11 +332,13 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 0,
     paddingTop: 20,
     paddingBottom: 30,
+    position: 'relative',
   },
   section: {
     gap: 18,
     paddingHorizontal: 30,
     paddingBottom: 30,
+    paddingTop: 38,
   },
   missingWrapper: {
     flex: 1,
@@ -273,6 +348,18 @@ const styles = StyleSheet.create({
   },
   missingText: {
     opacity: 0.7,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 16,
+    right: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
   },
   heroWrap: {
     width: '100%',

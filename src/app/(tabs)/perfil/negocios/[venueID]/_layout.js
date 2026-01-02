@@ -10,7 +10,7 @@ export default function VenueLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
         title,
       }}
     >
