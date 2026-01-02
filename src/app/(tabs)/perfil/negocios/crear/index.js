@@ -9,7 +9,6 @@ import {
   ScrollView,
   Switch,
   Image,
-  useWindowDimensions,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSelector, useDispatch } from 'react-redux';
@@ -192,10 +191,7 @@ export default function CrearNegocioScreen() {
   const authUser = useSelector((s) => s.auth?.user);
   const { isDesktop, isWide } = useMedia();
   const isDesktopLayout = isDesktop || isWide;
-  const [containerHeight, setContainerHeight] = useState(0);
-  const { height: windowHeight } = useWindowDimensions();
   const topGap = 108;
-  const cardHeight = Math.max((containerHeight || windowHeight) - topGap, 0);
 
   const [form, setForm] = useState({
     venueName: '',
@@ -463,13 +459,15 @@ export default function CrearNegocioScreen() {
   // ---------- Render ----------
   return (
     <AuthBackground>
-      <View
-        style={{ flex: 1, justifyContent: 'flex-end' }}
-        onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: topGap,
+          flexGrow: 1,
+          justifyContent: 'flex-end',
+        }}
       >
         <AuthCard
           style={{
-            height: cardHeight,
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             borderBottomLeftRadius: 0,
@@ -478,8 +476,8 @@ export default function CrearNegocioScreen() {
             paddingBottom: 24,
           }}
         >
-          <ScrollView
-            contentContainerStyle={{
+          <View
+            style={{
               gap: 25,
               paddingHorizontal: 30,
               paddingBottom: 32,
@@ -864,9 +862,9 @@ export default function CrearNegocioScreen() {
             textStyle={{ color: '#1B2222' }}
           />
         </View>
+          </View>
+        </AuthCard>
       </ScrollView>
-    </AuthCard>
-  </View>
- </AuthBackground>
+    </AuthBackground>
   );
 }

@@ -1,13 +1,11 @@
 // src/app/(tabs)/perfil/negocios/index.js
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   Pressable,
-  FlatList,
   ActivityIndicator,
   Platform,
-  useWindowDimensions,
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -79,11 +77,7 @@ export default function MisNegociosScreen() {
   const isOnline = useNetworkStatus();
   const userID = authUser?.userID;
   const lastRemoteKeyRef = useRef('');
-  const [containerHeight, setContainerHeight] = useState(0);
-  const { height: windowHeight } = useWindowDimensions();
   const topGap = 108;
-  const availableHeight = containerHeight || windowHeight;
-  const cardHeight = Math.max(availableHeight - topGap, 0);
 
   useEffect(() => {
     const idsKey = userVenueIds.join('|');
@@ -133,13 +127,15 @@ export default function MisNegociosScreen() {
 
   return (
     <AuthBackground>
-      <View
-        style={{ flex: 1, justifyContent: 'flex-end' }}
-        onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: topGap,
+          flexGrow: 1,
+          justifyContent: 'flex-end',
+        }}
       >
         <AuthCard
           style={{
-            height: cardHeight,
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             borderBottomLeftRadius: 0,
@@ -148,7 +144,7 @@ export default function MisNegociosScreen() {
             paddingBottom: 24,
           }}
         >
-          <ScrollView contentContainerStyle={{ gap: 50, paddingBottom: 24 }}>
+          <View style={{ gap: 50, paddingBottom: 24 }}>
             <Header />
 
             {isLoading && (
@@ -220,9 +216,9 @@ export default function MisNegociosScreen() {
                 textStyle={{ color: '#1B2222' }}
               />
             </View>
-          </ScrollView>
+          </View>
         </AuthCard>
-      </View>
+      </ScrollView>
     </AuthBackground>
   );
 }

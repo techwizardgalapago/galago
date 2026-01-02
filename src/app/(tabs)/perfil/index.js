@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/index.js
-import { View, Text, StyleSheet, Platform, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, Platform, ScrollView } from "react-native";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,24 +15,22 @@ import { joinFullName } from "../../../features/users/profileComplition";
 
 export default function PerfilScreen() {
   const [activeTab, setActiveTab] = useState("saved");
-  const [containerHeight, setContainerHeight] = useState(0);
-  const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const user = useSelector((s) => s.auth?.user);
   const topGap = 108;
   const topInset = Platform.OS === "ios" ? insets.top : 0;
-  const availableHeight = containerHeight || windowHeight;
-  const cardHeight = Math.max(availableHeight - topGap - topInset, 0);
   const fullName =
     user?.fullName || joinFullName(user?.firstName, user?.lastName) || "—";
 
   return (
     <AuthBackground>
-      <View
-        style={styles.root}
-        onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: topGap + topInset },
+        ]}
       >
-        <AuthCard style={[styles.card, { height: cardHeight }]}>
+        <AuthCard style={styles.card}>
           <View style={styles.section}>
             <View style={styles.profileBlock}>
               <ProfileAvatarBadge />
@@ -87,14 +85,14 @@ export default function PerfilScreen() {
             />
           )}
         </AuthCard>
-      </View>
+      </ScrollView>
     </AuthBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "flex-end",
   },
   card: {
