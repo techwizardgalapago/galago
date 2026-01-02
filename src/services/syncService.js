@@ -51,6 +51,16 @@ const toISO = (msOrIso) => {
 };
 const firstOrNull = (v) => Array.isArray(v) ? (v.length ? v[0] : null) : (v ?? null);
 const joinOrNull = (v) => Array.isArray(v) ? (v.length ? v.join(', ') : null) : toNull(v);
+const toArrayOrEmpty = (v) => {
+  if (Array.isArray(v)) return v.filter((item) => item !== null && item !== undefined && `${item}`.trim());
+  if (v === null || v === undefined) return [];
+  const asString = `${v}`.trim();
+  if (!asString) return [];
+  return asString
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
 
 // -------------------------
 // Sanitizadores por entidad
@@ -64,7 +74,7 @@ function sanitizeUser(u) {
     email: toNull(u.userEmail),
     countryOfOrigin: toNull(u.countryOfOrigin),
     dateOfBirth: toNull(u.dateOfBirth), // o ISO si backend lo requiere estricto
-    reasonForTravel: toNull(u.reasonForTravel), // si backend espera array: split por coma
+    reasonForTravel: toArrayOrEmpty(u.reasonForTravel),
     role: toNull(u.userRole),
     googleAccount: toBool(u.googleAccount),
     deleted: u.deleted === 1,
