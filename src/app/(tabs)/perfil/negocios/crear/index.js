@@ -473,6 +473,36 @@ export default function CrearNegocioScreen() {
               paddingBottom: 32,
             }}
           >
+            <View
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 26,
+                  fontWeight: '600',
+                  color: '#1B2222',
+                  textAlign: 'center',
+                }}
+              >
+                Registra tu negocio
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#1B2222',
+                  textAlign: 'center',
+                  opacity: 0.9,
+                }}
+              >
+                (para más información contactese con nuestro equipo)
+              </Text>
+            </View>
             <AuthInput
               value={form.venueName}
               onChangeText={(t) => setForm((f) => ({ ...f, venueName: t }))}
