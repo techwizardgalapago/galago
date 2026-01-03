@@ -454,9 +454,9 @@ export default function EditVenueScreen() {
         console.log('Venue actualizado remoto:', updated);
 
         const mapped = updated?.fields
-          ? { venueID: updated.venueID, ...updated.fields }
-          : updated?.venueID
-          ? updated
+          ? { venueID: updated.venueID ?? updated.id, ...updated.fields }
+          : updated?.venueID || updated?.id
+          ? { ...updated, venueID: updated.venueID ?? updated.id }
           : { venueID, ...fields };
 
         await dispatch(upsertVenuesFromAPIThunk([mapped]));
@@ -487,9 +487,9 @@ export default function EditVenueScreen() {
       try {
         const refreshed = await getVenueById(venueID);
         const mapped = refreshed?.fields
-          ? { venueID: refreshed.venueID, ...refreshed.fields }
-          : refreshed?.venueID
-          ? refreshed
+          ? { venueID: refreshed.venueID ?? refreshed.id, ...refreshed.fields }
+          : refreshed?.venueID || refreshed?.id
+          ? { ...refreshed, venueID: refreshed.venueID ?? refreshed.id }
           : null;
         if (mapped) {
           await dispatch(upsertVenuesFromAPIThunk([mapped]));
