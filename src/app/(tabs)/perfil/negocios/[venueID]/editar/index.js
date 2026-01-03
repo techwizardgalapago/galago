@@ -31,6 +31,7 @@ import { fetchSchedulesByVenue } from '../../../../../../store/slices/schedulesB
 
 import {
   patchVenue,
+  getVenueById,
   uploadVenueImage,
   createVenueSchedules,
   updateVenueSchedules,
@@ -420,24 +421,22 @@ export default function EditVenueScreen() {
         venueContact: form.venueContact || '',
       };
 
+      const originalFlat = originalFlatRef.current || [];
+      const toCreate = buildCreatePayload(schedules, venueID);
+      const toUpdate = buildUpdatePayload(schedules, venueID, originalFlat);
+      const toDelete = buildDeleteIds(schedules, originalFlat);
+
+      if (toDelete.length) {
+        await Promise.all(toDelete.map((id) => deleteVenueScheduleById(id)));
+      }
+      if (toUpdate.length) {
+        await updateVenueSchedules(toUpdate);
+      }
+      if (toCreate.length) {
+        await createVenueSchedules(toCreate);
+      }
+
       if (Platform.OS === 'web') {
-        const originalFlat = originalFlatRef.current || [];
-        console.log('Original flat.current schedules:', originalFlat);
-
-        const toCreate = buildCreatePayload(schedules, venueID);
-        const toUpdate = buildUpdatePayload(schedules, venueID, originalFlat);
-        const toDelete = buildDeleteIds(schedules, originalFlat);
-
-        if (toDelete.length) {
-          await Promise.all(toDelete.map((id) => deleteVenueScheduleById(id)));
-        }
-        if (toUpdate.length) {
-          await updateVenueSchedules(toUpdate);
-        }
-        if (toCreate.length) {
-          await createVenueSchedules(toCreate);
-        }
-
         if (image) {
           const res = await fetch(image.uri);
           const blob = await res.blob();
@@ -483,6 +482,20 @@ export default function EditVenueScreen() {
         if (image) {
           await uploadVenueImage(venueID, image);
         }
+      }
+
+      try {
+        const refreshed = await getVenueById(venueID);
+        const mapped = refreshed?.fields
+          ? { venueID: refreshed.venueID, ...refreshed.fields }
+          : refreshed?.venueID
+          ? refreshed
+          : null;
+        if (mapped) {
+          await dispatch(upsertVenuesFromAPIThunk([mapped]));
+        }
+      } catch (e) {
+        console.warn('No se pudo refrescar venue remoto:', e?.message || e);
       }
 
       router.push('/(tabs)/perfil/negocios');

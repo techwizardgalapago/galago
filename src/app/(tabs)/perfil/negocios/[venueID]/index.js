@@ -88,9 +88,9 @@ export default function VenueDetailScreen() {
         : [];
     const raw = rawFromVenue.length
       ? rawFromVenue
-      : schedulesByVenue.length
-      ? schedulesByVenue
-      : remoteSchedules;
+      : remoteSchedules.length
+      ? remoteSchedules
+      : schedulesByVenue;
     const asObjects = (raw || []).map((r) => (r?.fields ? r.fields : r));
 
     const normalizeWeekDay = (value) => {
