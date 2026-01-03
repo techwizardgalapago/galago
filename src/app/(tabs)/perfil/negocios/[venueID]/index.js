@@ -350,6 +350,13 @@ export default function VenueDetailScreen() {
                 <Ionicons name="bookmark" size={18} color="#FDFDFC" />
               </Pressable>
             </View>
+
+            <Pressable
+              onPress={() => router.push(`/(tabs)/perfil/negocios/${venueID}/editar`)}
+              style={styles.editButton}
+            >
+              <Text style={styles.editButtonText}>Editar</Text>
+            </Pressable>
           </View>
         </AuthCard>
       </ScrollView>
@@ -553,5 +560,19 @@ const styles = StyleSheet.create({
   },
   actionOrange: {
     backgroundColor: '#F08A2B',
+  },
+  editButton: {
+    backgroundColor: '#F26719',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignSelf: 'center',
+    minWidth: 127,
+  },
+  editButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

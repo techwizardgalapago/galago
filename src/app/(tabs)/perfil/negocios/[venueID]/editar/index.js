@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 
 import AuthBackground from '../../../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../../../components/auth/AuthCard';
@@ -26,6 +27,7 @@ import {
   upsertVenuesFromAPIThunk,
   editVenueLocal,
 } from '../../../../../../store/slices/venueSlice';
+import { fetchSchedulesByVenue } from '../../../../../../store/slices/schedulesByVenueSlice';
 
 import {
   patchVenue,
@@ -165,6 +167,10 @@ export default function EditVenueScreen() {
   const { venueID } = useLocalSearchParams();
   const dispatch = useDispatch();
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));
+  const schedulesByVenue = useSelector((s) => {
+    const value = s.schedulesByVenue?.schedulesByVenueID?.[venueID];
+    return value || [];
+  });
   const authUser = useSelector((s) => s.auth?.user);
   const { isDesktop, isWide } = useMedia();
   const isDesktopLayout = isDesktop || isWide;
@@ -212,20 +218,37 @@ export default function EditVenueScreen() {
       negocio: !!venue.negocio,
     });
 
-    if (Array.isArray(venue.VenueSchedules)) {
+    if (Array.isArray(venue.VenueSchedules) && venue.VenueSchedules.length) {
       console.log('VenueSchedules found:', venue.VenueSchedules);
       originalFlatRef.current = flattenOriginal(venue.VenueSchedules);
       console.log('Loaded originalFlatRef.current:', originalFlatRef.current);
       setSchedules(groupVenueSchedules(venue.VenueSchedules));
-    } else {
-      originalFlatRef.current = [];
-      console.log('No VenueSchedules found, using default schedules.');
-      setSchedules(buildDefaultSchedules());
     }
 
     // mapsUrl empieza vacío; el usuario pega uno nuevo si quiere actualizar coords
     setMapsUrl('');
   }, [venue]);
+
+  useEffect(() => {
+    if (!venueID) return;
+    if (Platform.OS === 'web') return;
+    dispatch(fetchSchedulesByVenue(venueID));
+  }, [dispatch, venueID]);
+
+  useEffect(() => {
+    if (!venue) return;
+    if (!schedulesByVenue.length) return;
+    if (Array.isArray(venue.VenueSchedules) && venue.VenueSchedules.length) return;
+    const mapped = schedulesByVenue.map((s) => ({
+      scheduleID: s.scheduleID,
+      weekDay: s.dayOfWeek ?? s.weekDay ?? s.day,
+      openingTime_: s.openTime ?? s.openingTime_ ?? s.openingTime,
+      closingTime_: s.closeTime ?? s.closingTime_ ?? s.closingTime,
+    }));
+    originalFlatRef.current = flattenOriginal(mapped);
+    console.log('Loaded schedules from DB:', originalFlatRef.current);
+    setSchedules(groupVenueSchedules(mapped));
+  }, [venue, schedulesByVenue]);
 
   // ---- horarios helpers ----
   const setDayEnabled = (dayIdx, v) => {
@@ -506,8 +529,26 @@ export default function EditVenueScreen() {
             borderBottomRightRadius: 0,
             paddingTop: 20,
             paddingBottom: 24,
+            position: 'relative',
           }}
         >
+          <Pressable
+            onPress={() => router.push(`/(tabs)/perfil/negocios/${venueID}`)}
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 20,
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: '#F2F2F2',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2,
+            }}
+          >
+            <Ionicons name="arrow-back" size={18} color="#1B2222" />
+          </Pressable>
           <View style={{ gap: 25, paddingHorizontal: 30, paddingBottom: 32 }}>
             <View
               style={{
