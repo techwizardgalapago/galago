@@ -26,7 +26,6 @@ export default function VenueDetailScreen() {
   const [remoteSchedules, setRemoteSchedules] = useState(EMPTY_SCHEDULES);
   const topGap = 108;
   const topInset = Platform.OS === 'ios' ? insets.top : 0;
-  console.log('VenueDetailScreen - venue from state:', venue);
 
   useEffect(() => {
     if (!venueID) return;
@@ -56,14 +55,6 @@ export default function VenueDetailScreen() {
     };
   }, [venueID]);
 
-  useEffect(() => {
-    if (!venueID) return;
-    console.log('VenueDetailScreen - schedulesByVenue:', {
-      venueID,
-      count: schedulesByVenue.length,
-      sample: schedulesByVenue[0] || null,
-    });
-  }, [venueID, schedulesByVenue]);
 
   // --- Imagen principal (maneja array o string JSON) ---
   let firstImage = null;

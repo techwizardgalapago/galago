@@ -23,7 +23,6 @@ export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
 export const login = createAsyncThunk('auth/login', async ({ email, password }) => {
   const { token, fields } = await loginService({ email, password });
   const user = fields[0];
-  console.log("loginService response:", { token, user });
   return { token, user };
 });
 

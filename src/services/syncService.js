@@ -181,7 +181,6 @@ async function syncCollection({
 }) {
   const rows = await getUnsynced();
   if (!rows.length) {
-    console.log(`✅ No unsynced ${name} records.`);
     return { created: 0, updated: 0, deleted: 0, failed: 0 };
   }
 
@@ -261,7 +260,6 @@ async function syncCollection({
     deleted: toDelete.length,
     failed: failed.length,
   };
-  console.log(`📤 ${name} sync result:`, res);
   return res;
 }
 
@@ -352,7 +350,6 @@ export async function pushEventUsersChanges() {
 // -------------------------
 export async function pushAllChanges() {
   const db = getDatabase(); // por si quieres usar transaccionalidad alrededor
-  console.log('📡 Connection stable, syncing...');
 
   const res = {};
 

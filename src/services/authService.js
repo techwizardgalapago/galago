@@ -21,9 +21,7 @@ export async function registerService(payload) {
 }
 
 export async function fetchMeService() {
-  console.log("fetchMeService called");
   const { data } = await api.get('auth/me');
-  console.log("fetchMeService response:", data);
   return data; // user object
 }
 

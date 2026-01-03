@@ -69,7 +69,6 @@ export const removeUser = createAsyncThunk('users/removeUser', async ({ userID }
 export const upsertUsersFromAPI = createAsyncThunk('users/upsertFromAPI', async (users) => {
   await ignoreDBIfWeb(() => dbUpsertUsersFromAPI(users));
   const rows = await ignoreDBIfWeb(() => dbSelectAllUsers(), []);
-  console.log('upsertUsersFromAPI - fetched rows:', rows);
   return rows || [];
 });
 

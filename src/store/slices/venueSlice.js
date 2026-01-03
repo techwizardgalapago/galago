@@ -236,7 +236,6 @@ const venuesSlice = createSlice({
           }
         })
 
-        console.log("Venues after upsertVenuesFromAPIThunk:", state.list);
       })
 
       // fetch remoto por IDs

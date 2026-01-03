@@ -25,6 +25,7 @@ import { useMedia } from '../../../../../../hooks/useMedia';
 import {
   selectVenueByIdFromState,
   upsertVenuesFromAPIThunk,
+  fetchUserVenuesRemote,
   editVenueLocal,
 } from '../../../../../../store/slices/venueSlice';
 import { fetchSchedulesByVenue } from '../../../../../../store/slices/schedulesByVenueSlice';
@@ -48,6 +49,30 @@ import {
   buildDeleteIds,
   validateDaySegments,
 } from '../../../../../../features/venues/schedules';
+
+const normalizeVenueResponse = (payload, fallback) => {
+  if (!payload && !fallback) return null;
+  const base = payload?.fields
+    ? { venueID: payload.venueID ?? payload.id, ...payload.fields }
+    : payload || {};
+  const mapped = { ...base };
+
+  if (!mapped.venueName && base.name) mapped.venueName = base.name;
+  if (!mapped.venueDescription && base.description) mapped.venueDescription = base.description;
+  if (!mapped.venueCategory && base.category) mapped.venueCategory = base.category;
+  if (!mapped.venueLocation && base.location) mapped.venueLocation = base.location;
+  if (!mapped.venueAddress && base.address) mapped.venueAddress = base.address;
+  if (!mapped.venueContact && base.contact) mapped.venueContact = base.contact;
+  if (!mapped.venueImage && base.image) mapped.venueImage = base.image;
+  if (!mapped.userID && base.ownerUserId) mapped.userID = base.ownerUserId;
+
+  const fallbackValue = fallback || {};
+  return {
+    ...fallbackValue,
+    ...mapped,
+    venueID: mapped.venueID ?? fallbackValue.venueID,
+  };
+};
 
 const VENUE_CATEGORIES = [
   'Restaurante',
@@ -205,7 +230,6 @@ export default function EditVenueScreen() {
 
   useEffect(() => {
     if (!venue) return;
-    console.log('Editing venue:', venue);
 
     setForm({
       venueName: venue.venueName || '',
@@ -220,9 +244,7 @@ export default function EditVenueScreen() {
     });
 
     if (Array.isArray(venue.VenueSchedules) && venue.VenueSchedules.length) {
-      console.log('VenueSchedules found:', venue.VenueSchedules);
       originalFlatRef.current = flattenOriginal(venue.VenueSchedules);
-      console.log('Loaded originalFlatRef.current:', originalFlatRef.current);
       setSchedules(groupVenueSchedules(venue.VenueSchedules));
     }
 
@@ -247,7 +269,6 @@ export default function EditVenueScreen() {
       closingTime_: s.closeTime ?? s.closingTime_ ?? s.closingTime,
     }));
     originalFlatRef.current = flattenOriginal(mapped);
-    console.log('Loaded schedules from DB:', originalFlatRef.current);
     setSchedules(groupVenueSchedules(mapped));
   }, [venue, schedulesByVenue]);
 
@@ -436,6 +457,15 @@ export default function EditVenueScreen() {
         await createVenueSchedules(toCreate);
       }
 
+      const fallbackVenue = { venueID, ...fields };
+      let updatedVenue = null;
+      try {
+        updatedVenue = await patchVenue(venueID, fields);
+        console.log('patchVenue response:', updatedVenue);
+      } catch (e) {
+        console.warn('No se pudo actualizar venue remoto:', e?.message || e);
+      }
+
       if (Platform.OS === 'web') {
         if (image) {
           const res = await fetch(image.uri);
@@ -449,17 +479,6 @@ export default function EditVenueScreen() {
           formData.append('image', file);
           await uploadVenueImage(venueID, formData);
         }
-
-        const updated = await patchVenue(venueID, fields);
-        console.log('Venue actualizado remoto:', updated);
-
-        const mapped = updated?.fields
-          ? { venueID: updated.venueID ?? updated.id, ...updated.fields }
-          : updated?.venueID || updated?.id
-          ? { ...updated, venueID: updated.venueID ?? updated.id }
-          : { venueID, ...fields };
-
-        await dispatch(upsertVenuesFromAPIThunk([mapped]));
       } else {
         await dispatch(
           editVenueLocal({
@@ -485,14 +504,19 @@ export default function EditVenueScreen() {
       }
 
       try {
+        if (updatedVenue) {
+          const mapped = normalizeVenueResponse(updatedVenue, fallbackVenue);
+          if (mapped) {
+            await dispatch(upsertVenuesFromAPIThunk([mapped]));
+          }
+        }
         const refreshed = await getVenueById(venueID);
-        const mapped = refreshed?.fields
-          ? { venueID: refreshed.venueID ?? refreshed.id, ...refreshed.fields }
-          : refreshed?.venueID || refreshed?.id
-          ? { ...refreshed, venueID: refreshed.venueID ?? refreshed.id }
-          : null;
+        const mapped = normalizeVenueResponse(refreshed, fallbackVenue);
         if (mapped) {
           await dispatch(upsertVenuesFromAPIThunk([mapped]));
+        }
+        if (authUser?.userVenues?.length) {
+          await dispatch(fetchUserVenuesRemote(authUser.userVenues));
         }
       } catch (e) {
         console.warn('No se pudo refrescar venue remoto:', e?.message || e);

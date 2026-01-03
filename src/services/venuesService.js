@@ -7,7 +7,6 @@ const extractCreatedVenueId = (responseData) => {
   const arr = Array.isArray(responseData) ? responseData : responseData.records;
   const rec = Array.isArray(arr) ? arr[0] : null;
   // Airtable usa 'id' (p.ej. rectHWy8ujec0uB4s)
-  console.log('extractCreatedVenueId - record:', rec);
   return rec?.venueIDid || rec?.fields?.id || null;
 };
 
@@ -15,7 +14,6 @@ export const createVenue = async (fields) => {
   // Backend espera: [ { fields: {...} } ]
   const payload = [{ fields }];
   const res = await api.post('/venues', payload); // baseUrl configurado en api.js -> http://localhost:8080/api/v1
-  console.log('createVenue response:', res.data[0]);
   return res.data[0];
 };
 

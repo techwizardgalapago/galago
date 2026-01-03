@@ -103,13 +103,6 @@ export default function MisNegociosScreen() {
     }
   }, [dispatch, status, isOnline, userVenueIds.length]);
 
-  // Debug log only when ids change
-  useEffect(() => {
-    const key = (venues || []).map((v) => v.venueID).join('|');
-    if (key) {
-      console.log('MisNegociosScreen - venues from state:', venues);
-    }
-  }, [(venues || []).map((v) => v.venueID).join('|')]);
 
   // Robust filter: userID can be array or string
   const myVenues = useMemo(() => {

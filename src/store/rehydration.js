@@ -14,7 +14,6 @@ export const rehydrateReduxFromSQLite = () => async (dispatch) => {
       dispatch(fetchEvents()),
       dispatch(fetchEventsByUser()),
     ]);
-    console.log("✅ Redux rehydrated from SQLite");
   } catch (error) {
     console.error("❌ Failed to rehydrate Redux from SQLite:", error);
   }
