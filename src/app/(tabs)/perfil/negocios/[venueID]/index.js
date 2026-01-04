@@ -1,6 +1,6 @@
 // src/app/(tabs)/perfil/negocios/[venueID]/index.js
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, Image, ScrollView, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { View, Text, Pressable, Image, ScrollView, StyleSheet, Platform, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -177,6 +177,27 @@ export default function VenueDetailScreen() {
       ? priceValue.trim()
       : null;
 
+  const lat = typeof venue?.latitude === 'number' ? venue.latitude : Number(venue?.latitude);
+  const lng =
+    typeof venue?.longitude === 'number'
+      ? venue.longitude
+      : Number(venue?.longitud ?? venue?.longitude);
+
+  const openMaps = useCallback(async () => {
+    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+    const label = encodeURIComponent(venue?.venueName || 'Ubicación');
+    const appleUrl = hasCoords ? `maps://?q=${lat},${lng}` : `maps://?q=${label}`;
+    const googleUrl = hasCoords
+      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      : `https://www.google.com/maps/search/?api=1&query=${label}`;
+    if (Platform.OS === 'web') {
+      window.open(googleUrl, '_blank', 'noopener');
+      return;
+    }
+    const canOpen = await Linking.canOpenURL(appleUrl);
+    await Linking.openURL(canOpen ? appleUrl : googleUrl);
+  }, [lat, lng, venue?.venueName]);
+
   const tags = [
     ecoFriendly
       ? {
@@ -331,7 +352,7 @@ export default function VenueDetailScreen() {
               <Pressable style={[styles.actionButton, styles.actionYellow]} onPress={() => {}}>
                 <Ionicons name="star" size={18} color="#FDFDFC" />
               </Pressable>
-              <Pressable style={[styles.actionButton, styles.actionBlue]} onPress={() => {}}>
+              <Pressable style={[styles.actionButton, styles.actionBlue]} onPress={openMaps}>
                 <Ionicons name="map" size={18} color="#FDFDFC" />
               </Pressable>
               <Pressable style={[styles.actionButton, styles.actionGreen]} onPress={() => {}}>
