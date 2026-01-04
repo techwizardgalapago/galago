@@ -198,6 +198,24 @@ export default function VenueDetailScreen() {
     await Linking.openURL(canOpen ? appleUrl : googleUrl);
   }, [lat, lng, venue?.venueName]);
 
+  const openWhatsApp = useCallback(async () => {
+    const rawPhone = `${venue?.venueContact ?? ''}`.trim();
+    if (!rawPhone) return;
+    const normalized = rawPhone.replace(/[^\d+]/g, '');
+    const phone = normalized.startsWith('+') ? normalized.slice(1) : normalized;
+    const message = encodeURIComponent(
+      `Hola, te escribo por ${venue?.venueName || 'tu negocio'}.`
+    );
+    const appUrl = `whatsapp://send?phone=${phone}&text=${message}`;
+    const webUrl = `https://wa.me/${phone}?text=${message}`;
+    if (Platform.OS === 'web') {
+      window.open(webUrl, '_blank', 'noopener');
+      return;
+    }
+    const canOpen = await Linking.canOpenURL(appUrl);
+    await Linking.openURL(canOpen ? appUrl : webUrl);
+  }, [venue?.venueContact, venue?.venueName]);
+
   const tags = [
     ecoFriendly
       ? {
@@ -355,7 +373,7 @@ export default function VenueDetailScreen() {
               <Pressable style={[styles.actionButton, styles.actionBlue]} onPress={openMaps}>
                 <Ionicons name="map" size={18} color="#FDFDFC" />
               </Pressable>
-              <Pressable style={[styles.actionButton, styles.actionGreen]} onPress={() => {}}>
+              <Pressable style={[styles.actionButton, styles.actionGreen]} onPress={openWhatsApp}>
                 <Ionicons name="logo-whatsapp" size={18} color="#FDFDFC" />
               </Pressable>
               <Pressable style={[styles.actionButton, styles.actionOrange]} onPress={() => {}}>
