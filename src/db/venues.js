@@ -1,4 +1,5 @@
 import { getDatabase } from "./config";
+import { enqueueDbWrite } from "./queue";
 
 const ensureUserRow = async (db, userID) => {
   if (!userID) return;
@@ -194,7 +195,7 @@ export const remapVenueId = async (oldVenueID, newVenueID) => {
 };
 
 
-export const upsertVenuesFromAPI = async (venues = []) => {
+const runVenuesUpsert = async (venues = []) => {
   const db = getDatabase();
 
   try {
@@ -248,13 +249,16 @@ export const upsertVenuesFromAPI = async (venues = []) => {
 
     await db.execAsync("COMMIT");
 
-    console.log("✅ Venues upserted successfully");
   } catch (error) {
     await db.execAsync("ROLLBACK");
 
     console.error("❌ Failed to upsert venues from API:", error);
     throw error;
   }
+};
+
+export const upsertVenuesFromAPI = async (venues = []) => {
+  return enqueueDbWrite(() => runVenuesUpsert(venues));
 };
 
 /** Soft-delete a venue */
@@ -270,6 +274,19 @@ export const softDeleteVenue = async (venueID, when = Date.now()) => {
 export const updateVenueLocal = async (patch) => {
   const db = getDatabase();
   const now = Date.now();
+  const normalizeParam = (value) => (value === undefined ? null : value);
+  const venueImageValue = Array.isArray(patch.venueImage)
+    ? JSON.stringify(patch.venueImage)
+    : normalizeParam(patch.venueImage);
+  const userIdValue = Array.isArray(patch.userID)
+    ? patch.userID[0]
+    : normalizeParam(patch.userID);
+  const negocioValue =
+    patch.negocio === undefined || patch.negocio === null
+      ? null
+      : patch.negocio
+      ? 1
+      : 0;
   await db.runAsync(
     `UPDATE venues SET
   venueName = COALESCE(?, venueName),
@@ -287,19 +304,17 @@ export const updateVenueLocal = async (patch) => {
   isSynced = 0
   WHERE venueID = ? AND deleted = 0`,
     [
-      patch.venueName,
-      Array.isArray(patch.venueImage)
-        ? JSON.stringify(patch.venueImage)
-        : patch.venueImage,
-      patch.venueDescription,
-      patch.venueCategory,
-      patch.venueLocation,
-      patch.venueAddress,
-      patch.venueContact,
-      patch.latitude,
-      patch.longitude,
-      patch.negocio != null ? (patch.negocio ? 1 : 0) : undefined,
-      Array.isArray(patch.userID) ? patch.userID[0] : patch.userID,
+      normalizeParam(patch.venueName),
+      venueImageValue,
+      normalizeParam(patch.venueDescription),
+      normalizeParam(patch.venueCategory),
+      normalizeParam(patch.venueLocation),
+      normalizeParam(patch.venueAddress),
+      normalizeParam(patch.venueContact),
+      normalizeParam(patch.latitude),
+      normalizeParam(patch.longitude),
+      negocioValue,
+      userIdValue,
       now,
       patch.venueID,
     ]
@@ -338,18 +353,21 @@ export const updateVenueSynced = async (venueID) => {
 };
 
 export const markVenuesSynced = async (ids = []) => {
-  if (!ids.length) return;
-  const db = getDatabase();
-  try {
-    await db.execAsync("BEGIN TRANSACTION");
-    for (const id of ids) {
-      await db.runAsync(`UPDATE venues SET isSynced = 1 WHERE venueID = ?`, [
-        id,
-      ]);
+  const safeIds = (ids || []).filter(Boolean);
+  if (!safeIds.length) return;
+  return enqueueDbWrite(async () => {
+    const db = getDatabase();
+    try {
+      await db.execAsync("BEGIN TRANSACTION");
+      for (const id of safeIds) {
+        await db.runAsync(`UPDATE venues SET isSynced = 1 WHERE venueID = ?`, [
+          id,
+        ]);
+      }
+      await db.execAsync("COMMIT");
+    } catch (e) {
+      await db.execAsync("ROLLBACK");
+      throw e;
     }
-    await db.execAsync("COMMIT");
-  } catch (e) {
-    await db.execAsync("ROLLBACK");
-    throw e;
-  }
+  });
 };

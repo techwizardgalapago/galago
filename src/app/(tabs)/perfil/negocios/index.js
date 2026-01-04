@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/index.js
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   ActivityIndicator,
   Platform,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { router } from 'expo-router';
@@ -77,6 +79,7 @@ export default function MisNegociosScreen() {
   const isOnline = useNetworkStatus();
   const userID = authUser?.userID;
   const lastRemoteKeyRef = useRef('');
+  const [refreshing, setRefreshing] = useState(false);
   const topGap = 108;
 
   useEffect(() => {
@@ -103,6 +106,29 @@ export default function MisNegociosScreen() {
     }
   }, [dispatch, status, isOnline, userVenueIds.length]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!isOnline || !userVenueIds.length) return;
+      dispatch(fetchUserVenuesRemote(userVenueIds));
+    }, [dispatch, isOnline, userVenueIds])
+  );
+
+  const onRefresh = useCallback(async () => {
+    if (!isOnline) return;
+    setRefreshing(true);
+    try {
+      if (userVenueIds.length) {
+        await dispatch(fetchUserVenuesRemote(userVenueIds));
+      } else if (userID) {
+        await dispatch(fetchUserVenuesByUserId(userID));
+      } else {
+        await dispatch(fetchVenues());
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch, isOnline, userVenueIds, userID]);
+
 
   // Robust filter: userID can be array or string
   const myVenues = useMemo(() => {
@@ -121,6 +147,9 @@ export default function MisNegociosScreen() {
   return (
     <AuthBackground>
       <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         contentContainerStyle={{
           paddingTop: topGap,
           flexGrow: 1,

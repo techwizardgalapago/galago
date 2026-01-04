@@ -27,7 +27,6 @@ export const useAppInitializer = () => {
   const debouncedSync = useRef(
     debounce(() => {
       if (!initializedRef.current || !OFFLINE_ENABLED) return;
-      console.log("📡 Connection stable, syncing...");
       syncWithIndicator();
     }, 5000)
   ).current;

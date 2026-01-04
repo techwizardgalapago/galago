@@ -1,4 +1,5 @@
 import { getDatabase } from "./config";
+import { enqueueDbWrite } from "./queue";
 import { sanitizeJsonField } from "./dbUtils";
 import { initEventsTable } from "./events";
 import { initEventUsersTable } from "./eventUsers";
@@ -336,16 +337,19 @@ export const updateUserSynced = async (userID) => {
 
 /** Optional: bulk mark synced by IDs */
 export const markUsersSynced = async (ids = []) => {
-  if (!ids.length) return;
-  const db = getDatabase();
-  try {
-    await db.execAsync("BEGIN TRANSACTION");
-    for (const id of ids) {
-      await db.runAsync(`UPDATE users SET isSynced = 1 WHERE userID = ?`, [id]);
+  const safeIds = (ids || []).filter(Boolean);
+  if (!safeIds.length) return;
+  return enqueueDbWrite(async () => {
+    const db = getDatabase();
+    try {
+      await db.execAsync("BEGIN TRANSACTION");
+      for (const id of safeIds) {
+        await db.runAsync(`UPDATE users SET isSynced = 1 WHERE userID = ?`, [id]);
+      }
+      await db.execAsync("COMMIT");
+    } catch (e) {
+      await db.execAsync("ROLLBACK");
+      throw e;
     }
-    await db.execAsync("COMMIT");
-  } catch (e) {
-    await db.execAsync("ROLLBACK");
-    throw e;
-  }
+  });
 };

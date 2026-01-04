@@ -6,14 +6,11 @@ import { fetchEventsByUser } from "./slices/eventUsersSlice";
 
 export const rehydrateReduxFromSQLite = () => async (dispatch) => {
   try {
-    // Dispatch each slice's fetch action in parallel
-    await Promise.all([
-      dispatch(fetchUsers()),
-      dispatch(fetchVenues()),
-      dispatch(fetchSchedules()),
-      dispatch(fetchEvents()),
-      dispatch(fetchEventsByUser()),
-    ]);
+    await dispatch(fetchUsers());
+    await dispatch(fetchVenues());
+    await dispatch(fetchSchedules());
+    await dispatch(fetchEvents());
+    await dispatch(fetchEventsByUser());
   } catch (error) {
     console.error("❌ Failed to rehydrate Redux from SQLite:", error);
   }

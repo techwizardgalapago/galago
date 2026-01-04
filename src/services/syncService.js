@@ -68,17 +68,15 @@ const toArrayOrEmpty = (v) => {
 // -------------------------
 function sanitizeUser(u) {
   return {
-    // NO mandes userID en POST (server crea ID)
+    // Solo campos permitidos por backend de users
     firstName: toNull(u.firstName),
     lastName: toNull(u.lastName),
-    email: toNull(u.userEmail),
+    userEmail: toNull(u.userEmail),
+    userRole: toNull(u.userRole),
     countryOfOrigin: toNull(u.countryOfOrigin),
-    dateOfBirth: toNull(u.dateOfBirth), // o ISO si backend lo requiere estricto
+    dateOfBirth: toNull(u.dateOfBirth),
     reasonForTravel: toArrayOrEmpty(u.reasonForTravel),
-    role: toNull(u.userRole),
-    googleAccount: toBool(u.googleAccount),
-    deleted: u.deleted === 1,
-    updatedAt: toISO(u.updated_at),
+    genero: toNull(u.genero),
   };
 }
 
@@ -178,6 +176,7 @@ async function syncCollection({
   markSynced,             // (ids[]) => Promise<void>
   remapId,                // (oldId, newId) => Promise<void>
   endpoints,              // { base: '/users' }
+  updateMethod = 'patch',
 }) {
   const rows = await getUnsynced();
   if (!rows.length) {
@@ -212,8 +211,13 @@ async function syncCollection({
   for (const r of toUpdate) {
     const body = sanitize(r);
     const id = r[idKey];
+    if (name === 'users') {
+      console.log('users sync update payload:', { id, body });
+    }
     try {
-      await withRetry(() => axios.patch(`${API_URL}${endpoints.base}/${encodeURIComponent(id)}`, body));
+      await withRetry(() =>
+        axios[updateMethod](`${API_URL}${endpoints.base}/${encodeURIComponent(id)}`, body)
+      );
       ok.push(id);
     } catch (e) {
       if (e.response?.status === 404) {
@@ -279,6 +283,7 @@ export async function pushUsersChanges() {
       // también puedes tocar otras tablas si referencian userID
     },
     endpoints: { base: 'users' }, // -> POST /users, PATCH /users/:id, DELETE /users/:id
+    updateMethod: 'put',
   });
 }
 

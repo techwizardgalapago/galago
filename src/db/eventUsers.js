@@ -1,4 +1,5 @@
 import { getDatabase } from "./config";
+import { enqueueDbWrite } from "./queue";
 
 /**
  * EVENTUSERS TABLE (join table)
@@ -182,19 +183,22 @@ export const updateEventUserSynced = async (eventID, userID) => {
 };
 
 export const markEventUsersSynced = async (pairs = []) => {
-  if (!pairs.length) return;
-  const db = getDatabase();
-  try {
-    await db.execAsync("BEGIN TRANSACTION");
-    for (const { eventID, userID } of pairs) {
-      await db.runAsync(
-        `UPDATE eventUsers SET isSynced = 1 WHERE eventID = ? AND userID = ?`,
-        [eventID, userID]
-      );
+  const safePairs = (pairs || []).filter((p) => p?.eventID && p?.userID);
+  if (!safePairs.length) return;
+  return enqueueDbWrite(async () => {
+    const db = getDatabase();
+    try {
+      await db.execAsync("BEGIN TRANSACTION");
+      for (const { eventID, userID } of safePairs) {
+        await db.runAsync(
+          `UPDATE eventUsers SET isSynced = 1 WHERE eventID = ? AND userID = ?`,
+          [eventID, userID]
+        );
+      }
+      await db.execAsync("COMMIT");
+    } catch (e) {
+      await db.execAsync("ROLLBACK");
+      throw e;
     }
-    await db.execAsync("COMMIT");
-  } catch (e) {
-    await db.execAsync("ROLLBACK");
-    throw e;
-  }
+  });
 };

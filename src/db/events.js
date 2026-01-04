@@ -1,4 +1,5 @@
 import { getDatabase } from "./config";
+import { enqueueDbWrite } from "./queue";
 
 const coerceId = (v) => (typeof v === "string" ? v.trim() : v);
 const firstOrNull = (v) =>
@@ -553,18 +554,21 @@ export const updateEventSynced = async (eventID) => {
 };
 
 export const markEventsSynced = async (ids = []) => {
-  if (!ids.length) return;
-  const db = getDatabase();
-  try {
-    await db.execAsync("BEGIN TRANSACTION");
-    for (const id of ids) {
-      await db.runAsync(`UPDATE events SET isSynced = 1 WHERE eventID = ?`, [
-        id,
-      ]);
+  const safeIds = (ids || []).filter(Boolean);
+  if (!safeIds.length) return;
+  return enqueueDbWrite(async () => {
+    const db = getDatabase();
+    try {
+      await db.execAsync("BEGIN TRANSACTION");
+      for (const id of safeIds) {
+        await db.runAsync(`UPDATE events SET isSynced = 1 WHERE eventID = ?`, [
+          id,
+        ]);
+      }
+      await db.execAsync("COMMIT");
+    } catch (e) {
+      await db.execAsync("ROLLBACK");
+      throw e;
     }
-    await db.execAsync("COMMIT");
-  } catch (e) {
-    await db.execAsync("ROLLBACK");
-    throw e;
-  }
+  });
 };

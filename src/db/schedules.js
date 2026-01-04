@@ -1,4 +1,5 @@
 import { getDatabase } from "./config";
+import { enqueueDbWrite } from "./queue";
 
 /**
  * SCHEDULES TABLE
@@ -103,7 +104,7 @@ export const remapScheduleId = async (oldScheduleID, newScheduleID) => {
 };
 
 /** API → SQLite upsert */
-export const upsertSchedulesFromAPI = async (rows = []) => {
+const runSchedulesUpsert = async (rows = []) => {
   const db = getDatabase();
   try {
     await db.execAsync("BEGIN TRANSACTION");
@@ -142,6 +143,10 @@ export const upsertSchedulesFromAPI = async (rows = []) => {
     console.error("❌ upsertSchedulesFromAPI failed:", e);
     throw e;
   }
+};
+
+export const upsertSchedulesFromAPI = async (rows = []) => {
+  return enqueueDbWrite(() => runSchedulesUpsert(rows));
 };
 
 /** Soft delete */
@@ -209,19 +214,22 @@ export const updateScheduleSynced = async (scheduleID) => {
 };
 
 export const markSchedulesSynced = async (ids = []) => {
-  if (!ids.length) return;
-  const db = getDatabase();
-  try {
-    await db.execAsync("BEGIN TRANSACTION");
-    for (const id of ids) {
-      await db.runAsync(
-        `UPDATE schedules SET isSynced = 1 WHERE scheduleID = ?`,
-        [id]
-      );
+  const safeIds = (ids || []).filter(Boolean);
+  if (!safeIds.length) return;
+  return enqueueDbWrite(async () => {
+    const db = getDatabase();
+    try {
+      await db.execAsync("BEGIN TRANSACTION");
+      for (const id of safeIds) {
+        await db.runAsync(
+          `UPDATE schedules SET isSynced = 1 WHERE scheduleID = ?`,
+          [id]
+        );
+      }
+      await db.execAsync("COMMIT");
+    } catch (e) {
+      await db.execAsync("ROLLBACK");
+      throw e;
     }
-    await db.execAsync("COMMIT");
-  } catch (e) {
-    await db.execAsync("ROLLBACK");
-    throw e;
-  }
+  });
 };
