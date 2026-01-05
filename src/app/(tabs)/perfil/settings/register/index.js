@@ -1,10 +1,10 @@
 // src/app/(tabs)/perfil/settings/register/index.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { router } from 'expo-router';
-
-import Container from '../../../../../components/Container';
+import AuthBackground from '../../../../../components/auth/AuthBackground';
+import AuthCard from '../../../../../components/auth/AuthCard';
 import Input from '../../../../../components/Input';
 import Select from '../../../../../components/Select';
 
@@ -48,7 +48,6 @@ export default function RegisterProfileScreen() {
     dateOfBirth: '',
     genero: '',       // <-- NEW FIELD
   });
-  console.log('Form state:', form);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -100,7 +99,6 @@ export default function RegisterProfileScreen() {
     setSaving(true);
     try {
       const { firstName, lastName } = splitFullName(form.fullName);
-      console.log('Saving profile with data:', { firstName, lastName, ...form });
 
       const remote = await patchUserProfile(user.userID, {
         firstName,
@@ -112,7 +110,6 @@ export default function RegisterProfileScreen() {
         dateOfBirth: form.dateOfBirth,
         genero: form.genero, // <-- SAVE GENDER
       });
-      console.log('Profile updated', remote);
 
       if (remote?.user) {
         await dispatch(upsertUsersFromAPI([remote.user]));
@@ -136,122 +133,255 @@ export default function RegisterProfileScreen() {
   // RENDER
   // ------------------------------------------------
   return (
-    <Container>
-      <ScrollView contentContainerStyle={{ gap: 16, paddingVertical: 20 }}>
-        <Text style={{ fontSize: 24, fontWeight: '700' }}>Complete su perfil</Text>
+    <AuthBackground>
+      <View style={styles.scrollContent}>
+        <AuthCard style={styles.card}>
+          <Pressable
+            onPress={() => router.push('/(tabs)/perfil/settings')}
+            style={styles.backButton}
+          >
+            <Text style={styles.backButtonText}>×</Text>
+          </Pressable>
+          <View style={styles.headerBlock}>
+            <Text style={styles.title}>Ajustes De Perfil</Text>
+          </View>
 
-        {/* Full Name */}
-        <View style={{ gap: 6 }}>
-          <Text style={{ fontWeight: '600' }}>Nombre y Apellido</Text>
-          <Input
-            placeholder="Nombre y Apellido"
-            value={form.fullName}
-            onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
-          />
-        </View>
-
-        {/* Email */}
-        <View style={{ gap: 6 }}>
-          <Text style={{ fontWeight: '600' }}>Correo Electrónico</Text>
-          <Input
-            placeholder="Correo Electrónico"
-            value={form.userEmail}
-            onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
-            keyboardType="email-address"
-          />
-        </View>
-
-        {/* Date of Birth */}
-        <View style={{ gap: 6 }}>
-          <Text style={{ fontWeight: '600' }}>Fecha de Nacimiento</Text>
-          {Platform.OS === 'web' ? (
-            <View
-              style={{
-                display: 'flex',
-                height: 34,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                alignItems: 'center',
-                borderRadius: 50,
-                backgroundColor: '#EDEDED',
-                maxWidth: 333,
-                width: '100%',
-              }}
-            >
-              <input
-                type="date"
-                value={form.dateOfBirth}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, dateOfBirth: e.target.value }))
-                }
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  fontSize: 14,
-                }}
-              />
-            </View>
-          ) : (
+          <View style={styles.formBlock}>
+            <Text style={styles.inputLabel}>Nombre y Apellido</Text>
             <Input
-              placeholder="YYYY-MM-DD"
-              value={form.dateOfBirth}
-              onChangeText={(t) =>
-                setForm((f) => ({ ...f, dateOfBirth: t }))
-              }
+              placeholder="Nombre y Apellido"
+              value={form.fullName}
+              onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
+              style={styles.input}
             />
-          )}
-        </View>
 
-        {/* Gender */}
-        <Text style={{ fontWeight: '600' }}>Género</Text>
-        <Select
-          value={form.genero}
-          onChange={(v) => setForm(f => ({ ...f, genero: v }))}
-          options={GENDER_OPTIONS}
-          placeholder="Seleccione género"
-        />
+            <Text style={styles.inputLabel}>Correo Electrónico</Text>
+            <Input
+              placeholder="Correo Electrónico"
+              value={form.userEmail}
+              onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
+              keyboardType="email-address"
+              style={styles.input}
+            />
 
-        {/* Role */}
-        <Text style={{ fontWeight: '600' }}>Rol</Text>
-        <Select
-          value={form.userRole}
-          onChange={(v) => setForm(f => ({ ...f, userRole: v }))}
-          options={USER_ROLES}
-        />
+            <Text style={styles.centerLabel}>Fecha de nacimiento:</Text>
+            {Platform.OS === 'web' ? (
+              <View style={styles.webDateWrap}>
+                <input
+                  type="date"
+                  value={form.dateOfBirth}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, dateOfBirth: e.target.value }))
+                  }
+                  style={styles.webDateInput}
+                />
+              </View>
+            ) : (
+              <Input
+                placeholder="YYYY-MM-DD"
+                value={form.dateOfBirth}
+                onChangeText={(t) =>
+                  setForm((f) => ({ ...f, dateOfBirth: t }))
+                }
+                style={styles.input}
+              />
+            )}
 
-        {/* Country */}
-        <Text style={{ fontWeight: '600' }}>País de Origen</Text>
-        <Select
-          value={form.countryOfOrigin}
-          onChange={(v) => setForm(f => ({ ...f, countryOfOrigin: v }))}
-          options={COUNTRIES}
-          placeholder="Select your country"
-        />
+            <Text style={styles.inputLabel}>Género</Text>
+            <Select
+              value={form.genero}
+              onChange={(v) => setForm(f => ({ ...f, genero: v }))}
+              options={GENDER_OPTIONS}
+              placeholder="Seleccione género"
+              style={styles.select}
+            />
 
-        {/* Reason for Travel */}
-        <Text style={{ fontWeight: '600' }}>Motivo del Viaje</Text>
-        <Select
-          value={form.reasonForTravel}
-          onChange={(v) => setForm(f => ({ ...f, reasonForTravel: v }))}
-          options={TRAVEL_REASONS}
-          placeholder="Select reason"
-        />
+            <Text style={styles.inputLabel}>Rol</Text>
+            <Select
+              value={form.userRole}
+              onChange={(v) => setForm(f => ({ ...f, userRole: v }))}
+              options={USER_ROLES}
+              style={styles.select}
+            />
 
-        {!!error && <Text style={{ color: '#c00' }}>{error}</Text>}
+            <Text style={styles.inputLabel}>País de Origen</Text>
+            <Select
+              value={form.countryOfOrigin}
+              onChange={(v) => setForm(f => ({ ...f, countryOfOrigin: v }))}
+              options={COUNTRIES}
+              placeholder="Select your country"
+              style={styles.select}
+            />
 
-        <Pressable
-          onPress={onSave}
-          disabled={saving}
-          style={{ backgroundColor: '#111', padding: 14, borderRadius: 12 }}
-        >
-          <Text style={{ color: 'white', fontWeight: '700', textAlign: 'center' }}>
-            {saving ? 'Saving…' : 'Save & Continue'}
-          </Text>
-        </Pressable>
-      </ScrollView>
-    </Container>
+            <Text style={styles.inputLabel}>Motivo del Viaje</Text>
+            <Select
+              value={form.reasonForTravel}
+              onChange={(v) => setForm(f => ({ ...f, reasonForTravel: v }))}
+              options={TRAVEL_REASONS}
+              placeholder="Select reason"
+              style={styles.select}
+            />
+          </View>
+
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+
+          <View style={styles.buttonRow}>
+            <Pressable
+              onPress={() => router.back()}
+              style={[styles.buttonBase, styles.buttonOutline]}
+            >
+              <Text style={styles.buttonOutlineText}>Regresar</Text>
+            </Pressable>
+            <Pressable
+              onPress={onSave}
+              disabled={saving}
+              style={[styles.buttonBase, styles.buttonPrimary, saving && styles.buttonDisabled]}
+            >
+              <Text style={styles.buttonPrimaryText}>
+                {saving ? 'Guardando…' : 'Guardar'}
+              </Text>
+            </Pressable>
+          </View>
+        </AuthCard>
+      </View>
+    </AuthBackground>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingTop: 0,
+    paddingBottom: 52,
+    alignItems: 'center',
+    flex: 1,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 393,
+    alignItems: 'center',
+    gap: 34,
+    position: 'relative',
+    borderRadius: 20,
+    paddingTop: 0,
+    paddingBottom: 40,
+    flex: 1,
+  },
+  headerBlock: {
+    width: '100%',
+    marginTop: 37,
+    paddingHorizontal: 25,
+    paddingTop: 15,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '600',
+    color: '#1B2222',
+    textAlign: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: -6,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    fontSize: 20,
+    color: '#1B2222',
+  },
+  formBlock: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 20,
+  },
+  inputLabel: {
+    width: '100%',
+    maxWidth: 333,
+    fontSize: 14,
+    color: '#1B2222',
+    textAlign: 'left',
+    marginBottom: -6,
+  },
+  input: {
+    height: 34,
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    fontSize: 14,
+    lineHeight: 16,
+    textAlignVertical: 'center',
+    maxWidth: 333,
+  },
+  select: {
+    height: 34,
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    maxWidth: 333,
+  },
+  centerLabel: {
+    fontSize: 14,
+    color: '#1B2222',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  webDateWrap: {
+    display: 'flex',
+    height: 34,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderRadius: 50,
+    backgroundColor: '#EDEDED',
+    maxWidth: 333,
+    width: '100%',
+  },
+  webDateInput: {
+    width: '100%',
+    height: '100%',
+    border: 'none',
+    outline: 'none',
+    background: 'transparent',
+    fontSize: 14,
+  },
+  errorText: {
+    color: '#c00',
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 25,
+  },
+  buttonBase: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 80,
+    width: 119,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonOutline: {
+    backgroundColor: '#FDFDFC',
+    borderWidth: 2,
+    borderColor: '#383A3A',
+  },
+  buttonOutlineText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#383A3A',
+  },
+  buttonPrimary: {
+    backgroundColor: '#259D4E',
+  },
+  buttonPrimaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FDFDFC',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+});
