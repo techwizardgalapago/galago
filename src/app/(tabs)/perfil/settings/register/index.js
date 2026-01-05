@@ -1,12 +1,24 @@
 // src/app/(tabs)/perfil/settings/register/index.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  ScrollView,
+  Image,
+  Modal,
+} from 'react-native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useDispatch, useSelector } from 'react-redux';
 import { router } from 'expo-router';
 import AuthBackground from '../../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../../components/auth/AuthCard';
 import Input from '../../../../../components/Input';
 import Select from '../../../../../components/Select';
+import ArrowIcon from '../../../../../../assets/icons/select-arrow.png';
 
 import { COUNTRIES } from '../../../../../utils/countries';
 import { updateUser, upsertUsersFromAPI } from '../../../../../store/slices/userSlice';
@@ -39,6 +51,7 @@ export default function RegisterProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth || {});
   const { height: windowHeight } = useWindowDimensions();
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [form, setForm] = useState({
     fullName: '',
@@ -52,6 +65,46 @@ export default function RegisterProfileScreen() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const parseDate = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    return null;
+  };
+
+  const formatDisplayDate = (value) => {
+    if (!value) return 'DD/MM/YYYY';
+    const date = parseDate(value);
+    if (!date) return value;
+    const day = `${date.getDate()}`.padStart(2, '0');
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const year = `${date.getFullYear()}`;
+    return `${day}/${month}/${year}`;
+  };
+
+  const updateDate = (date) => {
+    if (!date) return;
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    setForm((f) => ({ ...f, dateOfBirth: `${year}-${month}-${day}` }));
+  };
+
+  const openDatePicker = () => {
+    const current = parseDate(form.dateOfBirth) || new Date();
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: current,
+        mode: 'date',
+        onChange: (_, selected) => {
+          if (selected) updateDate(selected);
+        },
+      });
+      return;
+    }
+    setShowDatePicker(true);
+  };
 
   // ------------------------------------------------
   // LOAD EXISTING USER PROFILE
@@ -135,7 +188,7 @@ export default function RegisterProfileScreen() {
   // ------------------------------------------------
   return (
     <AuthBackground>
-      <View style={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <AuthCard style={[styles.card, { minHeight: Math.max(0, windowHeight - 52) }]}>
           <Pressable
             onPress={() => router.push('/(tabs)/perfil/settings')}
@@ -167,7 +220,7 @@ export default function RegisterProfileScreen() {
                   style={styles.input}
                 />
 
-                <Text style={styles.centerLabel}>Fecha de nacimiento:</Text>
+                <Text style={styles.inputLabel}>Fecha de nacimiento:</Text>
                 {Platform.OS === 'web' ? (
                   <View style={styles.webDateWrap}>
                     <input
@@ -180,14 +233,12 @@ export default function RegisterProfileScreen() {
                     />
                   </View>
                 ) : (
-                  <Input
-                    placeholder="YYYY-MM-DD"
-                    value={form.dateOfBirth}
-                    onChangeText={(t) =>
-                      setForm((f) => ({ ...f, dateOfBirth: t }))
-                    }
-                    style={styles.input}
-                  />
+                  <Pressable onPress={openDatePicker} style={styles.dateField}>
+                    <Text style={styles.dateText}>
+                      {formatDisplayDate(form.dateOfBirth)}
+                    </Text>
+                    <Image source={ArrowIcon} style={styles.dateIcon} />
+                  </Pressable>
                 )}
 
                 <Text style={styles.inputLabel}>Género</Text>
@@ -248,7 +299,29 @@ export default function RegisterProfileScreen() {
             </View>
           </View>
         </AuthCard>
-      </View>
+      </ScrollView>
+      {Platform.OS === 'ios' && showDatePicker ? (
+        <Modal transparent animationType="fade">
+          <Pressable style={styles.dateBackdrop} onPress={() => setShowDatePicker(false)}>
+            <Pressable style={styles.dateSheet}>
+              <DateTimePicker
+                value={parseDate(form.dateOfBirth) || new Date()}
+                mode="date"
+                display="spinner"
+                onChange={(_, selected) => {
+                  if (selected) updateDate(selected);
+                }}
+              />
+              <Pressable
+                style={styles.dateDone}
+                onPress={() => setShowDatePicker(false)}
+              >
+                <Text style={styles.dateDoneText}>Listo</Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </AuthBackground>
   );
 }
@@ -258,7 +331,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 52,
     alignItems: 'center',
-    flex: 1,
+    flexGrow: 1,
   },
   card: {
     width: '100%',
@@ -337,6 +410,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     maxWidth: 333,
   },
+  dateField: {
+    height: 34,
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    maxWidth: 333,
+    width: '100%',
+    backgroundColor: '#EDEDED',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#1B2222',
+  },
+  dateIcon: {
+    width: 12,
+    height: 12,
+  },
   centerLabel: {
     fontSize: 14,
     color: '#1B2222',
@@ -361,6 +453,28 @@ const styles = StyleSheet.create({
     background: 'transparent',
     fontSize: 14,
   },
+  dateBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  dateSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  dateDone: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  dateDoneText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1B2222',
+  },
   errorText: {
     color: '#c00',
     textAlign: 'center',
@@ -368,6 +482,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 25,
+    marginTop: 18,
   },
   buttonBase: {
     paddingVertical: 14,
