@@ -1,6 +1,6 @@
 // src/app/(tabs)/perfil/settings/register/index.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { router } from 'expo-router';
 import AuthBackground from '../../../../../components/auth/AuthBackground';
@@ -38,6 +38,7 @@ const TRAVEL_REASONS = [
 export default function RegisterProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth || {});
+  const { height: windowHeight } = useWindowDimensions();
 
   const [form, setForm] = useState({
     fullName: '',
@@ -135,112 +136,116 @@ export default function RegisterProfileScreen() {
   return (
     <AuthBackground>
       <View style={styles.scrollContent}>
-        <AuthCard style={styles.card}>
+        <AuthCard style={[styles.card, { minHeight: Math.max(0, windowHeight - 52) }]}>
           <Pressable
             onPress={() => router.push('/(tabs)/perfil/settings')}
             style={styles.backButton}
           >
             <Text style={styles.backButtonText}>×</Text>
           </Pressable>
-          <View style={styles.headerBlock}>
-            <Text style={styles.title}>Ajustes De Perfil</Text>
-          </View>
+          <View style={styles.contentWrap}>
+            <View style={styles.topBlock}>
+              <View style={styles.headerBlock}>
+                <Text style={styles.title}>Ajustes De Perfil</Text>
+              </View>
 
-          <View style={styles.formBlock}>
-            <Text style={styles.inputLabel}>Nombre y Apellido</Text>
-            <Input
-              placeholder="Nombre y Apellido"
-              value={form.fullName}
-              onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
-              style={styles.input}
-            />
+              <View style={styles.formBlock}>
+                <Text style={styles.inputLabel}>Nombre y Apellido</Text>
+                <Input
+                  placeholder="Nombre y Apellido"
+                  value={form.fullName}
+                  onChangeText={(t) => setForm(f => ({ ...f, fullName: t }))}
+                  style={styles.input}
+                />
 
-            <Text style={styles.inputLabel}>Correo Electrónico</Text>
-            <Input
-              placeholder="Correo Electrónico"
-              value={form.userEmail}
-              onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
-              keyboardType="email-address"
-              style={styles.input}
-            />
+                <Text style={styles.inputLabel}>Correo Electrónico</Text>
+                <Input
+                  placeholder="Correo Electrónico"
+                  value={form.userEmail}
+                  onChangeText={(t) => setForm(f => ({ ...f, userEmail: t }))}
+                  keyboardType="email-address"
+                  style={styles.input}
+                />
 
-            <Text style={styles.centerLabel}>Fecha de nacimiento:</Text>
-            {Platform.OS === 'web' ? (
-              <View style={styles.webDateWrap}>
-                <input
-                  type="date"
-                  value={form.dateOfBirth}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, dateOfBirth: e.target.value }))
-                  }
-                  style={styles.webDateInput}
+                <Text style={styles.centerLabel}>Fecha de nacimiento:</Text>
+                {Platform.OS === 'web' ? (
+                  <View style={styles.webDateWrap}>
+                    <input
+                      type="date"
+                      value={form.dateOfBirth}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, dateOfBirth: e.target.value }))
+                      }
+                      style={styles.webDateInput}
+                    />
+                  </View>
+                ) : (
+                  <Input
+                    placeholder="YYYY-MM-DD"
+                    value={form.dateOfBirth}
+                    onChangeText={(t) =>
+                      setForm((f) => ({ ...f, dateOfBirth: t }))
+                    }
+                    style={styles.input}
+                  />
+                )}
+
+                <Text style={styles.inputLabel}>Género</Text>
+                <Select
+                  value={form.genero}
+                  onChange={(v) => setForm(f => ({ ...f, genero: v }))}
+                  options={GENDER_OPTIONS}
+                  placeholder="Seleccione género"
+                  style={styles.select}
+                />
+
+                <Text style={styles.inputLabel}>Rol</Text>
+                <Select
+                  value={form.userRole}
+                  onChange={(v) => setForm(f => ({ ...f, userRole: v }))}
+                  options={USER_ROLES}
+                  style={styles.select}
+                />
+
+                <Text style={styles.inputLabel}>País de Origen</Text>
+                <Select
+                  value={form.countryOfOrigin}
+                  onChange={(v) => setForm(f => ({ ...f, countryOfOrigin: v }))}
+                  options={COUNTRIES}
+                  placeholder="Select your country"
+                  style={styles.select}
+                />
+
+                <Text style={styles.inputLabel}>Motivo del Viaje</Text>
+                <Select
+                  value={form.reasonForTravel}
+                  onChange={(v) => setForm(f => ({ ...f, reasonForTravel: v }))}
+                  options={TRAVEL_REASONS}
+                  placeholder="Select reason"
+                  style={styles.select}
                 />
               </View>
-            ) : (
-              <Input
-                placeholder="YYYY-MM-DD"
-                value={form.dateOfBirth}
-                onChangeText={(t) =>
-                  setForm((f) => ({ ...f, dateOfBirth: t }))
-                }
-                style={styles.input}
-              />
-            )}
 
-            <Text style={styles.inputLabel}>Género</Text>
-            <Select
-              value={form.genero}
-              onChange={(v) => setForm(f => ({ ...f, genero: v }))}
-              options={GENDER_OPTIONS}
-              placeholder="Seleccione género"
-              style={styles.select}
-            />
+              {!!error && <Text style={styles.errorText}>{error}</Text>}
+            </View>
 
-            <Text style={styles.inputLabel}>Rol</Text>
-            <Select
-              value={form.userRole}
-              onChange={(v) => setForm(f => ({ ...f, userRole: v }))}
-              options={USER_ROLES}
-              style={styles.select}
-            />
-
-            <Text style={styles.inputLabel}>País de Origen</Text>
-            <Select
-              value={form.countryOfOrigin}
-              onChange={(v) => setForm(f => ({ ...f, countryOfOrigin: v }))}
-              options={COUNTRIES}
-              placeholder="Select your country"
-              style={styles.select}
-            />
-
-            <Text style={styles.inputLabel}>Motivo del Viaje</Text>
-            <Select
-              value={form.reasonForTravel}
-              onChange={(v) => setForm(f => ({ ...f, reasonForTravel: v }))}
-              options={TRAVEL_REASONS}
-              placeholder="Select reason"
-              style={styles.select}
-            />
-          </View>
-
-          {!!error && <Text style={styles.errorText}>{error}</Text>}
-
-          <View style={styles.buttonRow}>
-            <Pressable
-              onPress={() => router.back()}
-              style={[styles.buttonBase, styles.buttonOutline]}
-            >
-              <Text style={styles.buttonOutlineText}>Regresar</Text>
-            </Pressable>
-            <Pressable
-              onPress={onSave}
-              disabled={saving}
-              style={[styles.buttonBase, styles.buttonPrimary, saving && styles.buttonDisabled]}
-            >
-              <Text style={styles.buttonPrimaryText}>
-                {saving ? 'Guardando…' : 'Guardar'}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonRow}>
+              <Pressable
+                onPress={() => router.back()}
+                style={[styles.buttonBase, styles.buttonOutline]}
+              >
+                <Text style={styles.buttonOutlineText}>Regresar</Text>
+              </Pressable>
+              <Pressable
+                onPress={onSave}
+                disabled={saving}
+                style={[styles.buttonBase, styles.buttonPrimary, saving && styles.buttonDisabled]}
+              >
+                <Text style={styles.buttonPrimaryText}>
+                  {saving ? 'Guardando…' : 'Guardar'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </AuthCard>
       </View>
@@ -259,12 +264,21 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 393,
     alignItems: 'center',
-    gap: 34,
     position: 'relative',
     borderRadius: 20,
     paddingTop: 0,
     paddingBottom: 40,
+  },
+  contentWrap: {
     flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topBlock: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 28,
   },
   headerBlock: {
     width: '100%',
@@ -281,7 +295,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: -6,
+    top: 45,
     right: 12,
     width: 40,
     height: 40,
