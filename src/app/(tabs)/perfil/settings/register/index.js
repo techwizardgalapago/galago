@@ -18,7 +18,7 @@ import AuthBackground from '../../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../../components/auth/AuthCard';
 import Input from '../../../../../components/Input';
 import Select from '../../../../../components/Select';
-import ArrowIcon from '../../../../../../assets/icons/select-arrow.png';
+import { Ionicons } from '@expo/vector-icons';
 
 import { COUNTRIES } from '../../../../../utils/countries';
 import { updateUser, upsertUsersFromAPI } from '../../../../../store/slices/userSlice';
@@ -237,7 +237,7 @@ export default function RegisterProfileScreen() {
                     <Text style={styles.dateText}>
                       {formatDisplayDate(form.dateOfBirth)}
                     </Text>
-                    <Image source={ArrowIcon} style={styles.dateIcon} />
+                    <Ionicons name="chevron-down" size={14} color="#1B2222" />
                   </Pressable>
                 )}
 
@@ -424,10 +424,6 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     color: '#1B2222',
-  },
-  dateIcon: {
-    width: 12,
-    height: 12,
   },
   centerLabel: {
     fontSize: 14,
