@@ -190,12 +190,6 @@ export default function RegisterProfileScreen() {
     <AuthBackground>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <AuthCard style={[styles.card, { minHeight: Math.max(0, windowHeight - 52) }]}>
-          <Pressable
-            onPress={() => router.push('/(tabs)/perfil/settings')}
-            style={styles.backButton}
-          >
-            <Text style={styles.backButtonText}>×</Text>
-          </Pressable>
           <View style={styles.contentWrap}>
             <View style={styles.topBlock}>
               <View style={styles.headerBlock}>
@@ -365,21 +359,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1B2222',
     textAlign: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 45,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F2F2F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: '#1B2222',
   },
   formBlock: {
     width: '100%',
