@@ -6,7 +6,6 @@ import {
   Pressable,
   Platform,
   StyleSheet,
-  useWindowDimensions,
   ScrollView,
   Image,
   Modal,
@@ -50,7 +49,6 @@ const TRAVEL_REASONS = [
 export default function RegisterProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth || {});
-  const { height: windowHeight } = useWindowDimensions();
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [form, setForm] = useState({
@@ -189,7 +187,7 @@ export default function RegisterProfileScreen() {
   return (
     <AuthBackground>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <AuthCard style={[styles.card, { minHeight: Math.max(0, windowHeight - 52) }]}>
+        <AuthCard style={styles.card}>
           <View style={styles.contentWrap}>
             <View style={styles.topBlock}>
               <View style={styles.headerBlock}>
@@ -291,6 +289,7 @@ export default function RegisterProfileScreen() {
                 </Text>
               </Pressable>
             </View>
+            <View style={styles.bottomSpacer} />
           </View>
         </AuthCard>
       </ScrollView>
@@ -324,17 +323,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 0,
     paddingBottom: 52,
-    alignItems: 'center',
+    alignItems: Platform.OS === 'web' ? 'center' : 'stretch',
     flexGrow: 1,
   },
   card: {
     width: '100%',
-    maxWidth: 393,
+    maxWidth: Platform.OS === 'web' ? 640 : undefined,
     alignItems: 'center',
     position: 'relative',
-    borderRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     paddingTop: 0,
-    paddingBottom: 40,
+    paddingBottom: 0,
   },
   contentWrap: {
     flex: 1,
@@ -457,7 +457,10 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 25,
-    marginTop: 18,
+    marginTop: 38,
+  },
+  bottomSpacer: {
+    height: 200,
   },
   buttonBase: {
     paddingVertical: 14,
