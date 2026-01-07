@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     marginTop: 38,
   },
   bottomSpacer: {
-    height: 200,
+    height: 50,
   },
   buttonBase: {
     paddingVertical: 14,
