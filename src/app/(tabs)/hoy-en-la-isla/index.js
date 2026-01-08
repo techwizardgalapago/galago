@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  Image,
 } from "react-native";
 import { Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,7 +17,33 @@ import { useMedia } from "../../../hooks/useMedia";
 const TABS = [
   { key: "hoy", label: "Hoy en la isla" },
   { key: "agenda", label: "Agenda" },
-  { key: "regeneracion", label: "Regeneracion" },
+  { key: "regeneracion", label: "Regeneración" },
+];
+
+const FEATURED_EVENTS = [
+  {
+    title: "Festival De Arte En La Playa",
+    location: "La Nube, Isla Santa Cruz",
+    date: "14",
+    month: "OCT",
+    image:
+      "http://localhost:3845/assets/5a44d4ddb46060488f1c103d0990ee81cac6f129.png",
+  },
+  {
+    title: "Rolls, Sake y Caña",
+    location: "Noe Sushi Bar, Isla Isabela",
+    date: "14",
+    month: "OCT",
+    image:
+      "http://localhost:3845/assets/5e060ffce86528279ee70054aa77a2d19e6cfd6c.png",
+  },
+];
+
+const CATEGORY_CHIPS = [
+  { label: "Gastronomía", color: "#ED8924" },
+  { label: "Arte & Cultura", color: "#EA78BF" },
+  { label: "Vida Nocturna", color: "#904CCC" },
+  { label: "Actividades", color: "#009CAD" },
 ];
 
 const DAY_ITEMS = [
@@ -94,8 +121,8 @@ const EVENTS_BY_TAB = {
 
 const TAB_STYLES = {
   hoy: {
-    accent: "#F26719",
-    gradient: ["#1E7BB6", "#1A9BB3", "#53BEA8"],
+    accent: "#ED8924",
+    gradient: ["#0083A9", "#008EAD", "#2EB0A4"],
   },
   agenda: {
     accent: "#F26719",
@@ -109,7 +136,7 @@ const TAB_STYLES = {
 
 export default function HoyEnLaIslaScreen() {
   const { isMobile } = useMedia();
-  const [activeTab, setActiveTab] = useState("agenda");
+  const [activeTab, setActiveTab] = useState("hoy");
   const [activeDay, setActiveDay] = useState(DAY_ITEMS[0].key);
 
   const tabStyle = TAB_STYLES[activeTab] || TAB_STYLES.agenda;
@@ -121,6 +148,7 @@ export default function HoyEnLaIslaScreen() {
     activeTab === "regeneracion"
       ? "rgba(107, 143, 31, 0.12)"
       : "rgba(242, 103, 25, 0.1)";
+  const isHoyTab = activeTab === "hoy";
 
   const events = useMemo(() => EVENTS_BY_TAB[activeTab] || [], [activeTab]);
   const contentWidth = isMobile ? styles.fullWidth : styles.maxWidth;
@@ -162,95 +190,168 @@ export default function HoyEnLaIslaScreen() {
           </View>
         </View>
         <View style={[styles.card, contentWidth]}>
-          <View style={styles.dayRow}>
-            {DAY_ITEMS.map((day) => {
-              const isActive = day.key === activeDay;
-              return (
-                <Pressable
-                  key={day.key}
-                  style={styles.dayItem}
-                  onPress={() => setActiveDay(day.key)}
+          {isHoyTab ? (
+            <ScrollView
+              contentContainerStyle={styles.hoyContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  Categorías de eventos populares
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoryRow}
                 >
-                  <Text
-                    style={[
-                      styles.dayLabel,
-                      { color: isActive ? tabStyle.accent : inactiveColor },
-                    ]}
-                  >
-                    {day.day}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dayNumber,
-                      { color: isActive ? tabStyle.accent : inactiveColor },
-                    ]}
-                  >
-                    {day.key}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dayMonth,
-                      { color: isActive ? tabStyle.accent : inactiveColor },
-                    ]}
-                  >
-                    {day.month}
-                  </Text>
-                  {isActive ? (
+                  {CATEGORY_CHIPS.map((chip) => (
+                    <View
+                      key={chip.label}
+                      style={[styles.categoryChip, { backgroundColor: chip.color }]}
+                    >
+                      <Text style={styles.categoryText}>{chip.label}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Eventos Destacadados</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.featuredRow}
+                >
+                  {FEATURED_EVENTS.map((event) => (
+                    <View key={event.title} style={styles.featuredCard}>
+                      <Image
+                        source={{ uri: event.image }}
+                        style={styles.featuredImage}
+                      />
+                      <View style={styles.featuredDate}>
+                        <Text style={styles.featuredDateDay}>{event.date}</Text>
+                        <Text style={styles.featuredDateMonth}>{event.month}</Text>
+                      </View>
+                      <LinearGradient
+                        colors={[
+                          "rgba(27,34,34,0)",
+                          "rgba(27,34,34,0.8)",
+                        ]}
+                        style={styles.featuredOverlay}
+                      >
+                        <Text style={styles.featuredLocation}>
+                          {event.location}
+                        </Text>
+                        <Text style={styles.featuredTitle}>{event.title}</Text>
+                      </LinearGradient>
+                    </View>
+                  ))}
+                </ScrollView>
+                <View style={styles.carouselRow}>
+                  <View
+                    style={[styles.carouselDot, styles.carouselDotActive]}
+                  />
+                  <View style={styles.carouselDot} />
+                  <View style={styles.carouselDot} />
+                  <View style={styles.carouselDot} />
+                </View>
+              </View>
+            </ScrollView>
+          ) : (
+            <>
+              <View style={styles.dayRow}>
+                {DAY_ITEMS.map((day) => {
+                  const isActive = day.key === activeDay;
+                  return (
+                    <Pressable
+                      key={day.key}
+                      style={styles.dayItem}
+                      onPress={() => setActiveDay(day.key)}
+                    >
+                      <Text
+                        style={[
+                          styles.dayLabel,
+                          { color: isActive ? tabStyle.accent : inactiveColor },
+                        ]}
+                      >
+                        {day.day}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.dayNumber,
+                          { color: isActive ? tabStyle.accent : inactiveColor },
+                        ]}
+                      >
+                        {day.key}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.dayMonth,
+                          { color: isActive ? tabStyle.accent : inactiveColor },
+                        ]}
+                      >
+                        {day.month}
+                      </Text>
+                      {isActive ? (
+                        <View
+                          style={[
+                            styles.dayDot,
+                            { backgroundColor: tabStyle.accent },
+                          ]}
+                        />
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <ScrollView
+                contentContainerStyle={styles.eventsContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {events.map((event, index) => (
+                  <View key={`${event.title}-${index}`} style={styles.eventRow}>
                     <View
                       style={[
-                        styles.dayDot,
+                        styles.eventBar,
                         { backgroundColor: tabStyle.accent },
                       ]}
                     />
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-          <ScrollView
-            contentContainerStyle={styles.eventsContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {events.map((event, index) => (
-              <View key={`${event.title}-${index}`} style={styles.eventRow}>
-                <View
-                  style={[styles.eventBar, { backgroundColor: tabStyle.accent }]}
-                />
-                <View style={styles.eventInfo}>
-                  <Text
-                    style={[
-                      styles.eventTime,
-                      { color: tabStyle.accent },
-                    ]}
-                  >
-                    {event.time}
-                  </Text>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={styles.eventLocation}>{event.location}</Text>
-                  <View style={styles.tagRow}>
-                    {event.tags.map((tag) => (
-                      <View
-                        key={tag}
+                    <View style={styles.eventInfo}>
+                      <Text
                         style={[
-                          styles.tagPill,
-                          { backgroundColor: tagBackground },
+                          styles.eventTime,
+                          { color: tabStyle.accent },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.tagText,
-                            { color: tabStyle.accent },
-                          ]}
-                        >
-                          {tag}
-                        </Text>
+                        {event.time}
+                      </Text>
+                      <Text style={styles.eventTitle}>{event.title}</Text>
+                      <Text style={styles.eventLocation}>{event.location}</Text>
+                      <View style={styles.tagRow}>
+                        {event.tags.map((tag) => (
+                          <View
+                            key={tag}
+                            style={[
+                              styles.tagPill,
+                              { backgroundColor: tagBackground },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tagText,
+                                { color: tabStyle.accent },
+                              ]}
+                            >
+                              {tag}
+                            </Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
+                    </View>
                   </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
+                ))}
+              </ScrollView>
+            </>
+          )}
         </View>
       </View>
     </LinearGradient>
@@ -263,8 +364,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 40,
-    paddingHorizontal: 16,
+    paddingTop: 34,
+    paddingHorizontal: 0,
     paddingBottom: Platform.OS === "web" ? 24 : 0,
     alignItems: Platform.OS === "web" ? "center" : "stretch",
   },
@@ -273,14 +374,15 @@ const styles = StyleSheet.create({
   },
   maxWidth: {
     width: "100%",
-    maxWidth: 393,
+    // maxWidth: 393,
+    maxWidth: 640
   },
   topSection: {
     alignItems: "center",
-    gap: 16,
+    gap: 14,
   },
   logo: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "700",
     color: "#FDFDFC",
   },
@@ -291,7 +393,7 @@ const styles = StyleSheet.create({
     gap: 22,
   },
   tabText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
     textTransform: "uppercase",
   },
@@ -336,6 +438,103 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     marginTop: 18,
     paddingTop: 8,
+  },
+  hoyContent: {
+    paddingTop: 10,
+    paddingBottom: 20,
+    gap: 28,
+  },
+  section: {
+    gap: 14,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    color: "#1B2222",
+    paddingHorizontal: 26,
+  },
+  categoryRow: {
+    paddingHorizontal: 26,
+    gap: 8,
+  },
+  categoryChip: {
+    borderRadius: 30,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  categoryText: {
+    color: "#FDFDFC",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  featuredRow: {
+    paddingHorizontal: 26,
+    gap: 12,
+  },
+  featuredCard: {
+    width: 290,
+    height: 230,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  featuredImage: {
+    width: "100%",
+    height: "100%",
+  },
+  featuredDate: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "rgba(27,34,34,0.35)",
+  },
+  featuredDateDay: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FDFDFC",
+  },
+  featuredDateMonth: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FDFDFC",
+  },
+  featuredOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    paddingTop: 12,
+    gap: 6,
+  },
+  featuredLocation: {
+    fontSize: 13,
+    color: "#FDFDFC",
+  },
+  featuredTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#FDFDFC",
+  },
+  carouselRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  carouselDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#D0D3D3",
+  },
+  carouselDotActive: {
+    backgroundColor: "#ED8924",
+    width: 7,
+    height: 7,
   },
   dayRow: {
     flexDirection: "row",
