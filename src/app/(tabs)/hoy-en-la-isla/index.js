@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useMedia } from "../../../hooks/useMedia";
+import { useEvents } from "../../../hooks/useEvents";
 
 const TABS = [
   { key: "hoy", label: "Hoy en la isla" },
@@ -20,7 +21,7 @@ const TABS = [
   { key: "regeneracion", label: "Regeneración" },
 ];
 
-const FEATURED_EVENTS = [
+const FEATURED_EVENTS_FALLBACK = [
   {
     title: "Festival De Arte En La Playa",
     location: "La Nube, Isla Santa Cruz",
@@ -39,7 +40,7 @@ const FEATURED_EVENTS = [
   },
 ];
 
-const CATEGORY_CHIPS = [
+const CATEGORY_CHIPS_FALLBACK = [
   { label: "Gastronomía", color: "#ED8924" },
   { label: "Arte & Cultura", color: "#EA78BF" },
   { label: "Vida Nocturna", color: "#904CCC" },
@@ -56,69 +57,6 @@ const DAY_ITEMS = [
   { key: "19", day: "D", month: "MAR" },
 ];
 
-const EVENTS_BY_TAB = {
-  agenda: [
-    {
-      time: "15:00 - 17:00",
-      title: "Festival de Arte en la Playa",
-      location: "La Nube, Isla Santa Cruz",
-      tags: ["#exhibiciones", "#aire libre", "#talleres"],
-    },
-    {
-      time: "19:00 - 21:00",
-      title: "Rolls, Sake, y Cana",
-      location: "Noe Sushi Bar, Isla Isabela",
-      tags: ["#gastronomia", "#cocteles"],
-    },
-    {
-      time: "19:00 - 22:00",
-      title: "Noche de Wes Anderson Bajo Las Estrellas",
-      location: "La Nube, Isla Santa Cruz",
-      tags: ["#cine", "#aire libre", "#cocteles"],
-    },
-  ],
-  regeneracion: [
-    {
-      time: "15:00 - 17:00",
-      title: "Minga de recoleccion de basura",
-      location: "Tortuga Bay, Isla Santa Cruz",
-      tags: ["#regeneracion", "#aire libre", "#talleres"],
-    },
-    {
-      time: "19:00 - 21:00",
-      title: "Workshop: Reciclando correctamente",
-      location: "Plaza Central, Isla Isabela",
-      tags: ["#talleres", "#charlas"],
-    },
-    {
-      time: "19:00 - 22:00",
-      title: "Galeria de arte hecha en plastico",
-      location: "La Nube, Isla Santa Cruz",
-      tags: ["#arte", "#galeria", "#regeneracion"],
-    },
-  ],
-  hoy: [
-    {
-      time: "10:00 - 12:00",
-      title: "Taller de fotografia en la isla",
-      location: "Puerto Ayora, Isla Santa Cruz",
-      tags: ["#fotografia", "#aire libre"],
-    },
-    {
-      time: "15:00 - 17:00",
-      title: "Festival de Arte en la Playa",
-      location: "La Nube, Isla Santa Cruz",
-      tags: ["#exhibiciones", "#aire libre", "#talleres"],
-    },
-    {
-      time: "19:00 - 21:00",
-      title: "Concierto acustico al atardecer",
-      location: "Malecon, Isla Isabela",
-      tags: ["#musica", "#cocteles"],
-    },
-  ],
-};
-
 const TAB_STYLES = {
   hoy: {
     accent: "#ED8924",
@@ -134,10 +72,81 @@ const TAB_STYLES = {
   },
 };
 
+const normalizeToken = (value) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const parseTags = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      } catch (error) {
+        // fallback to splitting
+      }
+    }
+    return trimmed
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const getImageUrl = (value) => {
+  if (!value) return "";
+  if (Array.isArray(value)) return value[0]?.url || "";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed[0]?.url || "";
+      } catch (error) {
+        return trimmed;
+      }
+    }
+    return trimmed;
+  }
+  return "";
+};
+
+const formatTimeValue = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const match = value.match(/(\d{2}:\d{2})/);
+    if (match) return match[1];
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(11, 16);
+};
+
+const formatLocation = (event) => {
+  const venue = event.eventVenueName || "";
+  const island = event.eventIslandLocation || "";
+  if (venue && island) return `${venue}, ${island}`;
+  return venue || island || "";
+};
+
+const formatTimeRange = (event) => {
+  const start = formatTimeValue(event.startTime);
+  const end = formatTimeValue(event.endTime);
+  if (start && end) return `${start} - ${end}`;
+  return start || end || "";
+};
+
 export default function HoyEnLaIslaScreen() {
   const { isMobile } = useMedia();
   const [activeTab, setActiveTab] = useState("hoy");
   const [activeDay, setActiveDay] = useState(DAY_ITEMS[0].key);
+  const { events: allEvents } = useEvents();
 
   const tabStyle = TAB_STYLES[activeTab] || TAB_STYLES.agenda;
   const inactiveColor =
@@ -150,7 +159,71 @@ export default function HoyEnLaIslaScreen() {
       : "rgba(242, 103, 25, 0.1)";
   const isHoyTab = activeTab === "hoy";
 
-  const events = useMemo(() => EVENTS_BY_TAB[activeTab] || [], [activeTab]);
+  const events = useMemo(() => {
+    const filteredByTag =
+      activeTab === "regeneracion"
+        ? allEvents.filter((event) =>
+            parseTags(event.eventTags).some((tag) =>
+              normalizeToken(tag).includes("regeneracion")
+            )
+          )
+        : allEvents;
+
+    if (activeTab === "hoy") return filteredByTag;
+
+    return filteredByTag.filter((event) => {
+      if (!event.startTime) return true;
+      const date = new Date(event.startTime);
+      if (Number.isNaN(date.getTime())) return true;
+      return `${date.getDate()}` === activeDay;
+    });
+  }, [activeDay, activeTab, allEvents]);
+
+  const featuredEvents = useMemo(() => {
+    if (!allEvents.length) return FEATURED_EVENTS_FALLBACK;
+    return [...allEvents]
+      .filter((event) => !event.deleted)
+      .sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0))
+      .slice(0, 2)
+      .map((event) => ({
+        title: event.eventName || "Evento destacado",
+        location: formatLocation(event),
+        date: (() => {
+          const date = new Date(event.startTime || Date.now());
+          return Number.isNaN(date.getTime()) ? "" : `${date.getDate()}`.padStart(2, "0");
+        })(),
+        month: (() => {
+          const date = new Date(event.startTime || Date.now());
+          if (Number.isNaN(date.getTime())) return "";
+          return date
+            .toLocaleString("es-ES", { month: "short" })
+            .replace(".", "")
+            .toUpperCase();
+        })(),
+        image: getImageUrl(event.eventImage),
+      }));
+  }, [allEvents]);
+
+  const categories = useMemo(() => {
+    if (!allEvents.length) return CATEGORY_CHIPS_FALLBACK;
+    const counts = new Map();
+    allEvents.forEach((event) => {
+      parseTags(event.eventTags).forEach((tag) => {
+        const clean = tag.replace(/^#/, "").trim();
+        if (!clean) return;
+        counts.set(clean, (counts.get(clean) || 0) + 1);
+      });
+    });
+    const palette = ["#ED8924", "#EA78BF", "#904CCC", "#009CAD"];
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([label], index) => ({
+        label,
+        color: palette[index % palette.length],
+      }));
+  }, [allEvents]);
+
   const contentWidth = isMobile ? styles.fullWidth : styles.maxWidth;
 
   return (
@@ -204,7 +277,7 @@ export default function HoyEnLaIslaScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.categoryRow}
                 >
-                  {CATEGORY_CHIPS.map((chip) => (
+                  {categories.map((chip) => (
                     <View
                       key={chip.label}
                       style={[styles.categoryChip, { backgroundColor: chip.color }]}
@@ -221,12 +294,16 @@ export default function HoyEnLaIslaScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.featuredRow}
                 >
-                  {FEATURED_EVENTS.map((event) => (
+                  {featuredEvents.map((event) => (
                     <View key={event.title} style={styles.featuredCard}>
-                      <Image
-                        source={{ uri: event.image }}
-                        style={styles.featuredImage}
-                      />
+                      {event.image ? (
+                        <Image
+                          source={{ uri: event.image }}
+                          style={styles.featuredImage}
+                        />
+                      ) : (
+                        <View style={styles.featuredImageFallback} />
+                      )}
                       <View style={styles.featuredDate}>
                         <Text style={styles.featuredDateDay}>{event.date}</Text>
                         <Text style={styles.featuredDateMonth}>{event.month}</Text>
@@ -322,12 +399,14 @@ export default function HoyEnLaIslaScreen() {
                           { color: tabStyle.accent },
                         ]}
                       >
-                        {event.time}
+                        {formatTimeRange(event)}
                       </Text>
-                      <Text style={styles.eventTitle}>{event.title}</Text>
-                      <Text style={styles.eventLocation}>{event.location}</Text>
+                      <Text style={styles.eventTitle}>{event.eventName}</Text>
+                      <Text style={styles.eventLocation}>
+                        {formatLocation(event)}
+                      </Text>
                       <View style={styles.tagRow}>
-                        {event.tags.map((tag) => (
+                        {parseTags(event.eventTags).map((tag) => (
                           <View
                             key={tag}
                             style={[
@@ -393,9 +472,10 @@ const styles = StyleSheet.create({
     gap: 22,
   },
   tabText: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "700",
     textTransform: "uppercase",
+    lineHeight: 34,
   },
   tabTextActive: {
     color: "#FDFDFC",
@@ -408,6 +488,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     width: "100%",
+    marginTop: 2,
   },
   searchButton: {
     flex: 1,
@@ -441,7 +522,7 @@ const styles = StyleSheet.create({
   },
   hoyContent: {
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 24,
     gap: 28,
   },
   section: {
@@ -450,6 +531,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     color: "#1B2222",
+    lineHeight: 30,
     paddingHorizontal: 26,
   },
   categoryRow: {
@@ -459,7 +541,7 @@ const styles = StyleSheet.create({
   categoryChip: {
     borderRadius: 30,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   categoryText: {
     color: "#FDFDFC",
@@ -480,6 +562,11 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  featuredImageFallback: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#DDE1E1",
+  },
   featuredDate: {
     position: "absolute",
     top: 12,
@@ -491,7 +578,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(27,34,34,0.35)",
   },
   featuredDateDay: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     color: "#FDFDFC",
   },
