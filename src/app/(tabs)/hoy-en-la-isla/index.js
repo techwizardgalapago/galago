@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -178,6 +178,24 @@ export default function HoyEnLaIslaScreen() {
       return `${date.getDate()}` === activeDay;
     });
   }, [activeDay, activeTab, allEvents]);
+
+  useEffect(() => {
+    if (!allEvents.length) {
+      console.log("HoyEnLaIslaScreen - no events in redux");
+      return;
+    }
+    const sample = allEvents[0];
+    const startDay = sample?.startTime
+      ? new Date(sample.startTime).getDate()
+      : null;
+    console.log("HoyEnLaIslaScreen - events summary", {
+      total: allEvents.length,
+      activeTab,
+      activeDay,
+      sampleStartDay: startDay,
+      filteredCount: events.length,
+    });
+  }, [activeDay, activeTab, allEvents, events.length]);
 
   const featuredEvents = useMemo(() => {
     if (!allEvents.length) return FEATURED_EVENTS_FALLBACK;
@@ -453,23 +471,24 @@ const styles = StyleSheet.create({
   },
   maxWidth: {
     width: "100%",
-    // maxWidth: 393,
-    maxWidth: 640
+    maxWidth: 393,
   },
   topSection: {
     alignItems: "center",
     gap: 14,
+    paddingHorizontal: 30,
   },
   logo: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "700",
+    lineHeight: 30,
     color: "#FDFDFC",
   },
   tabsRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 22,
+    gap: 26,
   },
   tabText: {
     fontSize: 28,
@@ -518,7 +537,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     marginTop: 18,
-    paddingTop: 8,
+    paddingTop: 12,
   },
   hoyContent: {
     paddingTop: 10,
@@ -532,10 +551,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#1B2222",
     lineHeight: 30,
-    paddingHorizontal: 26,
+    paddingHorizontal: 30,
   },
   categoryRow: {
-    paddingHorizontal: 26,
+    paddingHorizontal: 30,
     gap: 8,
   },
   categoryChip: {
@@ -549,13 +568,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   featuredRow: {
-    paddingHorizontal: 26,
+    paddingHorizontal: 30,
     gap: 12,
   },
   featuredCard: {
     width: 290,
     height: 230,
-    borderRadius: 18,
+    borderRadius: 20,
     overflow: "hidden",
   },
   featuredImage: {
@@ -627,7 +646,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    paddingHorizontal: 22,
+    paddingHorizontal: 30,
     paddingTop: 12,
     paddingBottom: 6,
   },
@@ -655,7 +674,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   eventsContent: {
-    paddingHorizontal: 26,
+    paddingHorizontal: 30,
     paddingTop: 10,
     paddingBottom: 24,
     gap: 24,

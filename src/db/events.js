@@ -9,6 +9,21 @@ const toEpochMs = (iso) => {
   const t = new Date(iso).getTime();
   return Number.isFinite(t) ? t : Date.now();
 };
+const toDateString = (value) => {
+  if (!value) return "";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    // Handle dd/mm/yyyy
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+      const [day, month, year] = trimmed.split("/");
+      return new Date(`${year}-${month}-${day}T00:00:00Z`).toISOString();
+    }
+    return trimmed;
+  }
+  return "";
+};
 // Choose how you want to store eventImage: first URL or JSON string of array
 const imageToText = (arr) => {
   if (!Array.isArray(arr) || !arr.length) return "";
@@ -88,31 +103,111 @@ const mapEventFromAPI = (ev) => {
   const eventID = coerceId(ev.eventID || ev.id || ev.fields?.eventID);
   if (!eventID) return { __invalid: true, reason: "missing eventID", raw: ev };
 
+  const source = ev?.fields ? ev.fields : ev;
   const updated_at = toEpochMs(
-    ev["Last Modified"] ?? ev.lastModified ?? ev.updated_at
+    ev["Last Modified"] ?? ev.lastModified ?? ev.updated_at ?? source?.updated_at
   );
 
   return {
     eventID,
-    eventName: ev.eventName ?? "",
-    eventImage: imageToText(ev.eventImage),
-    eventDescription: ev.eventDescription ?? "",
-    eventTags: textOrJoined(ev.eventTags),
-    telOrganizador: ev.telOrganizador ?? "",
-    startTime: ev.startTime ?? "",
-    endTime: ev.endTime ?? "",
-    eventVenueID: firstOrNull(ev.eventVenueID), // IDs come as array → first
-    eventVenueName: firstOrNull(ev.eventVenueName), // arrays → first
-    eventIslandLocation: firstOrNull(ev.eventIslandLocation),
-    direccionVenues: firstOrNull(ev.direccionVenues),
-    organizador: ev.organizador ?? "",
-    eventCapacity: Number.isFinite(ev.eventCapacity) ? ev.eventCapacity : null,
-    eventPrice: Number.isFinite(ev.eventPrice) ? ev.eventPrice : null,
+    eventName: source?.eventName ?? source?.name ?? source?.title ?? "",
+    eventImage: imageToText(source?.eventImage ?? source?.image),
+    eventDescription: source?.eventDescription ?? source?.description ?? "",
+    eventTags: textOrJoined(source?.eventTags ?? source?.tags),
+    telOrganizador: source?.telOrganizador ?? source?.organizerPhone ?? "",
+    startTime:
+      source?.startTime ??
+      source?.start ??
+      source?.start_time ??
+      toDateString(source?.fecha ?? source?.eventDate ?? source?.date),
+    endTime: source?.endTime ?? source?.end ?? source?.end_time ?? "",
+    eventVenueID: firstOrNull(source?.eventVenueID ?? source?.venueId),
+    eventVenueName: firstOrNull(source?.eventVenueName ?? source?.venueName),
+    eventIslandLocation: firstOrNull(
+      source?.eventIslandLocation ?? source?.islandLocation
+    ),
+    direccionVenues: firstOrNull(source?.direccionVenues ?? source?.address),
+    organizador: source?.organizador ?? source?.organizer ?? "",
+    eventCapacity: Number.isFinite(source?.eventCapacity)
+      ? source?.eventCapacity
+      : null,
+    eventPrice: Number.isFinite(source?.eventPrice)
+      ? source?.eventPrice
+      : null,
     updated_at,
-    deleted: ev.deleted ? 1 : 0,
+    deleted: source?.deleted ? 1 : 0,
     // optionally pass through eventUsers [] (user IDs) to seed the join table
-    _eventUsers: Array.isArray(ev.eventUsers) ? ev.eventUsers : [],
+    _eventUsers: Array.isArray(source?.eventUsers) ? source?.eventUsers : [],
   };
+};
+
+export const upsertEventsFromAPI = async (events = []) => {
+  const rows = (events || []).map(mapEventFromAPI).filter((e) => !e.__invalid);
+  if (!rows.length) return;
+
+  return enqueueDbWrite(async () => {
+    const db = getDatabase();
+    const venueRows = await db.getAllAsync(`SELECT venueID FROM venues`);
+    const venueIds = new Set((venueRows || []).map((row) => row.venueID));
+    try {
+      await db.execAsync("BEGIN TRANSACTION");
+      for (const e of rows) {
+        const safeVenueId = venueIds.has(e.eventVenueID)
+          ? e.eventVenueID
+          : null;
+        await db.runAsync(
+          `
+          INSERT INTO events (
+            eventID, eventName, eventImage, eventDescription, eventTags, telOrganizador,
+            startTime, endTime, eventVenueID, eventVenueName, eventIslandLocation, direccionVenues,
+            organizador, eventCapacity, eventPrice, updated_at, deleted, isSynced
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+          ON CONFLICT(eventID) DO UPDATE SET
+            eventName = excluded.eventName,
+            eventImage = excluded.eventImage,
+            eventDescription = excluded.eventDescription,
+            eventTags = excluded.eventTags,
+            telOrganizador = excluded.telOrganizador,
+            startTime = excluded.startTime,
+            endTime = excluded.endTime,
+            eventVenueID = excluded.eventVenueID,
+            eventVenueName = excluded.eventVenueName,
+            eventIslandLocation = excluded.eventIslandLocation,
+            direccionVenues = excluded.direccionVenues,
+            organizador = excluded.organizador,
+            eventCapacity = excluded.eventCapacity,
+            eventPrice = excluded.eventPrice,
+            updated_at = excluded.updated_at,
+            deleted = excluded.deleted
+          WHERE excluded.updated_at >= events.updated_at
+          `,
+          [
+            e.eventID,
+            e.eventName,
+            e.eventImage,
+            e.eventDescription,
+            e.eventTags,
+            e.telOrganizador,
+            e.startTime,
+            e.endTime,
+            safeVenueId,
+            e.eventVenueName,
+            e.eventIslandLocation,
+            e.direccionVenues,
+            e.organizador,
+            e.eventCapacity,
+            e.eventPrice,
+            e.updated_at,
+            e.deleted,
+          ]
+        );
+      }
+      await db.execAsync("COMMIT");
+    } catch (e) {
+      await db.execAsync("ROLLBACK");
+      throw e;
+    }
+  });
 };
 
 // Move all references from oldId -> newId in events + event_users
