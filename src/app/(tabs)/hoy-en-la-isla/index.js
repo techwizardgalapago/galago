@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
   ScrollView,
+  Animated,
   Platform,
   Image,
 } from "react-native";
@@ -146,6 +147,10 @@ export default function HoyEnLaIslaScreen() {
   const { isMobile } = useMedia();
   const [activeTab, setActiveTab] = useState("hoy");
   const [activeDay, setActiveDay] = useState(DAY_ITEMS[0].key);
+  const tabTranslateX = useRef(new Animated.Value(0)).current;
+  const tabLayouts = useRef({});
+  const [tabContainerWidth, setTabContainerWidth] = useState(0);
+  const [tabLayoutsReady, setTabLayoutsReady] = useState(false);
   const { events: allEvents } = useEvents();
 
   const tabStyle = TAB_STYLES[activeTab] || TAB_STYLES.agenda;
@@ -242,6 +247,18 @@ export default function HoyEnLaIslaScreen() {
       }));
   }, [allEvents]);
 
+  useEffect(() => {
+    if (!isMobile || !tabLayoutsReady) return;
+    const layout = tabLayouts.current[activeTab];
+    if (!layout || !tabContainerWidth) return;
+    const centerOffset = tabContainerWidth / 2 - layout.x - layout.width / 2;
+    Animated.spring(tabTranslateX, {
+      toValue: centerOffset,
+      useNativeDriver: true,
+      bounciness: 0,
+    }).start();
+  }, [activeTab, isMobile, tabContainerWidth, tabLayoutsReady]);
+
   const contentWidth = isMobile ? styles.fullWidth : styles.maxWidth;
 
   return (
@@ -250,26 +267,65 @@ export default function HoyEnLaIslaScreen() {
       <View style={styles.container}>
         <View style={[styles.topSection, contentWidth]}>
           <Text style={styles.logo}>GalapaGo.</Text>
-          <View style={styles.tabsRow}>
-            {TABS.map((tab) => {
-              const isActive = tab.key === activeTab;
-              return (
-                <Pressable
-                  key={tab.key}
-                  onPress={() => setActiveTab(tab.key)}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      isActive ? styles.tabTextActive : styles.tabTextInactive,
-                    ]}
+          {isMobile ? (
+            <View
+              style={styles.tabsScrollView}
+              onLayout={(e) => setTabContainerWidth(e.nativeEvent.layout.width)}
+            >
+              <Animated.View
+                style={[
+                  styles.tabsRow,
+                  { transform: [{ translateX: tabTranslateX }] },
+                ]}
+              >
+                {TABS.map((tab) => {
+                  const isActive = tab.key === activeTab;
+                  return (
+                    <Pressable
+                      key={tab.key}
+                      onPress={() => setActiveTab(tab.key)}
+                      onLayout={(e) => {
+                        tabLayouts.current[tab.key] = e.nativeEvent.layout;
+                        if (Object.keys(tabLayouts.current).length === TABS.length) {
+                          setTabLayoutsReady(true);
+                        }
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.tabText,
+                          isActive ? styles.tabTextActive : styles.tabTextInactive,
+                        ]}
+                      >
+                        {tab.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </Animated.View>
+            </View>
+          ) : (
+            <View style={styles.tabsRow}>
+              {TABS.map((tab) => {
+                const isActive = tab.key === activeTab;
+                return (
+                  <Pressable
+                    key={tab.key}
+                    onPress={() => setActiveTab(tab.key)}
                   >
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.tabText,
+                        isActive ? styles.tabTextActive : styles.tabTextInactive,
+                      ]}
+                    >
+                      {tab.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
           <View style={styles.searchRow}>
             <Pressable style={styles.searchButton}>
               <Ionicons name="search" size={18} color="#99A0A0" />
@@ -483,6 +539,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 30,
     color: "#FDFDFC",
+  },
+  tabsScrollView: {
+    marginHorizontal: -30,
+    overflow: "hidden",
   },
   tabsRow: {
     flexDirection: "row",
