@@ -151,6 +151,7 @@ export default function HoyEnLaIslaScreen() {
   const tabLayouts = useRef({});
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const [tabLayoutsReady, setTabLayoutsReady] = useState(false);
+  const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
   const { events: allEvents } = useEvents();
 
   const tabStyle = TAB_STYLES[activeTab] || TAB_STYLES.agenda;
@@ -367,6 +368,12 @@ export default function HoyEnLaIslaScreen() {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.featuredRow}
+                  scrollEventThrottle={16}
+                  onScroll={(e) => {
+                    const cardStepWidth = 290 + 12;
+                    const index = Math.round(e.nativeEvent.contentOffset.x / cardStepWidth);
+                    setActiveFeaturedIndex(Math.max(0, Math.min(index, featuredEvents.length - 1)));
+                  }}
                 >
                   {featuredEvents.map((event) => (
                     <View key={event.title} style={styles.featuredCard}>
@@ -398,12 +405,15 @@ export default function HoyEnLaIslaScreen() {
                   ))}
                 </ScrollView>
                 <View style={styles.carouselRow}>
-                  <View
-                    style={[styles.carouselDot, styles.carouselDotActive]}
-                  />
-                  <View style={styles.carouselDot} />
-                  <View style={styles.carouselDot} />
-                  <View style={styles.carouselDot} />
+                  {featuredEvents.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.carouselDot,
+                        index === activeFeaturedIndex && styles.carouselDotActive,
+                      ]}
+                    />
+                  ))}
                 </View>
               </View>
             </ScrollView>
