@@ -48,15 +48,17 @@ const CATEGORY_CHIPS_FALLBACK = [
   { label: "Actividades", color: "#009CAD" },
 ];
 
-const DAY_ITEMS = [
-  { key: "13", day: "L", month: "MAR" },
-  { key: "14", day: "M", month: "MAR" },
-  { key: "15", day: "M", month: "MAR" },
-  { key: "16", day: "J", month: "MAR" },
-  { key: "17", day: "V", month: "MAR" },
-  { key: "18", day: "S", month: "MAR" },
-  { key: "19", day: "D", month: "MAR" },
-];
+const DAY_LETTERS = ["D", "L", "M", "M", "J", "V", "S"];
+
+const makeDayItem = (date) => ({
+  key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+  day: DAY_LETTERS[date.getDay()],
+  number: `${date.getDate()}`,
+  month: date
+    .toLocaleString("es-ES", { month: "short" })
+    .replace(".", "")
+    .toUpperCase(),
+});
 
 const TAB_STYLES = {
   hoy: {
@@ -146,11 +148,14 @@ const formatTimeRange = (event) => {
 export default function HoyEnLaIslaScreen() {
   const { isMobile } = useMedia();
   const [activeTab, setActiveTab] = useState("hoy");
-  const [activeDay, setActiveDay] = useState(DAY_ITEMS[0].key);
+  const [activeDay, setActiveDay] = useState(null);
   const tabTranslateX = useRef(new Animated.Value(0)).current;
   const tabLayouts = useRef({});
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const [tabLayoutsReady, setTabLayoutsReady] = useState(false);
+  const dayScrollRef = useRef(null);
+  const dayLayouts = useRef({});
+  const [dayScrollWidth, setDayScrollWidth] = useState(0);
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
   const { events: allEvents } = useEvents();
 
@@ -181,7 +186,7 @@ export default function HoyEnLaIslaScreen() {
       if (!event.startTime) return true;
       const date = new Date(event.startTime);
       if (Number.isNaN(date.getTime())) return true;
-      return `${date.getDate()}` === activeDay;
+      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` === activeDay;
     });
   }, [activeDay, activeTab, allEvents]);
 
@@ -261,6 +266,72 @@ export default function HoyEnLaIslaScreen() {
         color: palette[index % palette.length],
       }));
   }, [allEvents]);
+
+  const dayItems = useMemo(() => {
+    const toMs = (value) => {
+      if (!value) return 0;
+      const t = new Date(value).getTime();
+      return Number.isFinite(t) ? t : 0;
+    };
+
+    // Collect unique calendar days that have events
+    const seen = new Set();
+    const eventDates = [];
+    allEvents.forEach((event) => {
+      const ms = toMs(event.startTime);
+      if (!ms) return;
+      const d = new Date(ms);
+      const id = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!seen.has(id)) {
+        seen.add(id);
+        eventDates.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+      }
+    });
+    eventDates.sort((a, b) => a - b);
+
+    // Always include today so the user lands on the current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayId = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    if (!seen.has(todayId)) {
+      seen.add(todayId);
+      eventDates.push(new Date(today));
+      eventDates.sort((a, b) => a - b);
+    }
+
+    // Pad to at least 7 days: fill forward from the last date
+    let cursor = new Date(eventDates[eventDates.length - 1].getTime() + 86400000);
+    while (eventDates.length < 7) {
+      const id = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+      if (!seen.has(id)) {
+        seen.add(id);
+        eventDates.push(new Date(cursor));
+      }
+      cursor = new Date(cursor.getTime() + 86400000);
+    }
+
+    return eventDates.map(makeDayItem);
+  }, [allEvents]);
+
+  useEffect(() => {
+    if (!dayItems.length) return;
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    const match = dayItems.find((d) => d.key === todayKey);
+    setActiveDay((prev) => {
+      // Keep current selection if it still exists in the new list
+      if (prev && dayItems.some((d) => d.key === prev)) return prev;
+      return match ? match.key : dayItems[0].key;
+    });
+  }, [dayItems]);
+
+  useEffect(() => {
+    if (!activeDay || !dayScrollWidth) return;
+    const layout = dayLayouts.current[activeDay];
+    if (!layout) return;
+    const x = layout.x - dayScrollWidth / 2 + layout.width / 2;
+    dayScrollRef.current?.scrollTo({ x: Math.max(0, x), animated: true });
+  }, [activeDay, dayScrollWidth]);
 
   useEffect(() => {
     if (!isMobile || !tabLayoutsReady) return;
@@ -433,14 +504,24 @@ export default function HoyEnLaIslaScreen() {
             </ScrollView>
           ) : (
             <>
-              <View style={styles.dayRow}>
-                {DAY_ITEMS.map((day) => {
+              <ScrollView
+                ref={dayScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.dayPickerScroll}
+                contentContainerStyle={styles.dayRow}
+                onLayout={(e) => setDayScrollWidth(e.nativeEvent.layout.width)}
+              >
+                {dayItems.map((day) => {
                   const isActive = day.key === activeDay;
                   return (
                     <Pressable
                       key={day.key}
                       style={styles.dayItem}
                       onPress={() => setActiveDay(day.key)}
+                      onLayout={(e) => {
+                        dayLayouts.current[day.key] = e.nativeEvent.layout;
+                      }}
                     >
                       <Text
                         style={[
@@ -456,7 +537,7 @@ export default function HoyEnLaIslaScreen() {
                           { color: isActive ? tabStyle.accent : inactiveColor },
                         ]}
                       >
-                        {day.key}
+                        {day.number}
                       </Text>
                       <Text
                         style={[
@@ -477,8 +558,9 @@ export default function HoyEnLaIslaScreen() {
                     </Pressable>
                   );
                 })}
-              </View>
+              </ScrollView>
               <ScrollView
+                style={styles.eventsScroll}
                 contentContainerStyle={styles.eventsContent}
                 showsVerticalScrollIndicator={false}
               >
@@ -729,10 +811,10 @@ const styles = StyleSheet.create({
   dayRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    justifyContent: "space-between",
     paddingHorizontal: 30,
     paddingTop: 12,
     paddingBottom: 6,
+    gap: 18,
   },
   dayItem: {
     alignItems: "center",
@@ -756,6 +838,12 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     marginTop: 2,
+  },
+  dayPickerScroll: {
+    flexGrow: 0,
+  },
+  eventsScroll: {
+    flex: 1,
   },
   eventsContent: {
     paddingHorizontal: 30,
