@@ -205,9 +205,23 @@ export default function HoyEnLaIslaScreen() {
 
   const featuredEvents = useMemo(() => {
     if (!allEvents.length) return FEATURED_EVENTS_FALLBACK;
-    return [...allEvents]
-      .filter((event) => !event.deleted)
-      .sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0))
+
+    const now = Date.now();
+    const toMs = (value) => {
+      if (!value) return 0;
+      const t = new Date(value).getTime();
+      return Number.isFinite(t) ? t : 0;
+    };
+
+    const active = allEvents.filter((event) => !event.deleted);
+    const upcoming = active
+      .filter((e) => toMs(e.startTime) >= now)
+      .sort((a, b) => toMs(a.startTime) - toMs(b.startTime));
+    const past = active
+      .filter((e) => toMs(e.startTime) < now)
+      .sort((a, b) => toMs(b.startTime) - toMs(a.startTime));
+
+    return [...upcoming, ...past]
       .slice(0, 2)
       .map((event) => ({
         title: event.eventName || "Evento destacado",
