@@ -183,10 +183,38 @@ export default function HoyEnLaIslaScreen() {
     return Array.from(seen);
   }, [allEvents]);
 
+  const filteredBase = useMemo(() => {
+    let base =
+      activeTab === "regeneracion"
+        ? allEvents.filter((event) =>
+            parseTags(event.eventTags).some((tag) =>
+              normalizeToken(tag).includes("regeneracion")
+            )
+          )
+        : allEvents;
+
+    if (activeIsland !== "Todo") {
+      base = base.filter((event) =>
+        normalizeToken(String(event.eventIslandLocation ?? "")).includes(
+          normalizeToken(activeIsland)
+        )
+      );
+    }
+
+    if (activeTags.length > 0) {
+      base = base.filter((event) => {
+        const tags = parseTags(event.eventTags).map((t) => normalizeToken(t));
+        return activeTags.some((at) => tags.includes(normalizeToken(at)));
+      });
+    }
+
+    return base;
+  }, [allEvents, activeTab, activeIsland, activeTags]);
+
   const searchResults = useMemo(() => {
     const q = normalizeToken(searchQuery.trim().toLowerCase());
-    if (!q) return allEvents;
-    return allEvents.filter((event) => {
+    if (!q) return filteredBase;
+    return filteredBase.filter((event) => {
       const name = normalizeToken(String(event.eventName ?? "").toLowerCase());
       const venue = normalizeToken(String(event.eventVenueName ?? "").toLowerCase());
       const location = normalizeToken(String(event.eventIslandLocation ?? "").toLowerCase());
@@ -198,7 +226,7 @@ export default function HoyEnLaIslaScreen() {
         tags.some((t) => t.includes(q))
       );
     });
-  }, [allEvents, searchQuery]);
+  }, [filteredBase, searchQuery]);
 
   const tabStyle = TAB_STYLES[activeTab] || TAB_STYLES.agenda;
   const inactiveColor =
@@ -212,39 +240,15 @@ export default function HoyEnLaIslaScreen() {
   const isHoyTab = activeTab === "hoy";
 
   const events = useMemo(() => {
-    let filtered =
-      activeTab === "regeneracion"
-        ? allEvents.filter((event) =>
-            parseTags(event.eventTags).some((tag) =>
-              normalizeToken(tag).includes("regeneracion")
-            )
-          )
-        : allEvents;
+    if (activeTab === "hoy") return filteredBase;
 
-    if (activeIsland !== "Todo") {
-      filtered = filtered.filter((event) =>
-        normalizeToken(String(event.eventIslandLocation ?? "")).includes(
-          normalizeToken(activeIsland)
-        )
-      );
-    }
-
-    if (activeTags.length > 0) {
-      filtered = filtered.filter((event) => {
-        const tags = parseTags(event.eventTags).map((t) => normalizeToken(t));
-        return activeTags.some((at) => tags.includes(normalizeToken(at)));
-      });
-    }
-
-    if (activeTab === "hoy") return filtered;
-
-    return filtered.filter((event) => {
+    return filteredBase.filter((event) => {
       if (!event.startTime) return true;
       const date = new Date(event.startTime);
       if (Number.isNaN(date.getTime())) return true;
       return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` === activeDay;
     });
-  }, [activeDay, activeTab, allEvents, activeIsland, activeTags]);
+  }, [activeDay, activeTab, filteredBase]);
 
   useEffect(() => {
     if (!allEvents.length) {
