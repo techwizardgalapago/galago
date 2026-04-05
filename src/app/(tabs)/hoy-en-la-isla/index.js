@@ -10,6 +10,7 @@ import {
   Image,
   TextInput,
   KeyboardAvoidingView,
+  Modal,
 } from "react-native";
 import { Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -162,7 +163,25 @@ export default function HoyEnLaIslaScreen() {
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef(null);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [pendingIsland, setPendingIsland] = useState("Todo");
+  const [pendingTags, setPendingTags] = useState([]);
+  const [activeIsland, setActiveIsland] = useState("Todo");
+  const [activeTags, setActiveTags] = useState([]);
   const { events: allEvents } = useEvents();
+
+  const ISLANDS = ["Todo", "San Cristobal", "Isabela", "Santa Cruz"];
+
+  const allTags = useMemo(() => {
+    const seen = new Set();
+    allEvents.forEach((event) => {
+      parseTags(event.eventTags).forEach((t) => {
+        const clean = t.trim();
+        if (clean) seen.add(clean);
+      });
+    });
+    return Array.from(seen);
+  }, [allEvents]);
 
   const searchResults = useMemo(() => {
     const q = normalizeToken(searchQuery.trim().toLowerCase());
@@ -193,7 +212,7 @@ export default function HoyEnLaIslaScreen() {
   const isHoyTab = activeTab === "hoy";
 
   const events = useMemo(() => {
-    const filteredByTag =
+    let filtered =
       activeTab === "regeneracion"
         ? allEvents.filter((event) =>
             parseTags(event.eventTags).some((tag) =>
@@ -202,15 +221,30 @@ export default function HoyEnLaIslaScreen() {
           )
         : allEvents;
 
-    if (activeTab === "hoy") return filteredByTag;
+    if (activeIsland !== "Todo") {
+      filtered = filtered.filter((event) =>
+        normalizeToken(String(event.eventIslandLocation ?? "")).includes(
+          normalizeToken(activeIsland)
+        )
+      );
+    }
 
-    return filteredByTag.filter((event) => {
+    if (activeTags.length > 0) {
+      filtered = filtered.filter((event) => {
+        const tags = parseTags(event.eventTags).map((t) => normalizeToken(t));
+        return activeTags.some((at) => tags.includes(normalizeToken(at)));
+      });
+    }
+
+    if (activeTab === "hoy") return filtered;
+
+    return filtered.filter((event) => {
       if (!event.startTime) return true;
       const date = new Date(event.startTime);
       if (Number.isNaN(date.getTime())) return true;
       return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` === activeDay;
     });
-  }, [activeDay, activeTab, allEvents]);
+  }, [activeDay, activeTab, allEvents, activeIsland, activeTags]);
 
   useEffect(() => {
     if (!allEvents.length) {
@@ -468,8 +502,22 @@ export default function HoyEnLaIslaScreen() {
                 </Pressable>
               )}
             </View>
-            <Pressable style={styles.filterButton}>
-              <Ionicons name="options-outline" size={18} color="#99A0A0" />
+            <Pressable
+              style={[
+                styles.filterButton,
+                (activeIsland !== "Todo" || activeTags.length > 0) && styles.filterButtonActive,
+              ]}
+              onPress={() => {
+                setPendingIsland(activeIsland);
+                setPendingTags(activeTags);
+                setFilterVisible(true);
+              }}
+            >
+              <Ionicons
+                name="options-outline"
+                size={18}
+                color={(activeIsland !== "Todo" || activeTags.length > 0) ? "#FDFDFC" : "#99A0A0"}
+              />
             </Pressable>
           </View>
         </View>
@@ -703,6 +751,87 @@ export default function HoyEnLaIslaScreen() {
           )}
         </KeyboardAvoidingView>
       </View>
+
+      <Modal
+        visible={filterVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterVisible(false)}
+      >
+        <Pressable style={styles.filterBackdrop} onPress={() => setFilterVisible(false)} />
+        <View style={styles.filterSheet}>
+          <Text style={styles.filterTitle}>Filtros</Text>
+
+          <Text style={styles.filterSectionLabel}>Isla</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.islandRow}
+          >
+            {ISLANDS.map((island) => {
+              const selected = pendingIsland === island;
+              return (
+                <Pressable
+                  key={island}
+                  style={[styles.islandChip, selected && styles.islandChipSelected]}
+                  onPress={() => setPendingIsland(island)}
+                >
+                  <Text style={[styles.islandChipText, selected && styles.islandChipTextSelected]}>
+                    {island}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <Text style={styles.filterSectionLabel}>Tags</Text>
+          <View style={styles.tagsWrap}>
+            {allTags.map((tag) => {
+              const selected = pendingTags.includes(tag);
+              return (
+                <Pressable
+                  key={tag}
+                  style={[styles.filterTagChip, selected && { backgroundColor: tabStyle.accent }]}
+                  onPress={() =>
+                    setPendingTags((prev) =>
+                      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                    )
+                  }
+                >
+                  <Text style={[styles.filterTagText, selected && styles.filterTagTextSelected]}>
+                    {tag}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.filterActions}>
+            <Pressable
+              style={styles.applyButton}
+              onPress={() => {
+                setActiveIsland(pendingIsland);
+                setActiveTags(pendingTags);
+                setFilterVisible(false);
+              }}
+            >
+              <Text style={styles.applyButtonText}>Aplicar filtros</Text>
+            </Pressable>
+            <Pressable
+              style={styles.resetButton}
+              onPress={() => {
+                setPendingIsland("Todo");
+                setPendingTags([]);
+                setActiveIsland("Todo");
+                setActiveTags([]);
+                setFilterVisible(false);
+              }}
+            >
+              <Text style={styles.resetButtonText}>Borrar filtros</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -1015,5 +1144,110 @@ const styles = StyleSheet.create({
     color: "#99A0A0",
     textAlign: "center",
     marginTop: 32,
+  },
+  filterButtonActive: {
+    backgroundColor: "#F26719",
+  },
+  filterBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  filterSheet: {
+    backgroundColor: "#FDFDFC",
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    paddingTop: 24,
+    paddingBottom: 40,
+    gap: 0,
+  },
+  filterTitle: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#000000",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  filterSectionLabel: {
+    fontSize: 18,
+    color: "#000000",
+    paddingHorizontal: 30,
+    paddingVertical: 10,
+  },
+  islandRow: {
+    paddingHorizontal: 30,
+    gap: 12,
+    paddingBottom: 16,
+  },
+  islandChip: {
+    paddingHorizontal: 18,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: "#EDEDEC",
+  },
+  islandChipSelected: {
+    backgroundColor: "#EA78BF",
+  },
+  islandChipText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#1B2222",
+    lineHeight: 30,
+  },
+  islandChipTextSelected: {
+    fontWeight: "500",
+    color: "#FDFDFC",
+  },
+  tagsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 30,
+    gap: 8,
+    paddingBottom: 24,
+  },
+  filterTagChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 2,
+    borderRadius: 50,
+    backgroundColor: "#EDEDED",
+  },
+  filterTagText: {
+    fontSize: 14,
+    color: "#1B2222",
+    lineHeight: 30,
+  },
+  filterTagTextSelected: {
+    color: "#FDFDFC",
+  },
+  filterActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 22,
+    gap: 24,
+  },
+  applyButton: {
+    flex: 1,
+    backgroundColor: "#259D4E",
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+  },
+  applyButtonText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#FDFDFC",
+  },
+  resetButton: {
+    flex: 1,
+    backgroundColor: "#EDEDEC",
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+  },
+  resetButtonText: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#1B2222",
   },
 });
