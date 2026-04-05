@@ -8,6 +8,8 @@ import {
   Animated,
   Platform,
   Image,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -157,7 +159,27 @@ export default function HoyEnLaIslaScreen() {
   const dayLayouts = useRef({});
   const [dayScrollWidth, setDayScrollWidth] = useState(0);
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef(null);
   const { events: allEvents } = useEvents();
+
+  const searchResults = useMemo(() => {
+    const q = normalizeToken(searchQuery.trim().toLowerCase());
+    if (!q) return allEvents;
+    return allEvents.filter((event) => {
+      const name = normalizeToken(String(event.eventName ?? "").toLowerCase());
+      const venue = normalizeToken(String(event.eventVenueName ?? "").toLowerCase());
+      const location = normalizeToken(String(event.eventIslandLocation ?? "").toLowerCase());
+      const tags = parseTags(event.eventTags).map((t) => normalizeToken(String(t).toLowerCase()));
+      return (
+        name.includes(q) ||
+        venue.includes(q) ||
+        location.includes(q) ||
+        tags.some((t) => t.includes(q))
+      );
+    });
+  }, [allEvents, searchQuery]);
 
   const tabStyle = TAB_STYLES[activeTab] || TAB_STYLES.agenda;
   const inactiveColor =
@@ -413,17 +435,85 @@ export default function HoyEnLaIslaScreen() {
             </View>
           )}
           <View style={styles.searchRow}>
-            <Pressable style={styles.searchButton}>
+            <View style={styles.searchButton}>
               <Ionicons name="search" size={18} color="#99A0A0" />
-              <Text style={styles.searchText}>Buscar</Text>
-            </Pressable>
+              {searchActive ? (
+                <TextInput
+                  ref={searchInputRef}
+                  style={styles.searchInput}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Buscar"
+                  placeholderTextColor="#99A0A0"
+                  autoFocus
+                  returnKeyType="search"
+                />
+              ) : (
+                <Pressable
+                  style={styles.searchTouchable}
+                  onPress={() => setSearchActive(true)}
+                >
+                  <Text style={styles.searchText}>Buscar</Text>
+                </Pressable>
+              )}
+              {searchActive && (
+                <Pressable
+                  style={styles.exitButton}
+                  onPress={() => {
+                    setSearchActive(false);
+                    setSearchQuery("");
+                  }}
+                >
+                  <Ionicons name="close" size={14} color="#99A0A0" />
+                </Pressable>
+              )}
+            </View>
             <Pressable style={styles.filterButton}>
               <Ionicons name="options-outline" size={18} color="#99A0A0" />
             </Pressable>
           </View>
         </View>
-        <View style={[styles.card, contentWidth]}>
-          {isHoyTab ? (
+        <KeyboardAvoidingView
+          style={[styles.card, contentWidth]}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          {searchActive ? (
+            <ScrollView
+              contentContainerStyle={styles.searchResultsContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.sectionTitle}>Resultados</Text>
+              {searchResults.length === 0 ? (
+                <Text style={styles.noResults}>Sin resultados</Text>
+              ) : (
+                searchResults.map((event, index) => (
+                  <View key={`${event.eventID}-${index}`} style={styles.eventRow}>
+                    <View style={[styles.eventBar, { backgroundColor: tabStyle.accent }]} />
+                    <View style={styles.eventInfo}>
+                      <Text style={[styles.eventTime, { color: tabStyle.accent }]}>
+                        {formatTimeRange(event)}
+                      </Text>
+                      <Text style={styles.eventTitle}>{event.eventName}</Text>
+                      <Text style={styles.eventLocation}>{formatLocation(event)}</Text>
+                      <View style={styles.tagRow}>
+                        {parseTags(event.eventTags).map((tag) => (
+                          <View
+                            key={tag}
+                            style={[styles.tagPill, { backgroundColor: tagBackground }]}
+                          >
+                            <Text style={[styles.tagText, { color: tabStyle.accent }]}>
+                              {tag}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          ) : isHoyTab ? (
             <ScrollView
               contentContainerStyle={styles.hoyContent}
               showsVerticalScrollIndicator={false}
@@ -611,7 +701,7 @@ export default function HoyEnLaIslaScreen() {
               </ScrollView>
             </>
           )}
-        </View>
+        </KeyboardAvoidingView>
       </View>
     </LinearGradient>
   );
@@ -896,5 +986,34 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: "500",
+  },
+  searchTouchable: {
+    flex: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 18,
+    color: "#3C3E3E",
+    paddingVertical: 0,
+  },
+  exitButton: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#EDEDED",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchResultsContent: {
+    paddingHorizontal: 30,
+    paddingTop: 20,
+    paddingBottom: 24,
+    gap: 24,
+  },
+  noResults: {
+    fontSize: 15,
+    color: "#99A0A0",
+    textAlign: "center",
+    marginTop: 32,
   },
 });
