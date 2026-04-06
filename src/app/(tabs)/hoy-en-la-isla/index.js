@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Modal,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -540,7 +540,7 @@ export default function HoyEnLaIslaScreen() {
                 <Text style={styles.noResults}>Sin resultados</Text>
               ) : (
                 searchResults.map((event, index) => (
-                  <View key={`${event.eventID}-${index}`} style={styles.eventRow}>
+                  <Pressable key={`${event.eventID}-${index}`} style={styles.eventRow} onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${event.eventID}`)}>
                     <View style={[styles.eventBar, { backgroundColor: tabStyle.accent }]} />
                     <View style={styles.eventInfo}>
                       <Text style={[styles.eventTime, { color: tabStyle.accent }]}>
@@ -561,7 +561,7 @@ export default function HoyEnLaIslaScreen() {
                         ))}
                       </View>
                     </View>
-                  </View>
+                  </Pressable>
                 ))
               )}
             </ScrollView>
@@ -707,7 +707,7 @@ export default function HoyEnLaIslaScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 {events.map((event, index) => (
-                  <View key={`${event.title}-${index}`} style={styles.eventRow}>
+                  <Pressable key={`${event.eventID ?? event.title}-${index}`} style={styles.eventRow} onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${event.eventID}`)}>
                     <View
                       style={[
                         styles.eventBar,
@@ -748,7 +748,7 @@ export default function HoyEnLaIslaScreen() {
                         ))}
                       </View>
                     </View>
-                  </View>
+                  </Pressable>
                 ))}
               </ScrollView>
             </>

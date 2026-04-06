@@ -7,7 +7,7 @@ export default function TabLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }}>
         <Tabs.Screen
-        name='hoy-en-la-isla/index'
+        name='hoy-en-la-isla'
         options={{ title: "Hoy", 
           tabBarLabel: "Hoy",
          }}
