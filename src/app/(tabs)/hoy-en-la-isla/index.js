@@ -406,12 +406,13 @@ export default function HoyEnLaIslaScreen() {
   }, [activeTab, isMobile, tabContainerWidth, tabLayoutsReady]);
 
   const contentWidth = isMobile ? styles.fullWidth : styles.maxWidth;
+  const CardWrapper = Platform.OS === "ios" ? KeyboardAvoidingView : View;
 
   return (
     <LinearGradient colors={tabStyle.gradient} style={styles.background}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
-        <View style={[styles.topSection, contentWidth]}>
+      <View style={[styles.container, contentWidth]}>
+        <View style={styles.topSection}>
           <Text style={styles.logo}>GalapaGo.</Text>
           {isMobile ? (
             <View
@@ -525,9 +526,9 @@ export default function HoyEnLaIslaScreen() {
             </Pressable>
           </View>
         </View>
-        <KeyboardAvoidingView
-          style={[styles.card, contentWidth]}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        <CardWrapper
+          style={styles.card}
+          {...(Platform.OS === "ios" ? { behavior: "padding" } : {})}
         >
           {searchActive ? (
             <ScrollView
@@ -753,7 +754,7 @@ export default function HoyEnLaIslaScreen() {
               </ScrollView>
             </>
           )}
-        </KeyboardAvoidingView>
+        </CardWrapper>
       </View>
 
       <Modal
@@ -848,15 +849,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 34,
     paddingHorizontal: 0,
-    paddingBottom: Platform.OS === "web" ? 24 : 0,
-    alignItems: Platform.OS === "web" ? "center" : "stretch",
+    paddingBottom: Platform.OS === "web" ? 0 : 0,
   },
   fullWidth: {
     width: "100%",
   },
   maxWidth: {
     width: "100%",
-    maxWidth: 393,
+    maxWidth: 720,
+    ...(Platform.OS === "web"
+      ? { marginLeft: "auto", marginRight: "auto" }
+      : { alignSelf: "center" }),
   },
   topSection: {
     alignItems: "center",
@@ -945,6 +948,8 @@ const styles = StyleSheet.create({
   categoryRow: {
     paddingHorizontal: 30,
     gap: 8,
+    justifyContent: "center",
+    minWidth: "100%",
   },
   categoryChip: {
     borderRadius: 30,
@@ -959,6 +964,8 @@ const styles = StyleSheet.create({
   featuredRow: {
     paddingHorizontal: 30,
     gap: 12,
+    justifyContent: "center",
+    minWidth: "100%",
   },
   featuredCard: {
     width: 290,
@@ -1038,6 +1045,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 6,
     gap: 18,
+    justifyContent: "center",
+    minWidth: "100%",
   },
   dayItem: {
     alignItems: "center",

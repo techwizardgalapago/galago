@@ -13,6 +13,8 @@ import { useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
+import { useMedia } from "../../../../hooks/useMedia";
+
 const parseTags = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -94,6 +96,8 @@ export default function EventDetailScreen() {
   const { eventID } = useLocalSearchParams();
   const allEvents = useSelector((state) => state.events.list);
   const event = allEvents.find((e) => e.eventID === eventID);
+  const { isMobile } = useMedia();
+  const contentWidth = isMobile ? { width: "100%" } : { width: "100%", maxWidth: 720 };
 
   if (!event) {
     return (
@@ -119,8 +123,9 @@ export default function EventDetailScreen() {
       end={{ x: 0.15, y: 1 }}
       style={styles.background}
     >
+      <View style={styles.centerContainer}>
       {/* Action bar — absolute, above the card */}
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, contentWidth]}>
         <Pressable style={styles.circleBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#1B2222" />
         </Pressable>
@@ -141,7 +146,7 @@ export default function EventDetailScreen() {
       </View>
 
       {/* White card */}
-      <View style={styles.card}>
+      <View style={[styles.card, contentWidth]}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -224,6 +229,7 @@ export default function EventDetailScreen() {
           ) : null}
         </ScrollView>
       </View>
+      </View>
     </LinearGradient>
   );
 }
@@ -237,6 +243,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: Platform.OS === "web" ? "center" : "stretch",
   },
   actionBar: {
     flexDirection: "row",
