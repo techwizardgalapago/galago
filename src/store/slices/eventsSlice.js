@@ -5,6 +5,7 @@ import {
   selectAllEvents,
   insertEvent,
   upsertEventsFromAPI as dbUpsertEventsFromAPI,
+  updateEventLocal,
 } from "../../db/events";
 import { getEvents } from "../../services/eventsService";
 
@@ -72,6 +73,23 @@ export const fetchEventsRemote = createAsyncThunk(
   }
 );
 
+export const upsertEventsFromAPIThunk = createAsyncThunk(
+  "events/upsertFromAPI",
+  async (events) => {
+    const mapped = (events || []).map(mapRemoteEvent).filter(Boolean);
+    if (!isWeb && mapped.length) await dbUpsertEventsFromAPI(mapped);
+    return mapped;
+  }
+);
+
+export const editEventLocal = createAsyncThunk(
+  "events/editEventLocal",
+  async (patch) => {
+    await ignoreDBIfWeb(() => updateEventLocal(patch));
+    return patch;
+  }
+);
+
 const eventsSlice = createSlice({
   name: "events",
   initialState: {
@@ -108,6 +126,20 @@ const eventsSlice = createSlice({
       })
       .addCase(addEvent.fulfilled, (state, action) => {
         state.list.push(action.payload);
+      })
+      .addCase(upsertEventsFromAPIThunk.fulfilled, (state, action) => {
+        if (!action.payload?.length) return;
+        action.payload.forEach((ev) => {
+          const idx = state.list.findIndex((e) => e.eventID === ev.eventID);
+          if (idx >= 0) state.list[idx] = ev;
+          else state.list.push(ev);
+        });
+      })
+      .addCase(editEventLocal.fulfilled, (state, action) => {
+        const patch = action.payload;
+        if (!patch?.eventID) return;
+        const idx = state.list.findIndex((e) => e.eventID === patch.eventID);
+        if (idx >= 0) state.list[idx] = { ...state.list[idx], ...patch };
       });
   },
 });

@@ -10,6 +10,10 @@ export default function NegociosLayout() {
         name="[venueID]"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="eventos"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

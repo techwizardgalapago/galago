@@ -227,7 +227,7 @@ export default function MisNegociosScreen() {
             >
               <AuthButton
                 label="Nuevo evento"
-                onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
+                onPress={() => router.push('/(tabs)/perfil/negocios/eventos/crear')}
                 style={{ flex: 1, backgroundColor: '#F26719' }}
                 textStyle={{ color: 'white' }}
               />
