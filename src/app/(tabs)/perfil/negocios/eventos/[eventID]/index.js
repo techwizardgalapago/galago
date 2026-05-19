@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/eventos/[eventID]/index.js
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import AuthBackground from '../../../../../../components/auth/AuthBackground';
@@ -60,27 +61,29 @@ export default function EventoDetailScreen() {
 
   const [remoteEvent, setRemoteEvent] = useState(null);
 
-  useEffect(() => {
-    if (!eventID) return;
-    let active = true;
-    const load = async () => {
-      try {
-        const res = await getEventById(eventID);
-        const data = res?.fields ? { eventID: res.id ?? eventID, ...res.fields } : res;
-        if (active && data) setRemoteEvent(data);
-      } catch (e) {
-        console.warn('EventoDetailScreen - getEventById failed:', e?.message);
-      }
-    };
-    load();
-    return () => { active = false; };
-  }, [eventID]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!eventID) return;
+      let active = true;
+      const load = async () => {
+        try {
+          const res = await getEventById(eventID);
+          const data = res?.fields ? { eventID: res.id ?? eventID, ...res.fields } : res;
+          if (active && data) setRemoteEvent(data);
+        } catch (e) {
+          console.warn('EventoDetailScreen - getEventById failed:', e?.message);
+        }
+      };
+      load();
+      return () => { active = false; };
+    }, [eventID])
+  );
 
   useEffect(() => {
     if (!event) dispatch(fetchEventsRemote());
   }, [dispatch, event]);
 
-  const ev = remoteEvent || event;
+  const ev = event || remoteEvent;
 
   const imageUrl = getEventImageUrl(ev?.eventImage);
 

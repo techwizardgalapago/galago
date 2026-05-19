@@ -9,6 +9,7 @@ import AuthBackground from '../../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../../components/auth/AuthCard';
 import { selectVenueByIdFromState } from '../../../../../store/slices/venueSlice';
 import { fetchSchedulesByVenue } from '../../../../../store/slices/schedulesByVenueSlice';
+import { fetchEventsRemote } from '../../../../../store/slices/eventsSlice';
 import { getVenueById } from '../../../../../services/venuesService';
 
 const WEEKDAYS_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -23,6 +24,12 @@ export default function VenueDetailScreen() {
     const value = s.schedulesByVenue?.schedulesByVenueID?.[venueID];
     return value || EMPTY_SCHEDULES;
   });
+  const venueEvents = useSelector((s) =>
+    (s.events?.list || []).filter((ev) => {
+      const vid = ev.eventVenueID;
+      return Array.isArray(vid) ? vid.includes(venueID) : vid === venueID;
+    })
+  );
   const [remoteSchedules, setRemoteSchedules] = useState(EMPTY_SCHEDULES);
   const topGap = 108;
   const topInset = Platform.OS === 'ios' ? insets.top : 0;
@@ -32,6 +39,10 @@ export default function VenueDetailScreen() {
     if (Platform.OS === 'web') return;
     dispatch(fetchSchedulesByVenue(venueID));
   }, [dispatch, venueID]);
+
+  useEffect(() => {
+    dispatch(fetchEventsRemote());
+  }, [dispatch]);
 
   useEffect(() => {
     let active = true;
@@ -381,6 +392,49 @@ export default function VenueDetailScreen() {
               </Pressable>
             </View>
 
+            {/* Sección de eventos */}
+            <View style={styles.eventsSectionHeader}>
+              <Text style={styles.eventsSectionTitle}>Eventos</Text>
+              <Pressable
+                onPress={() =>
+                  router.push(`/(tabs)/perfil/negocios/eventos/crear?venueID=${venueID}`)
+                }
+                style={styles.eventsAddButton}
+              >
+                <Ionicons name="add" size={18} color="#fff" />
+              </Pressable>
+            </View>
+
+            {venueEvents.length === 0 ? (
+              <Text style={styles.eventsEmpty}>No hay eventos registrados para este negocio.</Text>
+            ) : (
+              venueEvents.map((ev) => (
+                <Pressable
+                  key={ev.eventID}
+                  onPress={() =>
+                    router.push(`/(tabs)/perfil/negocios/eventos/${ev.eventID}`)
+                  }
+                  style={styles.eventCard}
+                >
+                  <View style={styles.eventCardInfo}>
+                    <Text style={styles.eventCardName} numberOfLines={1}>
+                      {ev.eventName || 'Sin nombre'}
+                    </Text>
+                    {!!ev.startTime && (
+                      <Text style={styles.eventCardDate}>
+                        {new Date(ev.startTime).toLocaleDateString('es-EC', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#8F8F90" />
+                </Pressable>
+              ))
+            )}
+
             <Pressable
               onPress={() => router.push(`/(tabs)/perfil/negocios/${venueID}/editar`)}
               style={styles.editButton}
@@ -604,5 +658,48 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  eventsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  eventsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1B2222',
+  },
+  eventsAddButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F26719',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eventsEmpty: {
+    fontSize: 13,
+    color: '#8F8F90',
+  },
+  eventCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  eventCardInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  eventCardName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1B2222',
+  },
+  eventCardDate: {
+    fontSize: 12,
+    color: '#8F8F90',
   },
 });

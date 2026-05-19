@@ -152,7 +152,7 @@ export default function EditarEventoScreen() {
     const init = async (ev) => {
       if (!ev) return;
       setForm({
-        eventVenueID: ev.eventVenueID || '',
+        eventVenueID: Array.isArray(ev.eventVenueID) ? (ev.eventVenueID[0] || '') : (ev.eventVenueID || ''),
         eventName: ev.eventName || '',
         eventDescription: ev.eventDescription || '',
         eventPrice: ev.eventPrice != null ? String(ev.eventPrice) : '0',
@@ -278,10 +278,7 @@ export default function EditarEventoScreen() {
 
       dispatch(editEventLocal({ eventID, ...fieldsPatch }));
 
-      const eventFull = await getEventById(eventID);
-      if (eventFull) dispatch(upsertEventsFromAPIThunk([eventFull]));
-
-      router.push(`/(tabs)/perfil/negocios/eventos/${eventID}`);
+      router.back();
     } catch (e) {
       console.error('Editar evento falló:', e?.response?.data || e);
       setError('No se pudo guardar el evento. Intenta de nuevo.');

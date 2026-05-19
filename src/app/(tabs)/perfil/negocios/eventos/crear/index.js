@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSelector, useDispatch } from 'react-redux';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import AuthBackground from '../../../../../../components/auth/AuthBackground';
@@ -90,6 +90,7 @@ const compressImageWeb = (uri) =>
 export default function CrearEventoScreen() {
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
+  const { venueID: preselectedVenueID } = useLocalSearchParams();
   const { isDesktop, isWide } = useMedia();
   const isDesktopLayout = isDesktop || isWide;
 
@@ -108,7 +109,7 @@ export default function CrearEventoScreen() {
   );
 
   const [form, setForm] = useState({
-    eventVenueID: '',
+    eventVenueID: preselectedVenueID || '',
     eventName: '',
     eventDescription: '',
     eventPrice: '0',
