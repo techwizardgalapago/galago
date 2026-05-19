@@ -24,6 +24,7 @@ export default function VenueDetailScreen() {
     const value = s.schedulesByVenue?.schedulesByVenueID?.[venueID];
     return value || EMPTY_SCHEDULES;
   });
+  const eventsStatus = useSelector((s) => s.events?.status);
   const venueEvents = useSelector((s) =>
     (s.events?.list || []).filter((ev) => {
       const vid = ev.eventVenueID;
@@ -41,8 +42,8 @@ export default function VenueDetailScreen() {
   }, [dispatch, venueID]);
 
   useEffect(() => {
-    dispatch(fetchEventsRemote());
-  }, [dispatch]);
+    if (eventsStatus === 'idle') dispatch(fetchEventsRemote());
+  }, [dispatch, eventsStatus]);
 
   useEffect(() => {
     let active = true;

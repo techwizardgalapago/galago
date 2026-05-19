@@ -274,6 +274,11 @@ export default function EditarEventoScreen() {
         } else {
           await uploadEventImage(eventID, image);
         }
+        try {
+          await new Promise((r) => setTimeout(r, 2000));
+          const eventFull = await getEventById(eventID);
+          if (eventFull) await dispatch(upsertEventsFromAPIThunk([eventFull]));
+        } catch (_) {}
       }
 
       dispatch(editEventLocal({ eventID, ...fieldsPatch }));
