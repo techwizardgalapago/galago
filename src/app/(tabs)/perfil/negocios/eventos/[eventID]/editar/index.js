@@ -32,6 +32,34 @@ import {
   upsertEventsFromAPIThunk,
 } from '../../../../../../../store/slices/eventsSlice';
 
+// ---------- Constantes ----------
+const EVENT_TAGS = [
+  'Live Music',
+  'Community Art',
+  'Food Experience',
+  'Movies',
+  'Open Air',
+  'Drinks & Cocktails',
+];
+
+const compressImageWeb = (uri) =>
+  new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width;
+      let h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.75);
+    };
+    img.src = uri;
+  });
+
 // ---------- Helpers de fecha ----------
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -98,9 +126,15 @@ export default function EditarEventoScreen() {
     eventDescription: '',
     eventPrice: '0',
     eventCapacity: '',
-    eventTags: '',
     telOrganizador: '',
   });
+
+  const [selectedTags, setSelectedTags] = useState([]);
+
+  const toggleTag = (tag) =>
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
 
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -123,9 +157,16 @@ export default function EditarEventoScreen() {
         eventDescription: ev.eventDescription || '',
         eventPrice: ev.eventPrice != null ? String(ev.eventPrice) : '0',
         eventCapacity: ev.eventCapacity != null ? String(ev.eventCapacity) : '',
-        eventTags: ev.eventTags || '',
-        telOrganizador: ev.telOrganizador || '',
+        telOrganizador: ev.TelOrganizador || ev.telOrganizador || '',
       });
+
+      // Cargar tags existentes como array
+      const existingTags = Array.isArray(ev.eventTags)
+        ? ev.eventTags
+        : typeof ev.eventTags === 'string' && ev.eventTags.trim()
+        ? ev.eventTags.split(',').map((t) => t.trim())
+        : [];
+      if (active) setSelectedTags(existingTags.filter((t) => EVENT_TAGS.includes(t)));
       setStartDate(safeDate(ev.startTime));
       setEndDate(safeDate(ev.endTime));
 
@@ -212,27 +253,21 @@ export default function EditarEventoScreen() {
       const fieldsPatch = {
         eventName: form.eventName.trim(),
         eventDescription: form.eventDescription.trim(),
-        eventVenueID: form.eventVenueID || undefined,
-        eventVenueName: selectedVenue?.venueName || undefined,
-        eventIslandLocation: selectedVenue?.venueLocation || undefined,
-        direccionVenues: selectedVenue?.venueAddress || undefined,
+        eventVenueID: form.eventVenueID ? [form.eventVenueID] : undefined,
         startTime: startDate.toISOString(),
         endTime: endDate.toISOString(),
         eventPrice: form.eventPrice ? Number(form.eventPrice) : 0,
-        eventCapacity: form.eventCapacity ? Number(form.eventCapacity) : null,
-        eventTags: form.eventTags.trim(),
-        telOrganizador: form.telOrganizador.trim(),
+        eventCapacity: form.eventCapacity ? Number(form.eventCapacity) : undefined,
+        eventTags: selectedTags.length ? selectedTags : undefined,
+        TelOrganizador: form.telOrganizador.trim() || undefined,
       };
 
       await patchEvent(eventID, fieldsPatch);
 
       if (image) {
         if (Platform.OS === 'web') {
-          const res = await fetch(image.uri);
-          const blob = await res.blob();
-          const file = new File([blob], image.name || 'event.jpg', {
-            type: blob.type || image.type || 'image/jpeg',
-          });
+          const blob = await compressImageWeb(image.uri);
+          const file = new File([blob], image.name || 'event.jpg', { type: 'image/jpeg' });
           const formData = new FormData();
           formData.append('image', file);
           await uploadEventImage(eventID, formData);
@@ -248,7 +283,7 @@ export default function EditarEventoScreen() {
 
       router.push(`/(tabs)/perfil/negocios/eventos/${eventID}`);
     } catch (e) {
-      console.error('Editar evento falló:', e);
+      console.error('Editar evento falló:', e?.response?.data || e);
       setError('No se pudo guardar el evento. Intenta de nuevo.');
     } finally {
       setSaving(false);
@@ -358,12 +393,26 @@ export default function EditarEventoScreen() {
         placeholder="Número de personas (opcional)"
         keyboardType="number-pad"
       />
-      <Text style={{ fontSize: 14, color: '#1B2222' }}>Tags (separados por coma):</Text>
-      <AuthInput
-        value={form.eventTags}
-        onChangeText={(t) => setForm((f) => ({ ...f, eventTags: t }))}
-        placeholder="Arte, Música, Naturaleza"
-      />
+      <Text style={{ fontSize: 14, color: '#1B2222' }}>Tags:</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {EVENT_TAGS.map((tag) => {
+          const active = selectedTags.includes(tag);
+          return (
+            <Pressable
+              key={tag}
+              onPress={() => toggleTag(tag)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 50,
+                backgroundColor: active ? '#F26719' : '#EDEDED',
+              }}
+            >
+              <Text style={{ fontSize: 13, color: active ? '#fff' : '#1B2222' }}>{tag}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>Imagen:</Text>
         <Pressable

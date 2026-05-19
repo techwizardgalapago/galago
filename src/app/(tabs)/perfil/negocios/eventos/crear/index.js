@@ -57,6 +57,35 @@ const toLocalDatetimeString = (date) => {
   return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 };
 
+// ---------- Constantes ----------
+const EVENT_TAGS = [
+  'Live Music',
+  'Community Art',
+  'Food Experience',
+  'Movies',
+  'Open Air',
+  'Drinks & Cocktails',
+];
+
+// Comprime imagen en web antes de subir (evita 413)
+const compressImageWeb = (uri) =>
+  new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width;
+      let h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.75);
+    };
+    img.src = uri;
+  });
+
 // ---------- Componente principal ----------
 export default function CrearEventoScreen() {
   const dispatch = useDispatch();
@@ -84,9 +113,15 @@ export default function CrearEventoScreen() {
     eventDescription: '',
     eventPrice: '0',
     eventCapacity: '',
-    eventTags: '',
     telOrganizador: '',
   });
+
+  const [selectedTags, setSelectedTags] = useState([]);
+
+  const toggleTag = (tag) =>
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
 
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -154,17 +189,14 @@ export default function CrearEventoScreen() {
       const fields = {
         eventName: form.eventName.trim(),
         eventDescription: form.eventDescription.trim(),
-        eventVenueID: form.eventVenueID,
-        eventVenueName: selectedVenue?.venueName || '',
-        eventIslandLocation: selectedVenue?.venueLocation || '',
-        direccionVenues: selectedVenue?.venueAddress || '',
+        eventVenueID: form.eventVenueID ? [form.eventVenueID] : undefined,
         startTime: startDate.toISOString(),
         endTime: endDate.toISOString(),
         eventPrice: form.eventPrice ? Number(form.eventPrice) : 0,
-        eventCapacity: form.eventCapacity ? Number(form.eventCapacity) : null,
-        eventTags: form.eventTags.trim(),
-        telOrganizador: form.telOrganizador.trim(),
-        organizador: authUser?.userID || null,
+        eventCapacity: form.eventCapacity ? Number(form.eventCapacity) : undefined,
+        eventTags: selectedTags.length ? selectedTags : undefined,
+        TelOrganizador: form.telOrganizador.trim() || undefined,
+        organizador: authUser?.userID || undefined,
       };
 
       const eventResp = await createEvent(fields);
@@ -173,11 +205,8 @@ export default function CrearEventoScreen() {
 
       if (image) {
         if (Platform.OS === 'web') {
-          const res = await fetch(image.uri);
-          const blob = await res.blob();
-          const file = new File([blob], image.name || 'event.jpg', {
-            type: blob.type || image.type || 'image/jpeg',
-          });
+          const blob = await compressImageWeb(image.uri);
+          const file = new File([blob], image.name || 'event.jpg', { type: 'image/jpeg' });
           const formData = new FormData();
           formData.append('image', file);
           await uploadEventImage(eventID, formData);
@@ -191,7 +220,7 @@ export default function CrearEventoScreen() {
 
       router.replace('/(tabs)/perfil/negocios');
     } catch (e) {
-      console.error('Crear evento falló:', e);
+      console.error('Crear evento falló:', e?.response?.data || e);
       setError('No se pudo crear el evento. Intenta de nuevo.');
     } finally {
       setSaving(false);
@@ -329,12 +358,26 @@ export default function CrearEventoScreen() {
         placeholder="Número de personas (opcional)"
         keyboardType="number-pad"
       />
-      <Text style={{ fontSize: 14, color: '#1B2222' }}>Tags (separados por coma):</Text>
-      <AuthInput
-        value={form.eventTags}
-        onChangeText={(t) => setForm((f) => ({ ...f, eventTags: t }))}
-        placeholder="Arte, Música, Naturaleza"
-      />
+      <Text style={{ fontSize: 14, color: '#1B2222' }}>Tags:</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {EVENT_TAGS.map((tag) => {
+          const active = selectedTags.includes(tag);
+          return (
+            <Pressable
+              key={tag}
+              onPress={() => toggleTag(tag)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 50,
+                backgroundColor: active ? '#F26719' : '#EDEDED',
+              }}
+            >
+              <Text style={{ fontSize: 13, color: active ? '#fff' : '#1B2222' }}>{tag}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={{ fontSize: 14, color: '#1B2222', flex: 1 }}>Imagen:</Text>
         <Pressable
