@@ -25,11 +25,13 @@ export default function VenueDetailScreen() {
     return value || EMPTY_SCHEDULES;
   });
   const eventsStatus = useSelector((s) => s.events?.status);
-  const venueEvents = useSelector((s) =>
-    (s.events?.list || []).filter((ev) => {
+  const allEvents = useSelector((s) => s.events?.list || []);
+  const venueEvents = useMemo(
+    () => allEvents.filter((ev) => {
       const vid = ev.eventVenueID;
       return Array.isArray(vid) ? vid.includes(venueID) : vid === venueID;
-    })
+    }),
+    [allEvents, venueID]
   );
   const [remoteSchedules, setRemoteSchedules] = useState(EMPTY_SCHEDULES);
   const topGap = 108;
