@@ -406,22 +406,24 @@ export default function HoyEnLaIslaScreen() {
   }, [activeTab, isMobile, tabContainerWidth, tabLayoutsReady]);
 
   const contentWidth = isMobile ? styles.fullWidth : styles.maxWidth;
+  const hPad = isMobile ? 16 : 30;
   const CardWrapper = Platform.OS === "ios" ? KeyboardAvoidingView : View;
 
   return (
     <LinearGradient colors={tabStyle.gradient} style={styles.background}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.container, contentWidth]}>
-        <View style={styles.topSection}>
+        <View style={[styles.topSection, { paddingHorizontal: hPad }]}>
           <Text style={styles.logo}>GalapaGo.</Text>
           {isMobile ? (
             <View
-              style={styles.tabsScrollView}
+              style={[styles.tabsScrollView, { marginHorizontal: -hPad }]}
               onLayout={(e) => setTabContainerWidth(e.nativeEvent.layout.width)}
             >
               <Animated.View
                 style={[
                   styles.tabsRow,
+                  isMobile && { gap: 14 },
                   { transform: [{ translateX: tabTranslateX }] },
                 ]}
               >
@@ -442,6 +444,7 @@ export default function HoyEnLaIslaScreen() {
                         style={[
                           styles.tabText,
                           isActive ? styles.tabTextActive : styles.tabTextInactive,
+                          isMobile && { fontSize: 20 },
                         ]}
                       >
                         {tab.label}
@@ -1134,6 +1137,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    minWidth: 0,
     fontSize: 18,
     color: "#3C3E3E",
     paddingVertical: 0,
