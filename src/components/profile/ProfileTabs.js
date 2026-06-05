@@ -1,28 +1,31 @@
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
+import { useMedia } from '../../hooks/useMedia';
 
 export default function ProfileTabs({ tabs, activeKey, onChange }) {
+  const { isMobile } = useMedia();
+  const Container = isMobile ? ScrollView : View;
+  const containerProps = isMobile
+    ? { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: styles.rowMobile }
+    : { style: styles.row };
+
   return (
-    <View style={styles.row}>
+    <Container {...containerProps}>
       {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         return (
           <Pressable
             key={tab.key}
             onPress={() => onChange?.(tab.key)}
-            style={styles.tab}
+            style={isMobile ? styles.tabMobile : styles.tab}
           >
-            <Text
-              numberOfLines={1}
-              ellipsizeMode="clip"
-              style={[styles.label, isActive ? styles.active : styles.inactive]}
-            >
+            <Text style={[styles.label, isActive ? styles.active : styles.inactive]}>
               {tab.label}
             </Text>
             {isActive ? <View style={styles.dot} /> : null}
           </Pressable>
         );
       })}
-    </View>
+    </Container>
   );
 }
 
@@ -33,12 +36,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Platform.OS === 'ios' ? 24 : 45,
     width: '100%',
   },
+  rowMobile: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    gap: 28,
+  },
   tab: {
     flex: 1,
     alignItems: 'center',
     gap: 2,
     minWidth: 0,
     paddingHorizontal: 6,
+  },
+  tabMobile: {
+    alignItems: 'center',
+    gap: 2,
   },
   label: {
     fontSize: 16,
