@@ -3,8 +3,11 @@ import { router } from 'expo-router';
 
 import AuthBackground from '../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../components/auth/AuthCard';
+import { useMedia } from '../../../../hooks/useMedia';
 
 export default function SettingsScreen() {
+  const { isMobile } = useMedia();
+
   return (
     <AuthBackground>
       <View style={styles.container}>
@@ -13,18 +16,22 @@ export default function SettingsScreen() {
             <Text style={styles.title}>Ajustes</Text>
           </View>
 
-          <View style={styles.buttonRow}>
+          <View style={[styles.buttonRow, isMobile && styles.buttonRowMobile]}>
             <Pressable
               onPress={() => router.push('/(tabs)/perfil/settings/register')}
-              style={styles.primaryButton}
+              style={[styles.primaryButton, isMobile && styles.buttonMobile]}
             >
-              <Text style={styles.primaryButtonText}>Ajustes de perfil</Text>
+              <Text style={[styles.primaryButtonText, isMobile && styles.buttonTextMobile]}>
+                Ajustes de perfil
+              </Text>
             </Pressable>
             <Pressable
               onPress={() => router.push('/(tabs)/perfil')}
-              style={styles.outlineButton}
+              style={[styles.outlineButton, isMobile && styles.buttonMobile]}
             >
-              <Text style={styles.outlineButtonText}>Regresar</Text>
+              <Text style={[styles.outlineButtonText, isMobile && styles.buttonTextMobile]}>
+                Regresar
+              </Text>
             </Pressable>
           </View>
         </AuthCard>
@@ -43,7 +50,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: Platform.OS === 'web' ? 640 : undefined,
     alignItems: 'center',
-   borderBottomLeftRadius: 20,
+    borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     paddingTop: 60,
     paddingBottom: 40,
@@ -60,6 +67,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1B2222',
     textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 18,
+    alignItems: 'center',
+  },
+  buttonRowMobile: {
+    gap: 10,
+    paddingHorizontal: 20,
+    width: '100%',
   },
   primaryButton: {
     paddingVertical: 14,
@@ -91,9 +108,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#383A3A',
   },
-  buttonRow: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-    gap: 18,
-    alignItems: 'center',
+  buttonMobile: {
+    flex: 1,
+    width: undefined,
+    paddingVertical: 11,
+  },
+  buttonTextMobile: {
+    fontSize: 13,
   },
 });
