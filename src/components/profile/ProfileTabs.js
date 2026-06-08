@@ -5,7 +5,12 @@ export default function ProfileTabs({ tabs, activeKey, onChange }) {
   const { isMobile } = useMedia();
   const Container = isMobile ? ScrollView : View;
   const containerProps = isMobile
-    ? { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: styles.rowMobile }
+    ? {
+        horizontal: true,
+        showsHorizontalScrollIndicator: false,
+        contentContainerStyle: styles.rowMobile,
+        style: styles.tabsScroll,
+      }
     : { style: styles.row };
 
   return (
@@ -51,6 +56,10 @@ const styles = StyleSheet.create({
   tabMobile: {
     alignItems: 'center',
     gap: 2,
+  },
+  tabsScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
   label: {
     fontSize: 16,
