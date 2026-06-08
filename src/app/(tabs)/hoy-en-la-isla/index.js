@@ -201,7 +201,7 @@ export default function HoyEnLaIslaScreen() {
       );
     }
 
-    if (activeTags.length > 0) {
+    if (activeTags.length > 0 && activeTab !== 'regeneracion') {
       base = base.filter((event) => {
         const tags = parseTags(event.eventTags).map((t) => normalizeToken(t));
         return activeTags.some((at) => tags.includes(normalizeToken(at)));
@@ -267,6 +267,13 @@ export default function HoyEnLaIslaScreen() {
       filteredCount: events.length,
     });
   }, [activeDay, activeTab, allEvents, events.length]);
+
+  useEffect(() => {
+    if (activeTab === 'regeneracion') {
+      setActiveTags([]);
+      setPendingTags([]);
+    }
+  }, [activeTab]);
 
   const featuredEvents = useMemo(() => {
     if (!allEvents.length) return FEATURED_EVENTS_FALLBACK;
@@ -513,7 +520,7 @@ export default function HoyEnLaIslaScreen() {
             <Pressable
               style={[
                 styles.filterButton,
-                (activeIsland !== "Todo" || activeTags.length > 0) && styles.filterButtonActive,
+                (activeIsland !== "Todo" || (activeTab !== 'regeneracion' && activeTags.length > 0)) && styles.filterButtonActive,
               ]}
               onPress={() => {
                 setPendingIsland(activeIsland);
@@ -524,7 +531,7 @@ export default function HoyEnLaIslaScreen() {
               <Ionicons
                 name="options-outline"
                 size={18}
-                color={(activeIsland !== "Todo" || activeTags.length > 0) ? "#FDFDFC" : "#99A0A0"}
+                color={(activeIsland !== "Todo" || (activeTab !== 'regeneracion' && activeTags.length > 0)) ? "#FDFDFC" : "#99A0A0"}
               />
             </Pressable>
           </View>
@@ -792,27 +799,31 @@ export default function HoyEnLaIslaScreen() {
             })}
           </ScrollView>
 
-          <Text style={styles.filterSectionLabel}>Tags</Text>
-          <View style={styles.tagsWrap}>
-            {allTags.map((tag) => {
-              const selected = pendingTags.includes(tag);
-              return (
-                <Pressable
-                  key={tag}
-                  style={[styles.filterTagChip, selected && { backgroundColor: tabStyle.accent }]}
-                  onPress={() =>
-                    setPendingTags((prev) =>
-                      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-                    )
-                  }
-                >
-                  <Text style={[styles.filterTagText, selected && styles.filterTagTextSelected]}>
-                    {tag}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {activeTab !== 'regeneracion' && (
+            <>
+              <Text style={styles.filterSectionLabel}>Tags</Text>
+              <View style={styles.tagsWrap}>
+                {allTags.map((tag) => {
+                  const selected = pendingTags.includes(tag);
+                  return (
+                    <Pressable
+                      key={tag}
+                      style={[styles.filterTagChip, selected && { backgroundColor: tabStyle.accent }]}
+                      onPress={() =>
+                        setPendingTags((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        )
+                      }
+                    >
+                      <Text style={[styles.filterTagText, selected && styles.filterTagTextSelected]}>
+                        {tag}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           <View style={styles.filterActions}>
             <Pressable
