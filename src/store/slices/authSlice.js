@@ -5,6 +5,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authStorage } from '../../utils/authStorage';
 import { setAuthHeader } from '../../services/api';
 import { loginService, registerService, fetchMeService } from '../../services/authService';
+import { patchUserProfile } from '../../services/usersService';
 
 const initialState = {
   user: null,
@@ -106,4 +107,21 @@ const authSlice = createSlice({
 
 // ⬅️ Export the new actions
 export const { setToken, setUser, setHydrated, logout, setAuthUserPatch } = authSlice.actions;
+
+export const toggleFavorite = createAsyncThunk(
+  'auth/toggleFavorite',
+  async ({ type, id }, { getState, dispatch }) => {
+    const user = getState().auth.user;
+    if (!user?.userID) return;
+    const key = type === 'event' ? 'favoriteEvents' : 'favoriteVenues';
+    const current = user[key] || [];
+    const updated = current.includes(id)
+      ? current.filter((x) => x !== id)
+      : [...current, id];
+    dispatch(authSlice.actions.setAuthUserPatch({ [key]: updated }));
+    await patchUserProfile(user.userID, { [key]: updated });
+    return { type, updated };
+  }
+);
+
 export default authSlice.reducer;

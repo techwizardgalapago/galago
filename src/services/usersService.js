@@ -1,23 +1,27 @@
 import { api } from './api';
 
 /**
- * PATCH user profile on backend → Airtable.
- * NOTE: your screen uses a single string for reasonForTravel; backend usually expects an array.
+ * Partial-patch user profile on backend → Airtable.
+ * Only fields that are explicitly provided (not undefined) are sent,
+ * so callers can send a single field without affecting the rest.
  */
 export const patchUserProfile = async (userID, data) => {
-  const body = {
-    firstName: data.firstName,
-    lastName: data.lastName,
-    userEmail: data.userEmail,
-    userRole: data.userRole,
-    dateOfBirth: data.dateOfBirth,
-    countryOfOrigin: data.countryOfOrigin,
-    reasonForTravel: Array.isArray(data.reasonForTravel)
+  const body = {};
+  if (data.firstName !== undefined) body.firstName = data.firstName;
+  if (data.lastName !== undefined) body.lastName = data.lastName;
+  if (data.userEmail !== undefined) body.userEmail = data.userEmail;
+  if (data.userRole !== undefined) body.userRole = data.userRole;
+  if (data.dateOfBirth !== undefined) body.dateOfBirth = data.dateOfBirth;
+  if (data.countryOfOrigin !== undefined) body.countryOfOrigin = data.countryOfOrigin;
+  if (data.reasonForTravel !== undefined) {
+    body.reasonForTravel = Array.isArray(data.reasonForTravel)
       ? data.reasonForTravel
-      : (data.reasonForTravel ? [data.reasonForTravel] : []),
-      genero: data.genero, // <-- NEW FIELD
-  };
+      : (data.reasonForTravel ? [data.reasonForTravel] : []);
+  }
+  if (data.genero !== undefined) body.genero = data.genero;
+  if (data.favoriteEvents !== undefined) body.favoriteEvents = data.favoriteEvents;
+  if (data.favoriteVenues !== undefined) body.favoriteVenues = data.favoriteVenues;
+
   const res = await api.put(`/users/${userID}`, body);
-  
-  return res.data; // ideally { user: {...updated airtable user...} }
+  return res.data;
 };

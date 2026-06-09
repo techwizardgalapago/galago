@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AuthBackground from '../../../../../../components/auth/AuthBackground';
 import AuthCard from '../../../../../../components/auth/AuthCard';
 import { fetchEventsRemote } from '../../../../../../store/slices/eventsSlice';
+import { toggleFavorite } from '../../../../../../store/slices/authSlice';
 import { getEventById } from '../../../../../../services/eventsService';
 
 // ---------- Helpers ----------
@@ -54,6 +55,8 @@ const getEventImageUrl = (eventImage) => {
 export default function EventoDetailScreen() {
   const { eventID } = useLocalSearchParams();
   const dispatch = useDispatch();
+  const authUser = useSelector((s) => s.auth?.user);
+  const isFavorited = (authUser?.favoriteEvents || []).includes(eventID);
 
   const event = useSelector((s) =>
     (s.events?.list || []).find((e) => e.eventID === eventID)
@@ -131,6 +134,12 @@ export default function EventoDetailScreen() {
         <AuthCard style={styles.card}>
           <Pressable onPress={() => router.push('/(tabs)/perfil/negocios')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={18} color="#1B2222" />
+          </Pressable>
+          <Pressable
+            onPress={() => dispatch(toggleFavorite({ type: 'event', id: eventID }))}
+            style={styles.heartButton}
+          >
+            <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={20} color={isFavorited ? '#E65300' : '#1B2222'} />
           </Pressable>
 
           <View style={styles.section}>
@@ -242,6 +251,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  heartButton: {
+    position: 'absolute',
+    top: 16,
+    left: 20,
     width: 32,
     height: 32,
     borderRadius: 16,

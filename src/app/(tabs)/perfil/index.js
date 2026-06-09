@@ -1,6 +1,6 @@
 // src/app/(tabs)/perfil/index.js
 import { View, Text, StyleSheet, Platform, ScrollView } from "react-native";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -17,10 +17,28 @@ export default function PerfilScreen() {
   const [activeTab, setActiveTab] = useState("saved");
   const insets = useSafeAreaInsets();
   const user = useSelector((s) => s.auth?.user);
+  const allEvents = useSelector((s) => s.events?.list || []);
+  const allVenues = useSelector((s) => s.venues?.list || []);
   const topGap = 108;
   const topInset = Platform.OS === "ios" ? insets.top : 0;
   const fullName =
     user?.fullName || joinFullName(user?.firstName, user?.lastName) || "—";
+
+  const favoriteEventIDs = user?.favoriteEvents || [];
+  const favoriteVenueIDs = user?.favoriteVenues || [];
+
+  const savedEvents = useMemo(
+    () => allEvents.filter((e) => favoriteEventIDs.includes(e.eventID)),
+    [allEvents, favoriteEventIDs]
+  );
+  const savedVenues = useMemo(
+    () => allVenues.filter((v) => favoriteVenueIDs.includes(v.venueID) && v.negocio === 1),
+    [allVenues, favoriteVenueIDs]
+  );
+  const savedPlaces = useMemo(
+    () => allVenues.filter((v) => favoriteVenueIDs.includes(v.venueID) && v.negocio === 0),
+    [allVenues, favoriteVenueIDs]
+  );
 
   return (
     <AuthBackground>
@@ -63,26 +81,48 @@ export default function PerfilScreen() {
           />
 
           {activeTab === "agenda" ? (
-            <ProfileEventCard
-              time="14 MAR — SABADO,  15:00"
-              title="Festival de Arte en la Playa"
-              location="La Nube, Isla Santa Cruz"
-            />
+            savedEvents.length > 0 ? (
+              <View style={styles.listContainer}>
+                {savedEvents.map((ev) => (
+                  <ProfileEventCard
+                    key={ev.eventID}
+                    time={ev.startTime || ""}
+                    title={ev.eventName || ""}
+                    location={ev.eventVenueName || ev.direccionVenues || ""}
+                  />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Aún no tienes eventos guardados</Text>
+            )
           ) : activeTab === "saved" ? (
-            <PlaceCard
-              imageUri="http://localhost:3845/assets/8f3b703d2ec1c2c8c7ac7943b1e03040da211ef5.png"
-              title="Shawarmi"
-              location="Isla Isabela"
-              rating="4.3"
-              category="Ecuatoriana"
-              price="$$$$"
-            />
+            savedVenues.length > 0 ? (
+              <View style={styles.listContainer}>
+                {savedVenues.map((v) => (
+                  <PlaceCard
+                    key={v.venueID}
+                    title={v.venueName || ""}
+                    location={v.venueLocation || ""}
+                  />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Aún no tienes sitios guardados</Text>
+            )
           ) : (
-            <PlaceCard
-              imageUri="http://localhost:3845/assets/a3f20e0c3dfebaa77127b55bc2623843a28b40c6.png"
-              title="La Loberia"
-              location="Isla San Cristobal"
-            />
+            savedPlaces.length > 0 ? (
+              <View style={styles.listContainer}>
+                {savedPlaces.map((v) => (
+                  <PlaceCard
+                    key={v.venueID}
+                    title={v.venueName || ""}
+                    location={v.venueLocation || ""}
+                  />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Aún no tienes lugares guardados</Text>
+            )
           )}
         </AuthCard>
       </ScrollView>
@@ -96,7 +136,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   card: {
-    height: 744,
+    minHeight: 744,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderBottomLeftRadius: 0,
@@ -128,5 +168,15 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     minWidth: 0,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: 'rgba(31,34,29,0.4)',
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
+  listContainer: {
+    gap: 12,
+    width: '100%',
   },
 });

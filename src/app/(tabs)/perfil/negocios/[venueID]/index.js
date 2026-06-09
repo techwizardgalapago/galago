@@ -10,6 +10,7 @@ import AuthCard from '../../../../../components/auth/AuthCard';
 import { selectVenueByIdFromState } from '../../../../../store/slices/venueSlice';
 import { fetchSchedulesByVenue } from '../../../../../store/slices/schedulesByVenueSlice';
 import { fetchEventsRemote } from '../../../../../store/slices/eventsSlice';
+import { toggleFavorite } from '../../../../../store/slices/authSlice';
 import { getVenueById } from '../../../../../services/venuesService';
 
 const WEEKDAYS_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -20,6 +21,8 @@ export default function VenueDetailScreen() {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));
+  const authUser = useSelector((s) => s.auth?.user);
+  const isFavorited = (authUser?.favoriteVenues || []).includes(venueID);
   const schedulesByVenue = useSelector((s) => {
     const value = s.schedulesByVenue?.schedulesByVenueID?.[venueID];
     return value || EMPTY_SCHEDULES;
@@ -278,6 +281,12 @@ export default function VenueDetailScreen() {
           >
             <Ionicons name="arrow-back" size={18} color="#1B2222" />
           </Pressable>
+          <Pressable
+            onPress={() => dispatch(toggleFavorite({ type: 'venue', id: venueID }))}
+            style={styles.heartButton}
+          >
+            <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={20} color={isFavorited ? '#E65300' : '#1B2222'} />
+          </Pressable>
           <View style={styles.section}>
             <View style={styles.heroWrap}>
               {imageUrl ? (
@@ -484,6 +493,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  heartButton: {
+    position: 'absolute',
+    top: 16,
+    left: 20,
     width: 32,
     height: 32,
     borderRadius: 16,
