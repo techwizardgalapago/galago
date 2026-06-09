@@ -25,8 +25,20 @@ import {
   fetchUserVenuesRemote,
   fetchUserVenuesByUserId,
 } from '../../../../store/slices/venueSlice';
+import { fetchEventsRemote } from '../../../../store/slices/eventsSlice';
 
 const isWeb = Platform.OS === 'web';
+
+const formatEventTime = (isoString) => {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} · ${hh}:${mm}`;
+};
 
 const blurActive = () => {
   if (!isWeb) return;
@@ -141,6 +153,25 @@ export default function MisNegociosScreen() {
     });
   }, [venues, authUser?.userID]);
 
+  const allEvents = useSelector((s) => s.events?.list || []);
+  const eventsStatus = useSelector((s) => s.events?.status);
+
+  useEffect(() => {
+    if (eventsStatus === 'idle') dispatch(fetchEventsRemote());
+  }, [dispatch, eventsStatus]);
+
+  const myVenueIds = useMemo(() => myVenues.map((v) => v.venueID), [myVenues]);
+
+  const myEvents = useMemo(
+    () =>
+      allEvents.filter((ev) => {
+        const vid = ev.eventVenueID;
+        if (Array.isArray(vid)) return vid.some((id) => myVenueIds.includes(id));
+        return myVenueIds.includes(vid);
+      }),
+    [allEvents, myVenueIds]
+  );
+
   const isLoading = status === 'loading';
   const isEmpty = !isLoading && myVenues.length === 0;
 
@@ -208,12 +239,28 @@ export default function MisNegociosScreen() {
                     Eventos Organizados Por Ti
                   </Text>
                 </View>
-                <ProfileEventCard
-                  time="25 MAR — MARTES, 15:00"
-                  title="Festival de Arte en la Playa"
-                  location="La Nube, Isla Santa Cruz"
-                  tags={['#exhibiciones', '#aire libre', '#talleres']}
-                />
+                {myEvents.length === 0 ? (
+                  <View style={{ paddingHorizontal: 30 }}>
+                    <Text style={{ fontSize: 14, color: 'rgba(31,34,29,0.4)' }}>
+                      Aún no tienes eventos registrados.
+                    </Text>
+                  </View>
+                ) : (
+                  myEvents.map((ev) => (
+                    <Pressable
+                      key={ev.eventID}
+                      onPress={() =>
+                        router.push(`/(tabs)/perfil/negocios/eventos/${ev.eventID}`)
+                      }
+                    >
+                      <ProfileEventCard
+                        time={formatEventTime(ev.startTime)}
+                        title={ev.eventName || ''}
+                        location={ev.eventVenueName || ev.direccionVenues || ''}
+                      />
+                    </Pressable>
+                  ))
+                )}
               </View>
             )}
 
