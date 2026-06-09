@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/index.js
-import { View, Text, StyleSheet, Platform, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Platform, ScrollView, Pressable } from "react-native";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,6 +14,30 @@ import PlaceCard from "../../../components/profile/PlaceCard";
 import { joinFullName } from "../../../features/users/profileComplition";
 import { getVenueById } from "../../../services/venuesService";
 import { upsertVenueLocal } from "../../../store/slices/venueSlice";
+
+const getVenueImageUrl = (venueImage) => {
+  try {
+    if (!venueImage) return null;
+    const parsed = typeof venueImage === 'string' ? JSON.parse(venueImage) : venueImage;
+    const first = Array.isArray(parsed) ? parsed[0] : parsed;
+    return first?.thumbnails?.large?.url || first?.url || null;
+  } catch (_) {
+    return typeof venueImage === 'string' && venueImage.startsWith('http')
+      ? venueImage
+      : null;
+  }
+};
+
+const formatEventTime = (isoString) => {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} · ${hh}:${mm}`;
+};
 
 export default function PerfilScreen() {
   const [activeTab, setActiveTab] = useState("saved");
@@ -107,12 +131,16 @@ export default function PerfilScreen() {
             savedEvents.length > 0 ? (
               <View style={styles.listContainer}>
                 {savedEvents.map((ev) => (
-                  <ProfileEventCard
+                  <Pressable
                     key={ev.eventID}
-                    time={ev.startTime || ""}
-                    title={ev.eventName || ""}
-                    location={ev.eventVenueName || ev.direccionVenues || ""}
-                  />
+                    onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${ev.eventID}`)}
+                  >
+                    <ProfileEventCard
+                      time={formatEventTime(ev.startTime)}
+                      title={ev.eventName || ""}
+                      location={ev.eventVenueName || ev.direccionVenues || ""}
+                    />
+                  </Pressable>
                 ))}
               </View>
             ) : (
@@ -124,6 +152,7 @@ export default function PerfilScreen() {
                 {savedVenues.map((v) => (
                   <PlaceCard
                     key={v.venueID}
+                    imageUri={getVenueImageUrl(v.venueImage)}
                     title={v.venueName || ""}
                     location={v.venueLocation || ""}
                   />
@@ -138,6 +167,7 @@ export default function PerfilScreen() {
                 {savedPlaces.map((v) => (
                   <PlaceCard
                     key={v.venueID}
+                    imageUri={getVenueImageUrl(v.venueImage)}
                     title={v.venueName || ""}
                     location={v.venueLocation || ""}
                   />
