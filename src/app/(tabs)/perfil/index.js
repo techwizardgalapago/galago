@@ -1,7 +1,7 @@
 // src/app/(tabs)/perfil/index.js
 import { View, Text, StyleSheet, Platform, ScrollView } from "react-native";
-import { useState, useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import AuthBackground from "../../../components/auth/AuthBackground";
@@ -12,9 +12,12 @@ import ProfileTabs from "../../../components/profile/ProfileTabs";
 import ProfileEventCard from "../../../components/profile/ProfileEventCard";
 import PlaceCard from "../../../components/profile/PlaceCard";
 import { joinFullName } from "../../../features/users/profileComplition";
+import { getVenueById } from "../../../services/venuesService";
+import { upsertVenueLocal } from "../../../store/slices/venueSlice";
 
 export default function PerfilScreen() {
   const [activeTab, setActiveTab] = useState("saved");
+  const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const user = useSelector((s) => s.auth?.user);
   const allEvents = useSelector((s) => s.events?.list || []);
@@ -27,16 +30,36 @@ export default function PerfilScreen() {
   const favoriteEventIDs = user?.favoriteEvents || [];
   const favoriteVenueIDs = user?.favoriteVenues || [];
 
+  const fetchedIDsRef = useRef([]);
+
+  useEffect(() => {
+    if (!favoriteVenueIDs.length) return;
+    const toFetch = favoriteVenueIDs.filter(
+      (id) =>
+        !allVenues.some((v) => v.venueID === id) &&
+        !fetchedIDsRef.current.includes(id)
+    );
+    if (!toFetch.length) return;
+    fetchedIDsRef.current = [...fetchedIDsRef.current, ...toFetch];
+    Promise.all(toFetch.map((id) => getVenueById(id).catch(() => null)))
+      .then((results) => {
+        results
+          .filter(Boolean)
+          .map((r) => (r?.fields ? { venueID: r.id, ...r.fields } : r))
+          .forEach((venue) => dispatch(upsertVenueLocal(venue)));
+      });
+  }, [favoriteVenueIDs.join(','), allVenues.length]);
+
   const savedEvents = useMemo(
     () => allEvents.filter((e) => favoriteEventIDs.includes(e.eventID)),
     [allEvents, favoriteEventIDs]
   );
   const savedVenues = useMemo(
-    () => allVenues.filter((v) => favoriteVenueIDs.includes(v.venueID) && v.negocio === 1),
+    () => allVenues.filter((v) => favoriteVenueIDs.includes(v.venueID) && !!v.negocio),
     [allVenues, favoriteVenueIDs]
   );
   const savedPlaces = useMemo(
-    () => allVenues.filter((v) => favoriteVenueIDs.includes(v.venueID) && v.negocio === 0),
+    () => allVenues.filter((v) => favoriteVenueIDs.includes(v.venueID) && !v.negocio),
     [allVenues, favoriteVenueIDs]
   );
 

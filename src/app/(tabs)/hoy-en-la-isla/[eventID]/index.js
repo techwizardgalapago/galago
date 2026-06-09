@@ -9,7 +9,8 @@ import {
   Linking,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { toggleFavorite } from "../../../../store/slices/authSlice";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -94,8 +95,11 @@ const INFO_ROWS = [
 
 export default function EventDetailScreen() {
   const { eventID } = useLocalSearchParams();
+  const dispatch = useDispatch();
   const allEvents = useSelector((state) => state.events.list);
   const event = allEvents.find((e) => e.eventID === eventID);
+  const authUser = useSelector((s) => s.auth?.user);
+  const isFavorited = (authUser?.favoriteEvents || []).includes(eventID);
   const { isMobile } = useMedia();
   const contentWidth = isMobile ? { width: "100%" } : { width: "100%", maxWidth: 720 };
 
@@ -130,8 +134,11 @@ export default function EventDetailScreen() {
           <Ionicons name="arrow-back" size={22} color="#1B2222" />
         </Pressable>
         <View style={styles.rightActions}>
-          <Pressable style={[styles.circleBtn, styles.circleBtnBlue]}>
-            <Ionicons name="bookmark-outline" size={22} color="#FDFDFC" />
+          <Pressable
+            style={[styles.circleBtn, styles.circleBtnBlue]}
+            onPress={() => dispatch(toggleFavorite({ type: 'event', id: eventID }))}
+          >
+            <Ionicons name={isFavorited ? 'bookmark' : 'bookmark-outline'} size={22} color="#FDFDFC" />
           </Pressable>
           <Pressable
             style={[styles.circleBtn, styles.circleBtnGreen]}

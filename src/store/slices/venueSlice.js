@@ -178,7 +178,18 @@ const venuesSlice = createSlice({
     error: null,
     rehydrated: false,
   },
-  reducers: {},
+  reducers: {
+    upsertVenueLocal(state, action) {
+      const venue = action.payload;
+      if (!venue?.venueID) return;
+      const i = state.list.findIndex((v) => v.venueID === venue.venueID);
+      if (i !== -1) {
+        state.list[i] = { ...state.list[i], ...venue };
+      } else {
+        state.list.push(venue);
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       // fetch local
@@ -268,6 +279,7 @@ const venuesSlice = createSlice({
   },
 });
 
+export const { upsertVenueLocal } = venuesSlice.actions;
 export default venuesSlice.reducer;
 
 // Selector simple

@@ -282,7 +282,7 @@ export default function VenueDetailScreen() {
             <Ionicons name="arrow-back" size={18} color="#1B2222" />
           </Pressable>
           <Pressable
-            onPress={() => dispatch(toggleFavorite({ type: 'venue', id: venueID }))}
+            onPress={() => dispatch(toggleFavorite({ type: 'venue', id: venueID, data: venue }))}
             style={styles.heartButton}
           >
             <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={20} color={isFavorited ? '#E65300' : '#1B2222'} />

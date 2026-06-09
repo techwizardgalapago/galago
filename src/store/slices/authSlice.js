@@ -6,6 +6,7 @@ import { authStorage } from '../../utils/authStorage';
 import { setAuthHeader } from '../../services/api';
 import { loginService, registerService, fetchMeService } from '../../services/authService';
 import { patchUserProfile } from '../../services/usersService';
+import { upsertVenueLocal } from './venueSlice';
 
 const initialState = {
   user: null,
@@ -110,15 +111,19 @@ export const { setToken, setUser, setHydrated, logout, setAuthUserPatch } = auth
 
 export const toggleFavorite = createAsyncThunk(
   'auth/toggleFavorite',
-  async ({ type, id }, { getState, dispatch }) => {
+  async ({ type, id, data }, { getState, dispatch }) => {
     const user = getState().auth.user;
     if (!user?.userID) return;
     const key = type === 'event' ? 'favoriteEvents' : 'favoriteVenues';
     const current = user[key] || [];
-    const updated = current.includes(id)
-      ? current.filter((x) => x !== id)
-      : [...current, id];
+    const isAdding = !current.includes(id);
+    const updated = isAdding
+      ? [...current, id]
+      : current.filter((x) => x !== id);
     dispatch(authSlice.actions.setAuthUserPatch({ [key]: updated }));
+    if (isAdding && type === 'venue' && data) {
+      dispatch(upsertVenueLocal(data));
+    }
     await patchUserProfile(user.userID, { [key]: updated });
     return { type, updated };
   }
