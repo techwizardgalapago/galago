@@ -2,7 +2,7 @@ import { View, Text, Image, Pressable, StyleSheet, Linking } from 'react-native'
 import { router } from 'expo-router';
 import AuthBackground from '../../../../../../components/auth/AuthBackground';
 
-const MASCOT = require('../../../../../../../assets/_F2.GoSurfGG 1.png');
+const MASCOT = require('../../../../../../../assets/mascot-gosurf.png');
 const WHATSAPP_NUMBER = 'PLACEHOLDER'; // reemplazar con el número real (sin +)
 
 export default function CrearEventoConfirmacion() {
