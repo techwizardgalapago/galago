@@ -219,7 +219,7 @@ export default function CrearEventoScreen() {
       const eventFull = await getEventById(eventID);
       if (eventFull) dispatch(upsertEventsFromAPIThunk([eventFull]));
 
-      router.replace('/(tabs)/perfil/negocios');
+      router.replace('/(tabs)/perfil/negocios/eventos/crear/confirmacion');
     } catch (e) {
       console.error('Crear evento falló:', e?.response?.data || e);
       setError('No se pudo crear el evento. Intenta de nuevo.');

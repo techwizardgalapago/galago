@@ -447,7 +447,7 @@ export default function CrearNegocioScreen() {
         dispatch(upsertVenuesFromAPIThunk([venueFull]));
       }
 
-      router.replace('/(tabs)/perfil');
+      router.replace('/(tabs)/perfil/negocios/crear/confirmacion');
     } catch (e) {
       console.error('Crear negocio falló:', e);
       setError('No se pudo registrar el negocio.');
