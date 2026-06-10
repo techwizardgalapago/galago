@@ -11,6 +11,7 @@ import ProfileAvatarBadge from "../../../components/profile/ProfileAvatarBadge";
 import ProfileTabs from "../../../components/profile/ProfileTabs";
 import ProfileEventCard from "../../../components/profile/ProfileEventCard";
 import PlaceCard from "../../../components/profile/PlaceCard";
+import ProfileActionsSheet from "../../../components/profile/ProfileActionsSheet";
 import { joinFullName } from "../../../features/users/profileComplition";
 import { getVenueById } from "../../../services/venuesService";
 import { upsertVenueLocal } from "../../../store/slices/venueSlice";
@@ -41,6 +42,7 @@ const formatEventTime = (isoString) => {
 
 export default function PerfilScreen() {
   const [activeTab, setActiveTab] = useState("saved");
+  const [sheetVisible, setSheetVisible] = useState(false);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const user = useSelector((s) => s.auth?.user);
@@ -105,7 +107,7 @@ export default function PerfilScreen() {
             <View style={styles.buttonRow}>
               <AuthButton
                 label="Ajustes"
-                onPress={() => router.push("/(tabs)/perfil/settings")}
+                onPress={() => setSheetVisible(true)}
                 style={styles.button}
               />
               <AuthButton
@@ -179,6 +181,10 @@ export default function PerfilScreen() {
           )}
         </AuthCard>
       </ScrollView>
+      <ProfileActionsSheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+      />
     </AuthBackground>
   );
 }
