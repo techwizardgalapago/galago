@@ -344,21 +344,25 @@ export default function CrearNegocioScreen() {
         await createVenueSchedules(payload);
       }
 
-      // 4) Subir logo si existe
+      // 4) Subir logo si existe (no-fatal: el negocio ya fue creado)
       if (image) {
-        if (Platform.OS === 'web') {
-          const res = await fetch(image.uri);
-          const blob = await res.blob();
-          const file = new File(
-            [blob],
-            image.name || 'venue.jpg',
-            { type: blob.type || image.type || 'image/jpeg' }
-          );
-          const formData = new FormData();
-          formData.append('image', file);
-          await uploadVenueImage(venueID, formData);
-        } else {
-          await uploadVenueImage(venueID, image);
+        try {
+          if (Platform.OS === 'web') {
+            const res = await fetch(image.uri);
+            const blob = await res.blob();
+            const file = new File(
+              [blob],
+              image.name || 'venue.jpg',
+              { type: blob.type || image.type || 'image/jpeg' }
+            );
+            const formData = new FormData();
+            formData.append('image', file);
+            await uploadVenueImage(venueID, formData);
+          } else {
+            await uploadVenueImage(venueID, image);
+          }
+        } catch (imgErr) {
+          console.warn('No se pudo subir la imagen del negocio:', imgErr);
         }
       }
 
