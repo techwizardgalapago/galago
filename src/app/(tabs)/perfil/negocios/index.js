@@ -120,9 +120,9 @@ export default function MisNegociosScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!isOnline || !userVenueIds.length) return;
-      dispatch(fetchUserVenuesRemote(userVenueIds));
-    }, [dispatch, isOnline, userVenueIds])
+      if (!isOnline || !userID) return;
+      dispatch(fetchUserVenuesByUserId(userID));
+    }, [dispatch, isOnline, userID])
   );
 
   const onRefresh = useCallback(async () => {

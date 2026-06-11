@@ -8,16 +8,20 @@ export default function TabLayout() {
     <Tabs screenOptions={{ headerShown: false }}>
         <Tabs.Screen
         name='hoy-en-la-isla'
-        options={{ title: "Hoy", 
+        options={{ title: "Hoy",
           tabBarLabel: "Hoy",
          }}
+      />
+      <Tabs.Screen
+        name='locales'
+        options={{ title: "Locales", tabBarLabel: "Locales" }}
       />
       <Tabs.Screen
         name='perfil'
         options={{ title: "Perfil", tabBarLabel: "Perfil" }}
       />
-      <Tabs.Screen 
-        name="settings/index" options={{ title: 'Settings', tabBarLabel: "Settings" }} 
+      <Tabs.Screen
+        name="settings/index" options={{ title: 'Settings', tabBarLabel: "Settings" }}
       />
     </Tabs>
   );
