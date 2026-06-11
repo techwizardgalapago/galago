@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Modal,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -80,14 +80,16 @@ const normalizeToken = (value) =>
 
 function CategoryTile({ category }) {
   return (
-    <LinearGradient
-      colors={category.colors}
-      start={category.start}
-      end={category.end}
-      style={styles.categoryTile}
-    >
-      <Text style={styles.categoryTileText}>{category.label}</Text>
-    </LinearGradient>
+    <Pressable onPress={() => router.push(`/(tabs)/locales/${category.key}`)}>
+      <LinearGradient
+        colors={category.colors}
+        start={category.start}
+        end={category.end}
+        style={styles.categoryTile}
+      >
+        <Text style={styles.categoryTileText}>{category.label}</Text>
+      </LinearGradient>
+    </Pressable>
   );
 }
 

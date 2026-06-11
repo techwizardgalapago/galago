@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchVenues, addVenue } from '../store/slices/venuesSlice';
+import { fetchVenues, addVenue } from '../store/slices/venueSlice';
 
 export const useVenues = () => {
   const dispatch = useDispatch();

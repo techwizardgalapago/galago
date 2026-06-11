@@ -1,5 +1,19 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
 
+// priceLevel: número 1-4 → renderiza $$$$ con activos en naranja e inactivos en naranja al 50%
+function PriceTag({ level }) {
+  const total = 4;
+  const active = Math.min(Math.max(Math.round(level), 1), total);
+  return (
+    <View style={styles.tag}>
+      <Text style={styles.priceText}>
+        {'$'.repeat(active)}
+        <Text style={styles.priceInactive}>{'$'.repeat(total - active)}</Text>
+      </Text>
+    </View>
+  );
+}
+
 export default function PlaceCard({
   imageUri,
   title,
@@ -7,7 +21,9 @@ export default function PlaceCard({
   rating,
   category,
   price,
+  priceLevel,
 }) {
+  const hasTags = rating || category || price || priceLevel;
   return (
     <View style={styles.row}>
       <View style={styles.thumbnail}>
@@ -20,7 +36,7 @@ export default function PlaceCard({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.location}>{location}</Text>
         </View>
-        {(rating || category || price) ? (
+        {hasTags ? (
           <View style={styles.tags}>
             {rating ? (
               <View style={styles.tag}>
@@ -32,7 +48,9 @@ export default function PlaceCard({
                 <Text style={styles.tagText}>{category}</Text>
               </View>
             ) : null}
-            {price ? (
+            {priceLevel ? (
+              <PriceTag level={priceLevel} />
+            ) : price ? (
               <View style={styles.tag}>
                 <Text style={styles.priceText}>{price}</Text>
               </View>
@@ -101,5 +119,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#E65300',
+  },
+  priceInactive: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(230,83,0,0.5)',
   },
 });
