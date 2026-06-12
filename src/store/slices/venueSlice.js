@@ -275,7 +275,12 @@ const venuesSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserVenuesRemote.fulfilled, (state, action) => {
-        state.list = action.payload || [];
+        const incoming = action.payload || [];
+        incoming.forEach((venue) => {
+          const index = state.list.findIndex((v) => v.venueID === venue.venueID);
+          if (index !== -1) state.list[index] = { ...state.list[index], ...venue };
+          else state.list.push(venue);
+        });
         state.status = "succeeded";
       })
       .addCase(fetchUserVenuesRemote.rejected, (state, action) => {
@@ -289,7 +294,12 @@ const venuesSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserVenuesByUserId.fulfilled, (state, action) => {
-        state.list = action.payload || [];
+        const incoming = action.payload || [];
+        incoming.forEach((venue) => {
+          const index = state.list.findIndex((v) => v.venueID === venue.venueID);
+          if (index !== -1) state.list[index] = { ...state.list[index], ...venue };
+          else state.list.push(venue);
+        });
         state.status = "succeeded";
       })
       .addCase(fetchUserVenuesByUserId.rejected, (state, action) => {
