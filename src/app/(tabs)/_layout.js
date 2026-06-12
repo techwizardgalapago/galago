@@ -21,7 +21,8 @@ export default function TabLayout() {
         options={{ title: "Perfil", tabBarLabel: "Perfil" }}
       />
       <Tabs.Screen
-        name="settings/index" options={{ title: 'Settings', tabBarLabel: "Settings" }}
+        name="settings/index"
+        options={{ title: 'Settings', tabBarLabel: "Settings", href: null }}
       />
     </Tabs>
   );
