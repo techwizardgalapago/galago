@@ -25,10 +25,11 @@ const ISLANDS = ["Todo", "San Cristobal", "Isabela", "Santa Cruz"];
 
 // Mapeo categoría-key → valores de venueCategory
 const CATEGORY_VENUE_TYPES = {
-  alimentos: ["restaurante", "café", "cafe", "tienda", "souvenirs"],
+  alimentos: ["restaurante", "café", "cafe"],
   hoteles: ["hotel", "hostal", "alojamiento", "hospedaje"],
   actividades: ["teatro", "spa", "museo", "centro turistico", "casa cultural", "parque", "otro"],
   nocturna: ["club", "bar"],
+  tiendas: ["tienda", "souvenirs"],
 };
 
 const CATEGORY_LABELS = {
@@ -36,6 +37,7 @@ const CATEGORY_LABELS = {
   hoteles: "Hoteles y Alojamientos",
   actividades: "Actividades y Bienestar",
   nocturna: "Vida Nocturna",
+  tiendas: "Tiendas y Souvenirs",
 };
 
 const normalizeToken = (value) =>

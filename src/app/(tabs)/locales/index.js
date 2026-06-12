@@ -56,6 +56,13 @@ const CATEGORIES = [
     start: { x: 0.79, y: 0.09 },
     end: { x: 0.21, y: 0.91 },
   },
+  {
+    key: "tiendas",
+    label: "Tiendas y Souvenirs",
+    colors: ["#2E7D32", "#66BB6A"],
+    start: { x: 0.2, y: 0.9 },
+    end: { x: 0.8, y: 0.1 },
+  },
 ];
 
 const TOURIST_SITES = [
@@ -574,10 +581,10 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   categoryTileText: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "500",
     color: "#FFFFFF",
-    lineHeight: 24,
+    lineHeight: 23,
   },
 
   // ---- DESCUBRE ----

@@ -17,10 +17,11 @@ import { getVenueById } from "../../../services/venuesService";
 import { upsertVenueLocal } from "../../../store/slices/venueSlice";
 
 const CATEGORY_VENUE_TYPES = {
-  alimentos: ["restaurante", "café", "cafe", "tienda", "souvenirs"],
+  alimentos: ["restaurante", "café", "cafe"],
   hoteles: ["hotel", "hostal", "alojamiento", "hospedaje"],
   actividades: ["teatro", "spa", "museo", "centro turistico", "casa cultural", "parque", "otro"],
   nocturna: ["club", "bar"],
+  tiendas: ["tienda", "souvenirs"],
 };
 
 const normalizeToken = (v) =>
