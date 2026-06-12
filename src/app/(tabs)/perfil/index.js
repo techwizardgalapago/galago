@@ -16,6 +16,24 @@ import { joinFullName } from "../../../features/users/profileComplition";
 import { getVenueById } from "../../../services/venuesService";
 import { upsertVenueLocal } from "../../../store/slices/venueSlice";
 
+const CATEGORY_VENUE_TYPES = {
+  alimentos: ["restaurante", "café", "cafe", "tienda", "souvenirs"],
+  hoteles: ["hotel", "hostal", "alojamiento", "hospedaje"],
+  actividades: ["teatro", "spa", "museo", "centro turistico", "casa cultural", "parque", "otro"],
+  nocturna: ["club", "bar"],
+};
+
+const normalizeToken = (v) =>
+  String(v ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+const getCategoryForVenue = (venue) => {
+  const cat = normalizeToken(venue?.venueCategory ?? "");
+  for (const [key, types] of Object.entries(CATEGORY_VENUE_TYPES)) {
+    if (types.some((t) => cat.includes(normalizeToken(t)))) return key;
+  }
+  return "alimentos";
+};
+
 const getVenueImageUrl = (venueImage) => {
   try {
     if (!venueImage) return null;
@@ -152,12 +170,16 @@ export default function PerfilScreen() {
             savedVenues.length > 0 ? (
               <View style={styles.listContainer}>
                 {savedVenues.map((v) => (
-                  <PlaceCard
+                  <Pressable
                     key={v.venueID}
-                    imageUri={getVenueImageUrl(v.venueImage)}
-                    title={v.venueName || ""}
-                    location={v.venueLocation || ""}
-                  />
+                    onPress={() => router.push(`/(tabs)/locales/${getCategoryForVenue(v)}/${v.venueID}`)}
+                  >
+                    <PlaceCard
+                      imageUri={getVenueImageUrl(v.venueImage)}
+                      title={v.venueName || ""}
+                      location={v.venueLocation || ""}
+                    />
+                  </Pressable>
                 ))}
               </View>
             ) : (
@@ -167,12 +189,16 @@ export default function PerfilScreen() {
             savedPlaces.length > 0 ? (
               <View style={styles.listContainer}>
                 {savedPlaces.map((v) => (
-                  <PlaceCard
+                  <Pressable
                     key={v.venueID}
-                    imageUri={getVenueImageUrl(v.venueImage)}
-                    title={v.venueName || ""}
-                    location={v.venueLocation || ""}
-                  />
+                    onPress={() => router.push(`/(tabs)/locales/${getCategoryForVenue(v)}/${v.venueID}`)}
+                  >
+                    <PlaceCard
+                      imageUri={getVenueImageUrl(v.venueImage)}
+                      title={v.venueName || ""}
+                      location={v.venueLocation || ""}
+                    />
+                  </Pressable>
                 ))}
               </View>
             ) : (

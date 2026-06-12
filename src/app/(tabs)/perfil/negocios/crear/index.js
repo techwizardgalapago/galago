@@ -35,6 +35,8 @@ import { upsertVenuesFromAPIThunk } from '../../../../../store/slices/venueSlice
 const VENUE_CATEGORIES = [
   'Restaurante',
   'Café',
+  'Hotel',
+  'Hostal',
   'Club',
   'Bar',
   'Teatro',
