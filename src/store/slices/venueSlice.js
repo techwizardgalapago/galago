@@ -8,7 +8,7 @@ import {
   upsertVenuesFromAPI as dbUpsertVenuesFromAPI,
 } from "../../db/venues";
 import { upsertSchedulesFromAPI as dbUpsertSchedulesFromAPI } from "../../db/schedules";
-import { getVenuesByIds, getVenuesByUserId } from "../../services/venuesService";
+import { getVenues, getVenuesByIds, getVenuesByUserId } from "../../services/venuesService";
 
 // -------- Platform guards (como en usersSlice) --------
 const isWeb = Platform.OS === "web";
@@ -93,6 +93,26 @@ export const editVenueLocal = createAsyncThunk(
   async (patch) => {
     await ignoreDBIfWeb(() => dbUpdateVenueLocal(patch));
     return patch; // { venueID, ...fields } → optimista en Redux
+  }
+);
+
+// Fetch público de todos los venues desde la API (para Locales tab)
+export const fetchAllVenuesRemote = createAsyncThunk(
+  "venues/fetchAllRemote",
+  async () => {
+    const remote = await getVenues();
+    const list = Array.isArray(remote)
+      ? remote
+      : remote?.records || remote?.data || [];
+    const mapped = list.map(mapRemoteVenue).filter(Boolean);
+    if (isWeb) return mapped;
+    if (mapped.length) {
+      await dbUpsertVenuesFromAPI(mapped);
+      const schedules = extractSchedulesFromVenues(mapped);
+      if (schedules.length) await dbUpsertSchedulesFromAPI(schedules);
+    }
+    const rows = await dbSelectAllVenues();
+    return rows || [];
   }
 );
 
@@ -275,6 +295,24 @@ const venuesSlice = createSlice({
       .addCase(fetchUserVenuesByUserId.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error?.message;
+      });
+
+    // fetch público de todos los venues (upsert, no reemplaza)
+    builder
+      .addCase(fetchAllVenuesRemote.fulfilled, (state, action) => {
+        const incoming = action.payload || [];
+        incoming.forEach((venue) => {
+          const index = state.list.findIndex((v) => v.venueID === venue.venueID);
+          if (index !== -1) {
+            state.list[index] = { ...state.list[index], ...venue };
+          } else {
+            state.list.push(venue);
+          }
+        });
+        state.status = "succeeded";
+      })
+      .addCase(fetchAllVenuesRemote.rejected, (state, action) => {
+        console.warn("fetchAllVenuesRemote failed:", action.error?.message);
       });
   },
 });

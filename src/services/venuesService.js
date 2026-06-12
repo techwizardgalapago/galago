@@ -10,6 +10,11 @@ const extractCreatedVenueId = (responseData) => {
   return rec?.venueIDid || rec?.fields?.id || null;
 };
 
+export const getVenues = async (params = {}) => {
+  const res = await api.get('/venues', { params });
+  return res.data;
+};
+
 export const createVenue = async (fields) => {
   // Backend espera: [ { fields: {...} } ]
   const payload = [{ fields }];

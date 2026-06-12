@@ -6,6 +6,8 @@ import { rehydrateReduxFromSQLite } from "../store/rehydration";
 import { initializeDatabase } from "../db";
 import { pushAllChanges } from "../services/syncService";
 import { OFFLINE_ENABLED } from "../constants/plataform";
+import { fetchEventsRemote } from "../store/slices/eventsSlice";
+import { fetchAllVenuesRemote } from "../store/slices/venueSlice";
 
 export const useAppInitializer = () => {
   const dispatch = useDispatch();
@@ -43,6 +45,10 @@ export const useAppInitializer = () => {
         }
         initializedRef.current = true;
         setReady(true);
+
+        // Fetch remoto de datos públicos — independiente de qué tab se visite primero
+        dispatch(fetchEventsRemote());
+        dispatch(fetchAllVenuesRemote());
 
         if (OFFLINE_ENABLED) {
           const state = await NetInfo.fetch();
