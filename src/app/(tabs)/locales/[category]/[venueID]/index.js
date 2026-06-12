@@ -71,7 +71,7 @@ const getImageUrl = (imgObj) =>
 // -------- Componente principal --------
 
 export default function VenueDetailScreen() {
-  const { venueID } = useLocalSearchParams();
+  const { venueID, category } = useLocalSearchParams();
   const dispatch = useDispatch();
 
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));
@@ -246,7 +246,7 @@ export default function VenueDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.notFound}>
           <Text style={styles.notFoundText}>No se encontró el local.</Text>
-          <Pressable onPress={() => router.back()} style={styles.notFoundBack}>
+          <Pressable onPress={() => router.replace(`/(tabs)/locales/${category}`)} style={styles.notFoundBack}>
             <Text style={styles.notFoundBackText}>Regresar</Text>
           </Pressable>
         </View>
@@ -395,22 +395,14 @@ export default function VenueDetailScreen() {
 
       {/* Barra de acciones sticky */}
       <View style={styles.actionBar}>
-        <Pressable style={styles.actionBack} onPress={() => router.back()}>
+        <Pressable style={styles.actionBack} onPress={() => router.replace(`/(tabs)/locales/${category}`)}>
           <Ionicons name="arrow-back" size={20} color="#1B2222" />
         </Pressable>
 
         <View style={styles.actionButtons}>
-          <Pressable
-            style={[styles.actionBtn, styles.actionYellow]}
-            onPress={() =>
-              dispatch(toggleFavorite({ type: "venue", id: venueID, data: venue }))
-            }
-          >
-            <Ionicons
-              name={isFavorited ? "star" : "star-outline"}
-              size={22}
-              color="#FDFDFC"
-            />
+          {/* Rating — pendiente de diseño */}
+          <Pressable style={[styles.actionBtn, styles.actionYellow]}>
+            <Ionicons name="star-outline" size={22} color="#FDFDFC" />
           </Pressable>
           <Pressable
             style={[styles.actionBtn, styles.actionBlue]}
@@ -424,8 +416,18 @@ export default function VenueDetailScreen() {
           >
             <Ionicons name="logo-whatsapp" size={22} color="#FDFDFC" />
           </Pressable>
-          <Pressable style={[styles.actionBtn, styles.actionOrange]}>
-            <Ionicons name="bookmark" size={22} color="#FDFDFC" />
+          {/* Guardar en sitios guardados */}
+          <Pressable
+            style={[styles.actionBtn, styles.actionOrange]}
+            onPress={() =>
+              dispatch(toggleFavorite({ type: "venue", id: venueID, data: venue }))
+            }
+          >
+            <Ionicons
+              name={isFavorited ? "bookmark" : "bookmark-outline"}
+              size={22}
+              color="#FDFDFC"
+            />
           </Pressable>
         </View>
       </View>

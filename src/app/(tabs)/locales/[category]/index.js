@@ -72,8 +72,8 @@ export default function VenueListScreen() {
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
-  const [pendingIsland, setPendingIsland] = useState("Todo");
-  const [activeIsland, setActiveIsland] = useState("Todo");
+  const [pendingIsland, setPendingIsland] = useState("San Cristobal");
+  const [activeIsland, setActiveIsland] = useState("San Cristobal");
 
   const searchInputRef = useRef(null);
   const tabTranslateX = useRef(new Animated.Value(0)).current;
@@ -132,7 +132,7 @@ export default function VenueListScreen() {
       <View style={[styles.container, contentWidth]}>
         {/* Header: botón regresar */}
         <View style={[styles.topSection, { paddingHorizontal: hPad }]}>
-          <Pressable style={styles.backRow} onPress={() => router.back()}>
+          <Pressable style={styles.backRow} onPress={() => router.replace("/(tabs)/locales")}>
             <Ionicons name="chevron-back" size={20} color="#FDFDFC" />
             <Text style={styles.backText}>REGRESAR</Text>
           </Pressable>
@@ -202,9 +202,7 @@ export default function VenueListScreen() {
               contentContainerStyle={styles.islandChipsRow}
             >
               {ISLANDS.filter((i) => i !== "Todo").map((island) => {
-                const isActive =
-                  activeIsland === island ||
-                  (activeIsland === "Todo" && island === "San Cristobal");
+                const isActive = activeIsland === island;
                 return (
                   <Pressable
                     key={island}

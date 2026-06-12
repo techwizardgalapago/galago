@@ -130,7 +130,7 @@ export default function EventDetailScreen() {
       <View style={styles.centerContainer}>
       {/* Action bar — absolute, above the card */}
       <View style={[styles.actionBar, contentWidth]}>
-        <Pressable style={styles.circleBtn} onPress={() => router.back()}>
+        <Pressable style={styles.circleBtn} onPress={() => router.replace("/(tabs)/hoy-en-la-isla")}>
           <Ionicons name="arrow-back" size={22} color="#1B2222" />
         </Pressable>
         <View style={styles.rightActions}>

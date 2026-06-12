@@ -120,8 +120,8 @@ export default function LocalesScreen() {
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
-  const [pendingIsland, setPendingIsland] = useState("Todo");
-  const [activeIsland, setActiveIsland] = useState("Todo");
+  const [pendingIsland, setPendingIsland] = useState("San Cristobal");
+  const [activeIsland, setActiveIsland] = useState("San Cristobal");
 
   const tabTranslateX = useRef(new Animated.Value(0)).current;
   const tabLayouts = useRef({});
@@ -331,9 +331,7 @@ export default function LocalesScreen() {
                   contentContainerStyle={styles.islandChipsRow}
                 >
                   {ISLANDS.filter((i) => i !== "Todo").map((island) => {
-                    const isActive =
-                      activeIsland === island ||
-                      (activeIsland === "Todo" && island === "San Cristobal");
+                    const isActive = activeIsland === island;
                     return (
                       <Pressable
                         key={island}
