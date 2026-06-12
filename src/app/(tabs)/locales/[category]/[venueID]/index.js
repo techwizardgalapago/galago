@@ -91,6 +91,7 @@ export default function VenueDetailScreen() {
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [selectedStars, setSelectedStars] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
+  const [mapsConfirmVisible, setMapsConfirmVisible] = useState(false);
 
   // Carga de schedules locales (native) y remotos
   useEffect(() => {
@@ -415,7 +416,7 @@ export default function VenueDetailScreen() {
           </Pressable>
           <Pressable
             style={[styles.actionBtn, styles.actionBlue]}
-            onPress={openMaps}
+            onPress={() => setMapsConfirmVisible(true)}
           >
             <Ionicons name="map" size={22} color="#FDFDFC" />
           </Pressable>
@@ -440,6 +441,39 @@ export default function VenueDetailScreen() {
           </Pressable>
         </View>
       </View>
+      {/* Modal confirmación Maps */}
+      <Modal
+        visible={mapsConfirmVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMapsConfirmVisible(false)}
+      >
+        <Pressable
+          style={styles.ratingBackdrop}
+          onPress={() => setMapsConfirmVisible(false)}
+        />
+        <View style={styles.mapsConfirmSheet}>
+          <Text style={styles.mapsConfirmTitle}>Abrir Google Maps?</Text>
+          <View style={styles.ratingActions}>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setMapsConfirmVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              style={styles.publishButton}
+              onPress={() => {
+                setMapsConfirmVisible(false);
+                openMaps();
+              }}
+            >
+              <Text style={styles.publishButtonText}>Abrir</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       {/* Modal de rating */}
       <Modal
         visible={ratingModalVisible}
@@ -751,6 +785,29 @@ const styles = StyleSheet.create({
   notFoundBackText: {
     color: "#FDFDFC",
     fontSize: 15,
+  },
+
+  // Maps confirm modal
+  mapsConfirmSheet: {
+    backgroundColor: "#FDFDFC",
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    paddingTop: 22,
+    paddingBottom: 40,
+    paddingHorizontal: 22,
+    gap: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  mapsConfirmTitle: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#000000",
+    textAlign: "center",
+    lineHeight: 23,
   },
 
   // Rating modal
