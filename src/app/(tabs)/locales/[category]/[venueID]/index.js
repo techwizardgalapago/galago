@@ -9,6 +9,9 @@ import {
   Platform,
   Linking,
   Dimensions,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -84,6 +87,10 @@ export default function VenueDetailScreen() {
   const [remoteSchedules, setRemoteSchedules] = useState(EMPTY_SCHEDULES);
   const [imageIndex, setImageIndex] = useState(0);
   const imageScrollRef = useRef(null);
+
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [selectedStars, setSelectedStars] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
 
   // Carga de schedules locales (native) y remotos
   useEffect(() => {
@@ -400,8 +407,10 @@ export default function VenueDetailScreen() {
         </Pressable>
 
         <View style={styles.actionButtons}>
-          {/* Rating — pendiente de diseño */}
-          <Pressable style={[styles.actionBtn, styles.actionYellow]}>
+          <Pressable
+            style={[styles.actionBtn, styles.actionYellow]}
+            onPress={() => setRatingModalVisible(true)}
+          >
             <Ionicons name="star-outline" size={22} color="#FDFDFC" />
           </Pressable>
           <Pressable
@@ -431,6 +440,83 @@ export default function VenueDetailScreen() {
           </Pressable>
         </View>
       </View>
+      {/* Modal de rating */}
+      <Modal
+        visible={ratingModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRatingModalVisible(false)}
+      >
+        <Pressable
+          style={styles.ratingBackdrop}
+          onPress={() => setRatingModalVisible(false)}
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.ratingSheetWrapper}
+        >
+          <View style={styles.ratingSheet}>
+            {/* Puntaje */}
+            <View style={styles.ratingSection}>
+              <Text style={styles.ratingSectionLabel}>Tu Puntaje</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Pressable key={n} onPress={() => setSelectedStars(n)}>
+                    <Ionicons
+                      name={n <= selectedStars ? "star" : "star-outline"}
+                      size={24}
+                      color={n <= selectedStars ? "#FFBE3B" : "#C4C4C4"}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Comentario */}
+            <View style={styles.ratingSection}>
+              <Text style={styles.ratingSectionLabel}>Comentario</Text>
+              <View style={styles.commentBox}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Cuéntanos tu experiencia..."
+                  placeholderTextColor="#99A0A0"
+                  multiline
+                  maxLength={240}
+                  value={ratingComment}
+                  onChangeText={setRatingComment}
+                  textAlignVertical="top"
+                />
+                <Text style={styles.commentCount}>{ratingComment.length}/240</Text>
+              </View>
+            </View>
+
+            {/* Botones */}
+            <View style={styles.ratingActions}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => {
+                  setRatingModalVisible(false);
+                  setSelectedStars(0);
+                  setRatingComment("");
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={styles.publishButton}
+                onPress={() => {
+                  // TODO: enviar rating al backend
+                  setRatingModalVisible(false);
+                  setSelectedStars(0);
+                  setRatingComment("");
+                }}
+              >
+                <Text style={styles.publishButtonText}>Publicar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -665,5 +751,96 @@ const styles = StyleSheet.create({
   notFoundBackText: {
     color: "#FDFDFC",
     fontSize: 15,
+  },
+
+  // Rating modal
+  ratingBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  ratingSheetWrapper: {
+    backgroundColor: "transparent",
+  },
+  ratingSheet: {
+    backgroundColor: "#FDFDFC",
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    paddingTop: 22,
+    paddingBottom: 40,
+    paddingHorizontal: 22,
+    gap: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  ratingSection: {
+    gap: 14,
+  },
+  ratingSectionLabel: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#000000",
+    lineHeight: 23,
+  },
+  starsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  commentBox: {
+    backgroundColor: "#EDEDEC",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 28,
+    minHeight: 137,
+  },
+  commentInput: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#1B2222",
+    lineHeight: 18,
+    flex: 1,
+    minHeight: 90,
+  },
+  commentCount: {
+    fontSize: 9,
+    fontWeight: "500",
+    color: "#99A0A0",
+    textAlign: "right",
+    marginTop: 4,
+  },
+  ratingActions: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#EDEDEC",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#1B2222",
+  },
+  publishButton: {
+    flex: 1,
+    backgroundColor: "#259D4E",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+  },
+  publishButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#FDFDFC",
   },
 });
