@@ -35,6 +35,17 @@ const getCategoryForVenue = (venue) => {
   return "alimentos";
 };
 
+const getSiteImageUrl = (siteImage) => {
+  try {
+    if (!siteImage) return null;
+    const arr = Array.isArray(siteImage) ? siteImage : JSON.parse(siteImage);
+    const img = Array.isArray(arr) ? arr[0] : arr;
+    return img?.thumbnails?.large?.url || img?.url || null;
+  } catch (_) {
+    return null;
+  }
+};
+
 const getVenueImageUrl = (venueImage) => {
   try {
     if (!venueImage) return null;
@@ -67,6 +78,7 @@ export default function PerfilScreen() {
   const user = useSelector((s) => s.auth?.user);
   const allEvents = useSelector((s) => s.events?.list || []);
   const allVenues = useSelector((s) => s.venues?.list || []);
+  const allSites = useSelector((s) => s.touristSites?.list || []);
   const topGap = 108;
   const topInset = Platform.OS === "ios" ? insets.top : 0;
   const fullName =
@@ -74,6 +86,7 @@ export default function PerfilScreen() {
 
   const favoriteEventIDs = user?.favoriteEvents || [];
   const favoriteVenueIDs = user?.favoriteVenues || [];
+  const favoriteSiteIDs = user?.favoriteSites || [];
 
   const fetchedIDsRef = useRef([]);
 
@@ -106,6 +119,10 @@ export default function PerfilScreen() {
   const savedPlaces = useMemo(
     () => allVenues.filter((v) => favoriteVenueIDs.includes(v.venueID) && !v.negocio),
     [allVenues, favoriteVenueIDs]
+  );
+  const savedSites = useMemo(
+    () => allSites.filter((s) => favoriteSiteIDs.includes(s.siteID)),
+    [allSites, favoriteSiteIDs]
   );
 
   return (
@@ -187,7 +204,7 @@ export default function PerfilScreen() {
               <Text style={styles.emptyText}>Aún no tienes sitios guardados</Text>
             )
           ) : (
-            savedPlaces.length > 0 ? (
+            savedPlaces.length > 0 || savedSites.length > 0 ? (
               <View style={styles.listContainer}>
                 {savedPlaces.map((v) => (
                   <Pressable
@@ -198,6 +215,18 @@ export default function PerfilScreen() {
                       imageUri={getVenueImageUrl(v.venueImage)}
                       title={v.venueName || ""}
                       location={v.venueLocation || ""}
+                    />
+                  </Pressable>
+                ))}
+                {savedSites.map((s) => (
+                  <Pressable
+                    key={s.siteID}
+                    onPress={() => router.push(`/(tabs)/locales/descubre/${s.siteID}`)}
+                  >
+                    <PlaceCard
+                      imageUri={getSiteImageUrl(s.siteImage)}
+                      title={s.siteName || ""}
+                      location={s.siteIsland || ""}
                     />
                   </Pressable>
                 ))}

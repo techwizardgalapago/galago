@@ -12,11 +12,12 @@ import {
   Modal,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { selectTouristSiteById } from "../../../../../store/slices/touristSitesSlice";
+import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { useMedia } from "../../../../../hooks/useMedia";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -61,7 +62,10 @@ export default function TouristSiteDetailScreen() {
   const { siteID, island } = useLocalSearchParams();
   const backUrl = `/(tabs)/locales?tab=descubre&island=${encodeURIComponent(island || "San Cristobal")}`;
   const { isMobile } = useMedia();
+  const dispatch = useDispatch();
   const site = useSelector((s) => selectTouristSiteById(s, siteID));
+  const authUser = useSelector((s) => s.auth?.user);
+  const isSaved = (authUser?.favoriteSites || []).includes(siteID);
 
   const [mapsConfirmVisible, setMapsConfirmVisible] = useState(false);
 
@@ -211,8 +215,11 @@ export default function TouristSiteDetailScreen() {
             >
               <Ionicons name="map" size={22} color="#FDFDFC" />
             </Pressable>
-            <Pressable style={[styles.actionBtn, styles.actionOrange]}>
-              <Ionicons name="bookmark-outline" size={22} color="#FDFDFC" />
+            <Pressable
+              style={[styles.actionBtn, styles.actionOrange]}
+              onPress={() => dispatch(toggleFavorite({ type: 'site', id: siteID }))}
+            >
+              <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={22} color="#FDFDFC" />
             </Pressable>
           </View>
         </View>

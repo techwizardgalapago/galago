@@ -114,7 +114,7 @@ export const toggleFavorite = createAsyncThunk(
   async ({ type, id, data }, { getState, dispatch }) => {
     const user = getState().auth.user;
     if (!user?.userID) return;
-    const key = type === 'event' ? 'favoriteEvents' : 'favoriteVenues';
+    const key = type === 'event' ? 'favoriteEvents' : type === 'site' ? 'favoriteSites' : 'favoriteVenues';
     const current = user[key] || [];
     const isAdding = !current.includes(id);
     const updated = isAdding

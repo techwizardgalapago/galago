@@ -20,6 +20,7 @@ export const initUsersTable = async () => {
         googleAccount INTEGER,
         favoriteEvents TEXT NOT NULL DEFAULT '[]',
         favoriteVenues TEXT NOT NULL DEFAULT '[]',
+        favoriteSites TEXT NOT NULL DEFAULT '[]',
         updated_at INTEGER NOT NULL,
         deleted INTEGER NOT NULL DEFAULT 0,
         isSynced INTEGER DEFAULT 0
@@ -27,6 +28,7 @@ export const initUsersTable = async () => {
   // Migration for existing installs that don't have these columns yet
   try { await db.runAsync(`ALTER TABLE users ADD COLUMN favoriteEvents TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
   try { await db.runAsync(`ALTER TABLE users ADD COLUMN favoriteVenues TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
+  try { await db.runAsync(`ALTER TABLE users ADD COLUMN favoriteSites TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
 };
 
 /** Utility: map incoming API record to DB fields consistently */
@@ -54,6 +56,7 @@ const mapUserFromAPI = (user) => {
     googleAccount: user.googleAccount ? 1 : 0,
     favoriteEvents: JSON.stringify(Array.isArray(user.favoriteEvents) ? user.favoriteEvents : []),
     favoriteVenues: JSON.stringify(Array.isArray(user.favoriteVenues) ? user.favoriteVenues : []),
+    favoriteSites: JSON.stringify(Array.isArray(user.favoriteSites) ? user.favoriteSites : []),
     updated_at,
     deleted: user.deleted ? 1 : 0,
   };
@@ -130,9 +133,9 @@ export const upsertUsersFromAPI = async (users = []) => {
         `
         INSERT INTO users (
           userID, firstName, lastName, userEmail, countryOfOrigin, dateOfBirth,
-          reasonForTravel, userRole, googleAccount, favoriteEvents, favoriteVenues,
+          reasonForTravel, userRole, googleAccount, favoriteEvents, favoriteVenues, favoriteSites,
           updated_at, deleted, isSynced
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
         ON CONFLICT(userID) DO UPDATE SET
           firstName = excluded.firstName,
           lastName = excluded.lastName,
@@ -144,6 +147,7 @@ export const upsertUsersFromAPI = async (users = []) => {
           googleAccount = excluded.googleAccount,
           favoriteEvents = excluded.favoriteEvents,
           favoriteVenues = excluded.favoriteVenues,
+          favoriteSites = excluded.favoriteSites,
           updated_at = excluded.updated_at,
           deleted = excluded.deleted,
           isSynced = 1
@@ -161,6 +165,7 @@ export const upsertUsersFromAPI = async (users = []) => {
           user.googleAccount,
           user.favoriteEvents,
           user.favoriteVenues,
+          user.favoriteSites,
           user.updated_at,
           user.deleted,
         ]
