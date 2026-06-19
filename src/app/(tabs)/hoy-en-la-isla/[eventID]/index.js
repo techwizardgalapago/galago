@@ -7,7 +7,9 @@ import {
   StyleSheet,
   Platform,
   Linking,
+  Modal,
 } from "react-native";
+import { useState } from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import { useSelector, useDispatch } from "react-redux";
 import { toggleFavorite } from "../../../../store/slices/authSlice";
@@ -102,6 +104,7 @@ export default function EventDetailScreen() {
   const isFavorited = (authUser?.favoriteEvents || []).includes(eventID);
   const { isMobile } = useMedia();
   const contentWidth = isMobile ? { width: "100%" } : { width: "100%", maxWidth: 720 };
+  const [whatsappConfirmVisible, setWhatsappConfirmVisible] = useState(false);
 
   if (!event) {
     return (
@@ -142,7 +145,7 @@ export default function EventDetailScreen() {
           </Pressable>
           <Pressable
             style={[styles.circleBtn, styles.circleBtnGreen]}
-            onPress={shareOnWhatsApp}
+            onPress={() => setWhatsappConfirmVisible(true)}
           >
             <Ionicons name="logo-whatsapp" size={22} color="#FDFDFC" />
           </Pressable>
@@ -237,6 +240,39 @@ export default function EventDetailScreen() {
         </ScrollView>
       </View>
       </View>
+
+      {/* Modal confirmación WhatsApp */}
+      <Modal
+        visible={whatsappConfirmVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setWhatsappConfirmVisible(false)}
+      >
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => setWhatsappConfirmVisible(false)}
+        />
+        <View style={styles.confirmSheet}>
+          <Text style={styles.confirmTitle}>Contactar por WhatsApp?</Text>
+          <View style={styles.confirmActions}>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setWhatsappConfirmVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              style={styles.openButton}
+              onPress={() => {
+                setWhatsappConfirmVisible(false);
+                shareOnWhatsApp();
+              }}
+            >
+              <Text style={styles.openButtonText}>Abrir</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -409,5 +445,64 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     color: "#1B2222",
     lineHeight: 16,
+  },
+
+  // WhatsApp confirm modal
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  confirmSheet: {
+    backgroundColor: "#FDFDFC",
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    paddingTop: 22,
+    paddingBottom: 40,
+    paddingHorizontal: 22,
+    gap: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#000000",
+    textAlign: "center",
+    lineHeight: 23,
+  },
+  confirmActions: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#EDEDEC",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#1B2222",
+  },
+  openButton: {
+    flex: 1,
+    backgroundColor: "#259D4E",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+  },
+  openButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#FDFDFC",
   },
 });

@@ -92,6 +92,7 @@ export default function VenueDetailScreen() {
   const [selectedStars, setSelectedStars] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const [mapsConfirmVisible, setMapsConfirmVisible] = useState(false);
+  const [whatsappConfirmVisible, setWhatsappConfirmVisible] = useState(false);
 
   // Carga de schedules locales (native) y remotos
   useEffect(() => {
@@ -422,7 +423,7 @@ export default function VenueDetailScreen() {
           </Pressable>
           <Pressable
             style={[styles.actionBtn, styles.actionGreen]}
-            onPress={openWhatsApp}
+            onPress={() => setWhatsappConfirmVisible(true)}
           >
             <Ionicons name="logo-whatsapp" size={22} color="#FDFDFC" />
           </Pressable>
@@ -466,6 +467,39 @@ export default function VenueDetailScreen() {
               onPress={() => {
                 setMapsConfirmVisible(false);
                 openMaps();
+              }}
+            >
+              <Text style={styles.publishButtonText}>Abrir</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal confirmación WhatsApp */}
+      <Modal
+        visible={whatsappConfirmVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setWhatsappConfirmVisible(false)}
+      >
+        <Pressable
+          style={styles.ratingBackdrop}
+          onPress={() => setWhatsappConfirmVisible(false)}
+        />
+        <View style={styles.mapsConfirmSheet}>
+          <Text style={styles.mapsConfirmTitle}>Contactar por WhatsApp?</Text>
+          <View style={styles.ratingActions}>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setWhatsappConfirmVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              style={styles.publishButton}
+              onPress={() => {
+                setWhatsappConfirmVisible(false);
+                openWhatsApp();
               }}
             >
               <Text style={styles.publishButtonText}>Abrir</Text>

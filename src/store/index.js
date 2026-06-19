@@ -6,6 +6,7 @@ import schedulesReducer from "./slices/schedulesSlice";
 import schedulesByVenueReducer from "./slices/schedulesByVenueSlice";
 import eventsReducer from "./slices/eventsSlice";
 import eventUsersReducer from "./slices/eventUsersSlice";
+import touristSitesReducer from "./slices/touristSitesSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,5 +17,6 @@ export const store = configureStore({
     schedulesByVenue: schedulesByVenueReducer,
     events: eventsReducer,
     eventUsers: eventUsersReducer,
+    touristSites: touristSitesReducer,
   },
 });

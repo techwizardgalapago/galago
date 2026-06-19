@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,10 @@ import {
   KeyboardAvoidingView,
   Modal,
 } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSelector } from "react-redux";
 
 import { useMedia } from "../../../hooks/useMedia";
 
@@ -65,17 +66,20 @@ const CATEGORIES = [
   },
 ];
 
-const TOURIST_SITES = [
-  { id: "1", name: "La Loberia", island: "San Cristobal", image: null },
-  { id: "2", name: "Punta Carola", island: "San Cristobal", image: null },
-  { id: "3", name: "Tijeretas", island: "San Cristobal", image: null },
-  { id: "4", name: "Los Túneles", island: "Isabela", image: null },
-  { id: "5", name: "Bahía Elizabeth", island: "Isabela", image: null },
-  { id: "6", name: "Volcán Sierra Negra", island: "Isabela", image: null },
-  { id: "7", name: "Tortuga Bay", island: "Santa Cruz", image: null },
-  { id: "8", name: "Las Grietas", island: "Santa Cruz", image: null },
-  { id: "9", name: "Playa Alemana", island: "Santa Cruz", image: null },
-];
+const getSiteImageUrl = (siteImage) => {
+  try {
+    if (!siteImage) return null;
+    if (Array.isArray(siteImage)) {
+      const img = siteImage[0];
+      return img?.thumbnails?.large?.url || img?.url || null;
+    }
+    if (typeof siteImage === "string") {
+      const parsed = JSON.parse(siteImage);
+      if (Array.isArray(parsed)) return parsed[0]?.url || null;
+    }
+  } catch (_) {}
+  return null;
+};
 
 const normalizeToken = (value) =>
   value
@@ -100,21 +104,25 @@ function CategoryTile({ category }) {
   );
 }
 
-function TouristSiteCard({ site }) {
+function TouristSiteCard({ site, island }) {
+  const imageUrl = getSiteImageUrl(site.siteImage);
   return (
-    <View style={styles.siteCard}>
+    <Pressable
+      style={styles.siteCard}
+      onPress={() => router.push(`/(tabs)/locales/descubre/${site.siteID}?island=${encodeURIComponent(island || "San Cristobal")}`)}
+    >
       <View style={styles.siteThumbnail}>
-        {site.image ? (
-          <Image source={{ uri: site.image }} style={styles.siteThumbnailImage} />
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.siteThumbnailImage} />
         ) : (
           <View style={styles.siteThumbnailFallback} />
         )}
       </View>
       <View style={styles.siteInfo}>
-        <Text style={styles.siteName}>{site.name}</Text>
-        <Text style={styles.siteIsland}>Isla {site.island}</Text>
+        <Text style={styles.siteName}>{site.siteName}</Text>
+        <Text style={styles.siteIsland}>{site.siteIsland}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -122,13 +130,15 @@ function TouristSiteCard({ site }) {
 
 export default function LocalesScreen() {
   const { isMobile } = useMedia();
+  const allSites = useSelector((s) => s.touristSites?.list || []);
+  const params = useLocalSearchParams();
 
-  const [activeTab, setActiveTab] = useState("locales");
+  const [activeTab, setActiveTab] = useState(params.tab === "descubre" ? "descubre" : "locales");
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
-  const [pendingIsland, setPendingIsland] = useState("San Cristobal");
-  const [activeIsland, setActiveIsland] = useState("San Cristobal");
+  const [pendingIsland, setPendingIsland] = useState(params.island || "San Cristobal");
+  const [activeIsland, setActiveIsland] = useState(params.island || "San Cristobal");
 
   const tabTranslateX = useRef(new Animated.Value(0)).current;
   const tabLayouts = useRef({});
@@ -164,17 +174,19 @@ export default function LocalesScreen() {
     }).start();
   };
 
-  // Filtrado de contenido
-  const filteredSites = TOURIST_SITES.filter((site) => {
-    const matchesIsland =
-      activeIsland === "Todo" || site.island === activeIsland;
-    if (!searchQuery.trim()) return matchesIsland;
-    const q = normalizeToken(searchQuery.trim());
-    return (
-      matchesIsland &&
-      normalizeToken(site.name).includes(q)
-    );
-  });
+  // Filtrado de sitios turísticos desde Redux
+  const filteredSites = useMemo(() => {
+    return allSites.filter((site) => {
+      if (site.deleted) return false;
+      const matchesIsland =
+        activeIsland === "Todo" ||
+        normalizeToken(site.siteIsland ?? "").includes(normalizeToken(activeIsland));
+      if (!matchesIsland) return false;
+      if (!searchQuery.trim()) return true;
+      const q = normalizeToken(searchQuery.trim());
+      return normalizeToken(site.siteName ?? "").includes(q);
+    });
+  }, [allSites, activeIsland, searchQuery]);
 
   const filteredCategories = !searchQuery.trim()
     ? CATEGORIES
@@ -367,10 +379,14 @@ export default function LocalesScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 {filteredSites.map((site) => (
-                  <TouristSiteCard key={site.id} site={site} />
+                  <TouristSiteCard key={site.siteID} site={site} island={activeIsland} />
                 ))}
                 {filteredSites.length === 0 && (
-                  <Text style={styles.noResults}>No hay sitios disponibles</Text>
+                  <Text style={styles.noResults}>
+                    {allSites.length === 0
+                      ? "Cargando sitios..."
+                      : "No hay sitios disponibles"}
+                  </Text>
                 )}
               </ScrollView>
             </>

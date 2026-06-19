@@ -8,6 +8,7 @@ import { pushAllChanges } from "../services/syncService";
 import { OFFLINE_ENABLED } from "../constants/plataform";
 import { fetchEventsRemote } from "../store/slices/eventsSlice";
 import { fetchAllVenuesRemote } from "../store/slices/venueSlice";
+import { fetchTouristSitesRemote } from "../store/slices/touristSitesSlice";
 
 export const useAppInitializer = () => {
   const dispatch = useDispatch();
@@ -49,6 +50,7 @@ export const useAppInitializer = () => {
         // Fetch remoto de datos públicos — independiente de qué tab se visite primero
         dispatch(fetchEventsRemote());
         dispatch(fetchAllVenuesRemote());
+        dispatch(fetchTouristSitesRemote());
 
         if (OFFLINE_ENABLED) {
           const state = await NetInfo.fetch();
