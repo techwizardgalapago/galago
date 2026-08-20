@@ -31,16 +31,14 @@ const FEATURED_EVENTS_FALLBACK = [
     location: "La Nube, Isla Santa Cruz",
     date: "14",
     month: "OCT",
-    image:
-      "http://localhost:3845/assets/5a44d4ddb46060488f1c103d0990ee81cac6f129.png",
+    image: null,
   },
   {
     title: "Rolls, Sake y Caña",
     location: "Noe Sushi Bar, Isla Isabela",
     date: "14",
     month: "OCT",
-    image:
-      "http://localhost:3845/assets/5e060ffce86528279ee70054aa77a2d19e6cfd6c.png",
+    image: null,
   },
 ];
 

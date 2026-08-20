@@ -7,7 +7,7 @@ import { useDispatch } from "react-redux";
 import { useAuth } from "../../hooks/useAuth";
 import { Link } from "expo-router";
 import { authStorage } from "../../utils/authStorage";
-import { setAuthHeader } from "../../services/api";
+import { buildApiUrl, setAuthHeader } from "../../services/api";
 import { setToken } from "../../store/slices/authSlice";
 import AuthBackground from "../../components/auth/AuthBackground";
 import AuthCard from "../../components/auth/AuthCard";
@@ -24,8 +24,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
-
-  const api = process.env.EXPO_PUBLIC_API_URL;
 
   const onSubmit = async () => {
     setLocalError("");
@@ -64,7 +62,7 @@ export default function LoginScreen() {
         useProxy: Platform.OS !== "web",
         path: "callback",
       });
-      const url = `${api}/auth/google-login?redirect_uri=${encodeURIComponent(
+      const url = `${buildApiUrl("auth/google-login")}?redirect_uri=${encodeURIComponent(
         redirectUri
       )}`;
 

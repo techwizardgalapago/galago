@@ -1,12 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { Platform } from "react-native";
 import { selectAllSchedules, insertSchedule } from "../../db/schedules";
 
+const isWeb = Platform.OS === "web";
+
 export const fetchSchedules = createAsyncThunk("schedules/fetchSchedules", async () => {
+  if (isWeb) return [];
   return await selectAllSchedules();
 });
 
 export const addSchedule = createAsyncThunk("schedules/addSchedule", async (schedule) => {
-  await insertSchedule(schedule);
+  if (!isWeb) await insertSchedule(schedule);
   return schedule;
 });
 

@@ -101,7 +101,7 @@ export default function VenueDetailScreen() {
   }, [dispatch, venueID]);
 
   useEffect(() => {
-    if (!venueID || Platform.OS === "web") return;
+    if (!venueID) return;
     let active = true;
     getVenueById(venueID)
       .then((res) => {

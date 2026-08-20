@@ -1,9 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { Platform } from "react-native";
 import { getEventsByUser, getUsersByEvent } from "../../db/eventUsers";
+
+const isWeb = Platform.OS === "web";
 
 export const fetchEventsByUser = createAsyncThunk(
   "eventUsers/fetchEventsByUser",
   async (userID) => {
+    if (isWeb) return [];
     return await getEventsByUser(userID);
   }
 );
@@ -11,6 +15,7 @@ export const fetchEventsByUser = createAsyncThunk(
 export const fetchUsersByEvent = createAsyncThunk(
   "eventUsers/fetchUsersByEvent",
   async (eventID) => {
+    if (isWeb) return [];
     return await getUsersByEvent(eventID);
   }
 );

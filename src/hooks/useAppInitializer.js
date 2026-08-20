@@ -6,6 +6,8 @@ import { rehydrateReduxFromSQLite } from "../store/rehydration";
 import { initializeDatabase } from "../db";
 import { pushAllChanges } from "../services/syncService";
 import { OFFLINE_ENABLED } from "../constants/plataform";
+import { setUnauthorizedHandler } from "../services/api";
+import { logout } from "../store/slices/authSlice";
 import { fetchEventsRemote } from "../store/slices/eventsSlice";
 import { fetchAllVenuesRemote } from "../store/slices/venueSlice";
 import { fetchTouristSitesRemote } from "../store/slices/touristSitesSlice";
@@ -33,6 +35,12 @@ export const useAppInitializer = () => {
       syncWithIndicator();
     }, 5000)
   ).current;
+
+  // Sesion expirada (401): limpia auth y deja que useAuthGuard mande a login.
+  useEffect(() => {
+    setUnauthorizedHandler(() => dispatch(logout()));
+    return () => setUnauthorizedHandler(null);
+  }, [dispatch]);
 
   useEffect(() => {
     const init = async () => {

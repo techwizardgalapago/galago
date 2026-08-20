@@ -1,6 +1,9 @@
 // 📁 src/store/slice/schedulesByVenueSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { Platform } from "react-native";
 import { getSchedulesByVenue } from "../../db/schedules";
+
+const isWeb = Platform.OS === "web";
 
 // Thunk that checks the cache before fetching
 export const fetchSchedulesByVenue = createAsyncThunk(
@@ -10,6 +13,8 @@ export const fetchSchedulesByVenue = createAsyncThunk(
     if (cached) {
       return { venueID, schedules: cached }; // Already cached
     }
+    // En web no hay SQLite: los horarios llegan del backend en la pantalla.
+    if (isWeb) return { venueID, schedules: [] };
     const schedules = await getSchedulesByVenue(venueID);
     return { venueID, schedules };
   }
