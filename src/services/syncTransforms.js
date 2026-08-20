@@ -34,9 +34,34 @@ export const toArrayOrEmpty = (v) => {
 // Sanitizadores por entidad
 // (ajústalos a lo que espera tu backend)
 // -------------------------
+// -------------------------
+// Sanitizadores por entidad
+//
+// Cada uno devuelve el objeto PLANO de campos tal como lo nombra el backend
+// (ver galapago_backend/schemas/**). syncService lo envuelve como
+// [{ fields }] para POST y lo manda plano para PUT.
+//
+// Las claves con valor null/undefined se omiten: los schemas de Joi no
+// aceptan null y un update parcial no debe pisar campos que no cambiaron.
+// -------------------------
+
+export const stripEmpty = (obj) => {
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === null || v === undefined) continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    out[k] = v;
+  }
+  return out;
+};
+
+const asRecordIds = (v) => {
+  const list = Array.isArray(v) ? v : v ? [v] : [];
+  return list.filter((id) => typeof id === 'string' && id.startsWith('rec'));
+};
+
 export function sanitizeUser(u) {
-  return {
-    // Solo campos permitidos por backend de users
+  return stripEmpty({
     firstName: toNull(u.firstName),
     lastName: toNull(u.lastName),
     userEmail: toNull(u.userEmail),
@@ -45,68 +70,57 @@ export function sanitizeUser(u) {
     dateOfBirth: toNull(u.dateOfBirth),
     reasonForTravel: toArrayOrEmpty(u.reasonForTravel),
     genero: toNull(u.genero),
-  };
+  });
 }
 
 export function sanitizeVenue(v) {
-  return {
-    name: toNull(v.venueName),
-    image: toNull(v.venueImage),               // si necesitas array/obj, ajusta
-    description: toNull(v.venueDescription),
-    category: toNull(v.venueCategory),
-    location: toNull(v.venueLocation),
-    address: toNull(v.venueAddress),
-    contact: toNull(v.venueContact),
+  // venueImage se omite a proposito: el backend espera [{ url }] y las
+  // imagenes viajan por su propia ruta (/venues-img).
+  return stripEmpty({
+    venueName: toNull(v.venueName),
+    venueDescription: toNull(v.venueDescription),
+    venueCategory: toNull(v.venueCategory),
+    venueLocation: toNull(v.venueLocation),
+    venueAddress: toNull(v.venueAddress),
+    venueContact: toNull(v.venueContact),
     latitude: v.latitude ?? null,
     longitude: v.longitude ?? v.longitud ?? null,
-    negocio: toBool(v.negocio),
-    ownerUserId: toNull(v.userID),
-    deleted: v.deleted === 1,
-    updatedAt: toISO(v.updated_at),
-  };
+    negocio: v.negocio === undefined || v.negocio === null ? null : toBool(v.negocio),
+    userID: asRecordIds(v.userID),
+  });
 }
 
 export function sanitizeEvent(e) {
-  return {
-    name: toNull(e.eventName),
-    image: toNull(e.eventImage),               // si guardas JSON de array, envíalo como string o ajusta a array
-    description: toNull(e.eventDescription),
-    tags: joinOrNull(e.eventTags),             // ajusta a array si backend así lo pide
-    telOrganizador: toNull(e.telOrganizador),
+  return stripEmpty({
+    eventName: toNull(e.eventName),
+    eventDescription: toNull(e.eventDescription),
+    eventTags: toArrayOrEmpty(e.eventTags),
+    TelOrganizador: toNull(e.telOrganizador ?? e.TelOrganizador),
     startTime: toNull(e.startTime),
     endTime: toNull(e.endTime),
-    venueId: toNull(e.eventVenueID),
-    venueName: toNull(e.eventVenueName),
-    islandLocation: toNull(e.eventIslandLocation),
-    direccionVenues: toNull(e.direccionVenues),
+    eventVenueID: asRecordIds(e.eventVenueID),
     organizador: toNull(e.organizador),
-    capacity: e.eventCapacity ?? null,
-    price: e.eventPrice ?? null,
-    deleted: e.deleted === 1,
-    updatedAt: toISO(e.updated_at),
-  };
+    eventCapacity: e.eventCapacity ?? null,
+    eventPrice: e.eventPrice ?? null,
+  });
 }
 
 export function sanitizeSchedule(s) {
-  return {
-    dayOfWeek: toNull(s.dayOfWeek),
-    openTime: toNull(s.openTime),
-    closeTime: toNull(s.closeTime),
-    venueId: toNull(s.venueID),
-    deleted: s.deleted === 1,
-    updatedAt: toISO(s.updated_at),
-  };
+  return stripEmpty({
+    linkedVenue: asRecordIds(s.venueID),
+    weekDay: toNull(s.dayOfWeek ?? s.weekDay),
+    openingTime_: toNull(s.openTime ?? s.openingTime_),
+    closingTime_: toNull(s.closeTime ?? s.closingTime_),
+  });
 }
 
-// event_users es la join table
+// event_users no tiene recurso en el backend todavia.
 export function sanitizeEventUser(eu) {
-  return {
+  return stripEmpty({
     eventId: toNull(eu.eventID),
     userId: toNull(eu.userID),
     role: toNull(eu.role),
-    deleted: eu.deleted === 1,
-    updatedAt: toISO(eu.updated_at),
-  };
+  });
 }
 
 // -------------------------

@@ -40,6 +40,15 @@ async function withRetry(fn, { retries = 2, baseDelay = 400 } = {}) {
   }
   throw lastErr;
 }
+
+// airtable.crud.createRecord devuelve un ARRAY de fields, no un objeto.
+const extractCreatedId = (resp, idKey) => {
+  const data = resp?.data;
+  const rec = Array.isArray(data) ? data[0] : data;
+  if (!rec) return null;
+  return rec[idKey] || rec.id || rec.airtableId || null;
+};
+
 // -------------------------
 // Motor genérico de sync por colección
 // -------------------------
@@ -51,7 +60,15 @@ async function syncCollection({
   markSynced,             // (ids[]) => Promise<void>
   remapId,                // (oldId, newId) => Promise<void>
   endpoints,              // { base: '/users' }
-  updateMethod = 'patch',
+  updateMethod = 'put',
+  // Envoltorios por defecto segun los schemas del backend:
+  // POST /recurso        -> [{ fields }]
+  // PUT  /recurso/:id    -> fields plano
+  buildCreateRequest = (base, fields) => ({ url: base, body: [{ fields }] }),
+  buildUpdateRequest = (base, id, fields) => ({
+    url: `${base}/${encodeURIComponent(id)}`,
+    body: fields,
+  }),
 }) {
   const rows = await getUnsynced();
   if (!rows.length) {
@@ -66,8 +83,9 @@ async function syncCollection({
   for (const r of toCreate) {
     const body = sanitize(r);
     try {
-      const resp = await withRetry(() => api.post(endpoints.base, body));
-      const newId = resp?.data?.id || resp?.data?.[idKey] || resp?.data?.airtableId;
+      const req = buildCreateRequest(endpoints.base, body);
+      const resp = await withRetry(() => api.post(req.url, req.body));
+      const newId = extractCreatedId(resp, idKey);
       if (!newId) {
         console.warn(`⚠️ ${name} create returned no id`, resp?.data);
         failed.push(r[idKey]); // no podemos marcar synced
@@ -90,16 +108,16 @@ async function syncCollection({
       console.log('users sync update payload:', { id, body });
     }
     try {
-      await withRetry(() =>
-        api[updateMethod](`${endpoints.base}/${encodeURIComponent(id)}`, body)
-      );
+      const req = buildUpdateRequest(endpoints.base, id, body);
+      await withRetry(() => api[updateMethod](req.url, req.body));
       ok.push(id);
     } catch (e) {
       if (e.response?.status === 404) {
         // Curar desalineaciones: intenta crear
         try {
-          const resp = await withRetry(() => api.post(endpoints.base, body));
-          const newId = resp?.data?.id || resp?.data?.[idKey];
+          const req = buildCreateRequest(endpoints.base, body);
+          const resp = await withRetry(() => api.post(req.url, req.body));
+          const newId = extractCreatedId(resp, idKey);
           if (newId && newId !== id) await remapId(id, newId);
           ok.push(newId || id);
         } catch (e2) {
@@ -209,22 +227,24 @@ export async function pushSchedulesChanges() {
       // remapea scheduleID si fuese referenciado (actualmente no en joins)
       await remapScheduleId(oldId, newId);
     },
-    endpoints: { base: 'schedules' },
+    endpoints: { base: 'venues-schedule' },
+    // PUT /venues-schedule (sin :id): el backend actualiza por lote y espera
+    // [{ id, fields }]. Mandamos un lote de uno para conservar el conteo por fila.
+    buildUpdateRequest: (base, id, fields) => ({ url: base, body: [{ id, fields }] }),
   });
 }
 
 export async function pushEventUsersChanges() {
-  return syncCollection({
-    name: 'event_users',
-    idKey: undefined, // composite key; no hay un id simple
-    getUnsynced: getUnsyncedEventUsers,
-    sanitize: sanitizeEventUser,
-    markSynced: markEventUsersSynced,
-    remapId: async (_old, _new) => {
-      // para event_users no hacemos POST con id nuevo, así que no remapeamos aquí.
-    },
-    endpoints: { base: 'event-users' }, // ajusta a tu ruta real
-  });
+  // El backend no expone /event-users todavia (no hay router ni schema).
+  // Hasta que exista, no tiene sentido emitir peticiones que solo pueden
+  // fallar: dejamos las filas pendientes con isSynced = 0.
+  const rows = await getUnsyncedEventUsers();
+  if (rows.length) {
+    console.warn(
+      `⚠️ ${rows.length} event_users pendientes: el backend no expone /event-users`
+    );
+  }
+  return { created: 0, updated: 0, deleted: 0, failed: rows.length };
 }
 
 // Nota: para event_users el comportamiento típico es:
