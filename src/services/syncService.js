@@ -1,5 +1,10 @@
-import axios from 'axios';
+import { api } from './api';
 import { getDatabase } from '../db/config';
+import {
+  isLocalId, toNull, toBool, toISO, firstOrNull, joinOrNull, toArrayOrEmpty,
+  sanitizeUser, sanitizeVenue, sanitizeEvent, sanitizeSchedule, sanitizeEventUser,
+  partition,
+} from './syncTransforms';
 
 import {
   getUnsyncedUsers, markUsersSynced, remapUserId,
@@ -22,7 +27,6 @@ import {
   getUnsyncedEventUsers, markEventUsersSynced, remapEventUserKeys,
 } from '../db/eventUsers'; // remapEventUserKeys({ oldEventID, newEventID, oldUserID, newUserID })
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://18.119.60.28/api/v1/';
 
 // -------------------------
 // Helpers básicos
@@ -36,135 +40,6 @@ async function withRetry(fn, { retries = 2, baseDelay = 400 } = {}) {
   }
   throw lastErr;
 }
-
-const isLocalId = (id) =>
-  typeof id === 'string' && /^(u_|e_|v_|s_|tmp_)/i.test(id);
-
-// Normalizar falsy → null, booleanos, fechas ISO.
-const toNull = (v) => (v === '' || v === undefined ? null : v);
-const toBool = (v) => (v === 1 || v === true);
-const toISO = (msOrIso) => {
-  if (!msOrIso) return null;
-  if (typeof msOrIso === 'number') return new Date(msOrIso).toISOString();
-  const t = new Date(msOrIso).getTime();
-  return Number.isFinite(t) ? new Date(t).toISOString() : null;
-};
-const firstOrNull = (v) => Array.isArray(v) ? (v.length ? v[0] : null) : (v ?? null);
-const joinOrNull = (v) => Array.isArray(v) ? (v.length ? v.join(', ') : null) : toNull(v);
-const toArrayOrEmpty = (v) => {
-  if (Array.isArray(v)) return v.filter((item) => item !== null && item !== undefined && `${item}`.trim());
-  if (v === null || v === undefined) return [];
-  const asString = `${v}`.trim();
-  if (!asString) return [];
-  return asString
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-// -------------------------
-// Sanitizadores por entidad
-// (ajústalos a lo que espera tu backend)
-// -------------------------
-function sanitizeUser(u) {
-  return {
-    // Solo campos permitidos por backend de users
-    firstName: toNull(u.firstName),
-    lastName: toNull(u.lastName),
-    userEmail: toNull(u.userEmail),
-    userRole: toNull(u.userRole),
-    countryOfOrigin: toNull(u.countryOfOrigin),
-    dateOfBirth: toNull(u.dateOfBirth),
-    reasonForTravel: toArrayOrEmpty(u.reasonForTravel),
-    genero: toNull(u.genero),
-  };
-}
-
-function sanitizeVenue(v) {
-  return {
-    name: toNull(v.venueName),
-    image: toNull(v.venueImage),               // si necesitas array/obj, ajusta
-    description: toNull(v.venueDescription),
-    category: toNull(v.venueCategory),
-    location: toNull(v.venueLocation),
-    address: toNull(v.venueAddress),
-    contact: toNull(v.venueContact),
-    latitude: v.latitude ?? null,
-    longitude: v.longitud ?? null,
-    negocio: toBool(v.negocio),
-    ownerUserId: toNull(v.userID),
-    deleted: v.deleted === 1,
-    updatedAt: toISO(v.updated_at),
-  };
-}
-
-function sanitizeEvent(e) {
-  return {
-    name: toNull(e.eventName),
-    image: toNull(e.eventImage),               // si guardas JSON de array, envíalo como string o ajusta a array
-    description: toNull(e.eventDescription),
-    tags: joinOrNull(e.eventTags),             // ajusta a array si backend así lo pide
-    telOrganizador: toNull(e.telOrganizador),
-    startTime: toNull(e.startTime),
-    endTime: toNull(e.endTime),
-    venueId: toNull(e.eventVenueID),
-    venueName: toNull(e.eventVenueName),
-    islandLocation: toNull(e.eventIslandLocation),
-    direccionVenues: toNull(e.direccionVenues),
-    organizador: toNull(e.organizador),
-    capacity: e.eventCapacity ?? null,
-    price: e.eventPrice ?? null,
-    deleted: e.deleted === 1,
-    updatedAt: toISO(e.updated_at),
-  };
-}
-
-function sanitizeSchedule(s) {
-  return {
-    dayOfWeek: toNull(s.dayOfWeek),
-    openTime: toNull(s.openTime),
-    closeTime: toNull(s.closeTime),
-    venueId: toNull(s.venueID),
-    deleted: s.deleted === 1,
-    updatedAt: toISO(s.updated_at),
-  };
-}
-
-// event_users es la join table
-function sanitizeEventUser(eu) {
-  return {
-    eventId: toNull(eu.eventID),
-    userId: toNull(eu.userID),
-    role: toNull(eu.role),
-    deleted: eu.deleted === 1,
-    updatedAt: toISO(eu.updated_at),
-  };
-}
-
-// -------------------------
-// Particionar: create/update/delete
-// - create: id local (u_/e_/v_/s_/tmp_...) o sin id real
-// - update: id real y deleted=0
-// - delete: deleted=1 → usar DELETE
-// -------------------------
-function partition(rows, idKey = 'id') {
-  const toCreate = [];
-  const toUpdate = [];
-  const toDelete = [];
-
-  for (const r of rows) {
-    const id = r[idKey];
-    if (r.deleted === 1) {
-      toDelete.push(r);
-    } else if (isLocalId(id)) {
-      toCreate.push(r);
-    } else {
-      toUpdate.push(r);
-    }
-  }
-  return { toCreate, toUpdate, toDelete };
-}
-
 // -------------------------
 // Motor genérico de sync por colección
 // -------------------------
@@ -191,7 +66,7 @@ async function syncCollection({
   for (const r of toCreate) {
     const body = sanitize(r);
     try {
-      const resp = await withRetry(() => axios.post(`${API_URL}${endpoints.base}`, body));
+      const resp = await withRetry(() => api.post(endpoints.base, body));
       const newId = resp?.data?.id || resp?.data?.[idKey] || resp?.data?.airtableId;
       if (!newId) {
         console.warn(`⚠️ ${name} create returned no id`, resp?.data);
@@ -216,14 +91,14 @@ async function syncCollection({
     }
     try {
       await withRetry(() =>
-        axios[updateMethod](`${API_URL}${endpoints.base}/${encodeURIComponent(id)}`, body)
+        api[updateMethod](`${endpoints.base}/${encodeURIComponent(id)}`, body)
       );
       ok.push(id);
     } catch (e) {
       if (e.response?.status === 404) {
         // Curar desalineaciones: intenta crear
         try {
-          const resp = await withRetry(() => axios.post(`${API_URL}${endpoints.base}`, body));
+          const resp = await withRetry(() => api.post(endpoints.base, body));
           const newId = resp?.data?.id || resp?.data?.[idKey];
           if (newId && newId !== id) await remapId(id, newId);
           ok.push(newId || id);
@@ -240,9 +115,15 @@ async function syncCollection({
 
   // DELETE: DELETE /:id
   for (const r of toDelete) {
-    const id = r[idKey];
+    const id = idKey ? r[idKey] : undefined;
+    if (id === undefined || id === null || `${id}`.trim() === '') {
+      // p.ej. event_users: clave compuesta, no hay ruta DELETE /:id que construir.
+      console.warn(`⚠️ Delete ${name} omitido: la fila no tiene ${idKey || 'id'}`);
+      failed.push(id);
+      continue;
+    }
     try {
-      await withRetry(() => axios.delete(`${API_URL}${endpoints.base}/${encodeURIComponent(id)}`));
+      await withRetry(() => api.delete(`${endpoints.base}/${encodeURIComponent(id)}`));
       ok.push(id);
     } catch (e) {
       if (e.response?.status === 404) {

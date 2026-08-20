@@ -412,7 +412,7 @@ export default function EditVenueScreen() {
             venueDescription: fields.venueDescription,
             venueContact: fields.venueContact,
             latitude: fields.latitude,
-            longitud: fields.longitude,
+            longitude: fields.longitude,
             negocio: fields.negocio,
             userID: Array.isArray(fields.userID)
               ? fields.userID[0]
