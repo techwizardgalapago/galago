@@ -59,16 +59,20 @@ export const getVenuesByIds = async (ids = []) => {
   return results;
 };
 
-// GET venues by user; tries filtered endpoint first, falls back to full list
+// GET venues del usuario.
+//
+// El backend NO acepta ?userID=: queryVenueSchema solo permite limit, offset,
+// filterField y filterValue, y como no hay error handler registrado un
+// parametro desconocido sale como 500 en vez de 400. Mandarlo provocaba un 500
+// por cada carga de la pantalla de negocios y luego, en el catch, la peticion
+// completa igual.
+//
+// El filtrado por userID lo hace fetchUserVenuesByUserId en venueSlice, asi que
+// aqui basta con traer la lista.
 export const getVenuesByUserId = async (userID) => {
   if (!userID) return [];
-  try {
-    const res = await api.get(`/venues`, { params: { userID } });
-    return res.data;
-  } catch (err) {
-    const res = await api.get(`/venues`);
-    return res.data;
-  }
+  const res = await api.get(`/venues`);
+  return res.data;
 };
 
 // PATCH venue (solo los campos enviados)
