@@ -16,7 +16,7 @@ import { loginWithGoogleService } from "../services/authService";
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  const { user, token, status, error, hydrated } = useSelector((s) => s.auth ?? initialAuthState);
+  const { user, token, status, error, hydrated } = useSelector((s) => s.auth);
 
   // hydrate token from storage once
   useEffect(() => {
@@ -27,7 +27,6 @@ export const useAuth = () => {
   useEffect(() => {
     if (hydrated && token && !user) {
       dispatch(fetchMe());
-      console.log("useAuth useEffect fetchMe", { hydrated, token, user });
     }
   }, [hydrated, token, user, dispatch]);
 
@@ -36,7 +35,6 @@ export const useAuth = () => {
       const res = await dispatch(login({ email, password })).unwrap();
       await authStorage.setToken(res.token);
       setAuthHeader(res.token);
-      console.log("res login:", res);
       return res;
     },
     [dispatch]
@@ -57,7 +55,6 @@ export const useAuth = () => {
   // Google: exchange idToken with backend
   const doLoginWithGoogle = useCallback(async (idToken) => {
     const res = await loginWithGoogleService({ idToken });
-    console.log("res loginWithGoogle:", res);
     if (res?.token) {
       await authStorage.setToken(res.token);
       setAuthHeader(res.token);
@@ -66,7 +63,6 @@ export const useAuth = () => {
   }, []);
 
   const doLogout = useCallback(async () => {
-    console.log("🚪 Logging out…");
     await authStorage.clearToken();
     setAuthHeader(null);
     dispatch(logout());

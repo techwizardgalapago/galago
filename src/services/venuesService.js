@@ -1,13 +1,14 @@
 import { api } from './api';
 
-// Normaliza respuesta (Airtable suele devolver array de records)
+// Normaliza la respuesta de creacion.
+// El backend responde con un array de fields (airtable.crud.createRecord),
+// pero toleramos tambien [{ id, fields }] y { records: [...] }.
 const extractCreatedVenueId = (responseData) => {
   if (!responseData) return null;
-  // Posibles estructuras: [{ id, fields }, ...] | { records: [{ id, fields }, ...] }
   const arr = Array.isArray(responseData) ? responseData : responseData.records;
-  const rec = Array.isArray(arr) ? arr[0] : null;
-  // Airtable usa 'id' (p.ej. rectHWy8ujec0uB4s)
-  return rec?.venueIDid || rec?.fields?.id || null;
+  const rec = Array.isArray(arr) ? arr[0] : responseData;
+  if (!rec) return null;
+  return rec.venueID || rec.fields?.venueID || rec.id || null;
 };
 
 export const getVenues = async (params = {}) => {

@@ -104,9 +104,6 @@ async function syncCollection({
   for (const r of toUpdate) {
     const body = sanitize(r);
     const id = r[idKey];
-    if (name === 'users') {
-      console.log('users sync update payload:', { id, body });
-    }
     try {
       const req = buildUpdateRequest(endpoints.base, id, body);
       await withRetry(() => api[updateMethod](req.url, req.body));

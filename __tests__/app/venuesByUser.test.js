@@ -110,3 +110,38 @@ describe(`fetchUserVenuesByUserId en ${Platform.OS}`, () => {
     }
   });
 });
+
+describe("extractCreatedVenueId (via parseCreatedVenueId)", () => {
+  const { parseCreatedVenueId } = require("../../src/services/venuesService");
+
+  it("lee el id del array de fields que devuelve el backend", () => {
+    // airtable.crud.createRecord responde [fields], sin envoltorio
+    expect(parseCreatedVenueId([{ venueID: "recNuevo00000001", venueName: "X" }])).toBe(
+      "recNuevo00000001"
+    );
+  });
+
+  it("tolera la forma { id, fields } de Airtable", () => {
+    expect(
+      parseCreatedVenueId([{ id: "recNuevo00000001", fields: { venueName: "X" } }])
+    ).toBe("recNuevo00000001");
+  });
+
+  it("tolera { records: [...] }", () => {
+    expect(
+      parseCreatedVenueId({ records: [{ venueID: "recNuevo00000001" }] })
+    ).toBe("recNuevo00000001");
+  });
+
+  it("tolera un objeto suelto", () => {
+    expect(parseCreatedVenueId({ venueID: "recNuevo00000001" })).toBe(
+      "recNuevo00000001"
+    );
+  });
+
+  it("devuelve null si no hay nada que leer", () => {
+    expect(parseCreatedVenueId(null)).toBeNull();
+    expect(parseCreatedVenueId([])).toBeNull();
+    expect(parseCreatedVenueId({})).toBeNull();
+  });
+});
