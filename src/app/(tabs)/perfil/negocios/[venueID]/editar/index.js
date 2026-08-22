@@ -38,6 +38,7 @@ import {
   updateVenueSchedules,
   deleteVenueScheduleById,
 } from '../../../../../../services/venuesService';
+import { getCoordsFromGoogleMapsLink } from '../../../../../../utils/maps';
 
 import {
   ALLOWED_TIMES,
@@ -109,7 +110,6 @@ const TimeSelect = ({ value, onChange }) => (
   />
 );
 
-import { getCoordsFromGoogleMapsLink } from '../../../../../../utils/maps';
 
 export default function EditVenueScreen() {
   const { venueID } = useLocalSearchParams();
@@ -314,7 +314,7 @@ export default function EditVenueScreen() {
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker?.MediaType?.Images,
+      mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
     });

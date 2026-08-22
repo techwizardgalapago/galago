@@ -199,7 +199,7 @@ export default function EditarEventoScreen() {
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker?.MediaType?.Images,
+      mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
     });

@@ -102,7 +102,7 @@ const authSlice = createSlice({
       })
 
       .addCase(fetchMe.fulfilled, (state, action) => { state.user = action.payload.user; })
-      .addCase(fetchMe.rejected, (state) => { /* if 401, will be handled in hook */ });
+      .addCase(fetchMe.rejected, () => { /* el interceptor 401 en api.js cierra la sesion */ });
   }
 });
 

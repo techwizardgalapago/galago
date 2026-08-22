@@ -30,6 +30,7 @@ import {
 } from '../../../../../services/venuesService';
 
 import { upsertVenuesFromAPIThunk } from '../../../../../store/slices/venueSlice';
+import { getCoordsFromGoogleMapsLink } from '../../../../../utils/maps';
 
 // ---------- Constantes ----------
 const VENUE_CATEGORIES = [
@@ -106,7 +107,6 @@ const validateDaySegments = (segments = []) => {
   return '';
 };
 
-import { getCoordsFromGoogleMapsLink } from '../../../../../utils/maps';
 
 // ---------- Componente principal ----------
 export default function CrearNegocioScreen() {
@@ -143,7 +143,7 @@ export default function CrearNegocioScreen() {
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker?.MediaType?.Images,
+      mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
     });

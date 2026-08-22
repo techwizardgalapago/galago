@@ -55,7 +55,7 @@ export const getVenuesByIds = async (ids = []) => {
     try {
       const v = await getVenueById(id);
       if (v) results.push(v);
-    } catch (_) {}
+    } catch {}
   }
   return results;
 };
@@ -78,8 +78,7 @@ export const getVenuesByUserId = async (userID) => {
 
 // PATCH venue (solo los campos enviados)
 export const patchVenue = async (venueID, fieldsPatch) => {
-  // Ajusta al shape que espera tu backend para PATCH (Airtable: [{id, fields}] o { fields }
-  const payload = { fields: fieldsPatch };
+  // El backend espera el objeto plano en PUT /venues/:id (updateVenueSchema).
   const res = await api.put(`/venues/${venueID}`, fieldsPatch);
   return res.data; // debería retornar el venue actualizado
 };

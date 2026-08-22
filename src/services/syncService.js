@@ -1,8 +1,6 @@
 import { api } from './api';
-import { getDatabase } from '../db/config';
 import {
-  isLocalId, toNull, toBool, toISO, firstOrNull, joinOrNull, toArrayOrEmpty,
-  sanitizeUser, sanitizeVenue, sanitizeEvent, sanitizeSchedule, sanitizeEventUser,
+  sanitizeUser, sanitizeVenue, sanitizeEvent, sanitizeSchedule,
   partition,
 } from './syncTransforms';
 
@@ -23,9 +21,7 @@ import {
 } from '../db/schedules';
 
 // Usa event_users (snake) como tabla canónica
-import {
-  getUnsyncedEventUsers, markEventUsersSynced, remapEventUserKeys,
-} from '../db/eventUsers'; // remapEventUserKeys({ oldEventID, newEventID, oldUserID, newUserID })
+import { getUnsyncedEventUsers } from '../db/eventUsers';
 
 
 // -------------------------
@@ -252,8 +248,6 @@ export async function pushEventUsersChanges() {
 // Sync maestro (llámalo en tu servicio de sync)
 // -------------------------
 export async function pushAllChanges() {
-  const db = getDatabase(); // por si quieres usar transaccionalidad alrededor
-
   const res = {};
 
   res.users = await pushUsersChanges();

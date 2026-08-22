@@ -7,7 +7,6 @@ import {
   updateUserLocal as dbUpdateUserLocal,
   softDeleteUser as dbSoftDeleteUser,
   upsertUsersFromAPI as dbUpsertUsersFromAPI,
-  getUnsyncedUsers as dbGetUnsyncedUsers, // (kept import; OK if unused)
   markUsersSynced as dbMarkUsersSynced,
 } from '../../db/users';
 
