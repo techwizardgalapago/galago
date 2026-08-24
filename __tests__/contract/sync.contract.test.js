@@ -45,6 +45,17 @@ const api = axios.create({
   validateStatus: () => true, // queremos inspeccionar el status, no que lance
 });
 
+// Envoltorio: un fallo de red haria que axios lance un error que arrastra
+// `config`, y ahi viaja la cabecera Authorization. Lo convertimos en una
+// respuesta sintetica para que el token no pueda acabar impreso.
+const seguro = async (fn) => {
+  try {
+    return await fn();
+  } catch (e) {
+    return { status: 0, data: `FALLO DE RED: ${e.code || e.message}` };
+  }
+};
+
 const paso = (nombre, res) => {
   const cuerpo =
     typeof res.data === "string" ? res.data.slice(0, 300) : JSON.stringify(res.data)?.slice(0, 300);
@@ -67,18 +78,18 @@ d("contrato del push offline", () => {
   afterAll(async () => {
     // Limpieza incondicional: no dejar basura en la base.
     if (scheduleID) {
-      const r = await api.delete(`venues-schedule/${encodeURIComponent(scheduleID)}`);
+      const r = await seguro(() => api.delete(`venues-schedule/${encodeURIComponent(scheduleID)}`));
       console.log(`\n[limpieza horario ${scheduleID}] HTTP ${r.status}`);
     }
     if (venueID) {
-      const r = await api.delete(`venues/${encodeURIComponent(venueID)}`);
+      const r = await seguro(() => api.delete(`venues/${encodeURIComponent(venueID)}`));
       console.log(`[limpieza local ${venueID}] HTTP ${r.status}`);
     }
   });
 
   it("POST /venues acepta el envoltorio [{ fields }] que manda syncCollection", async () => {
     const fields = sanitizeVenue(filaLocal);
-    const res = paso("POST /venues", await api.post("venues", [{ fields }]));
+    const res = paso("POST /venues", await seguro(() => api.post("venues", [{ fields }])));
 
     expect(res.status).toBeGreaterThanOrEqual(200);
     expect(res.status).toBeLessThan(300);
@@ -91,7 +102,7 @@ d("contrato del push offline", () => {
 
   it("GET /venues/:id devuelve los campos que se enviaron", async () => {
     expect(venueID).toBeTruthy();
-    const res = paso(`GET /venues/${venueID}`, await api.get(`venues/${venueID}`));
+    const res = paso(`GET /venues/${venueID}`, await seguro(() => api.get(`venues/${venueID}`)));
 
     expect(res.status).toBe(200);
     const rec = res.data?.fields || res.data;
@@ -104,7 +115,7 @@ d("contrato del push offline", () => {
   it("PUT /venues/:id acepta el objeto plano (no PATCH, no envoltorio)", async () => {
     expect(venueID).toBeTruthy();
     const fields = sanitizeVenue({ ...filaLocal, venueName: `${SELLO} Renombrado` });
-    const res = paso(`PUT /venues/${venueID}`, await api.put(`venues/${venueID}`, fields));
+    const res = paso(`PUT /venues/${venueID}`, await seguro(() => api.put(`venues/${venueID}`, fields)));
 
     expect(res.status).toBeGreaterThanOrEqual(200);
     expect(res.status).toBeLessThan(300);
@@ -112,7 +123,7 @@ d("contrato del push offline", () => {
 
   it("PATCH /venues/:id NO existe: por eso el default estaba mal", async () => {
     expect(venueID).toBeTruthy();
-    const res = paso(`PATCH /venues/${venueID}`, await api.patch(`venues/${venueID}`, {}));
+    const res = paso(`PATCH /venues/${venueID}`, await seguro(() => api.patch(`venues/${venueID}`, {})));
 
     // Documenta por que syncCollection usa PUT. Un 404/405 aqui es lo esperado.
     expect([404, 405]).toContain(res.status);
@@ -120,7 +131,7 @@ d("contrato del push offline", () => {
 
   it("la lectura refleja el cambio de inmediato (invalidacion de cache)", async () => {
     expect(venueID).toBeTruthy();
-    const res = paso(`GET /venues/${venueID} tras PUT`, await api.get(`venues/${venueID}`));
+    const res = paso(`GET /venues/${venueID} tras PUT`, await seguro(() => api.get(`venues/${venueID}`)));
 
     const rec = res.data?.fields || res.data;
     // Si esto falla, la clave venues:${id} no se esta invalidando al escribir.
@@ -135,7 +146,7 @@ d("contrato del push offline", () => {
       openTime: "08:00",
       closeTime: "22:00",
     });
-    const res = paso("POST /venues-schedule", await api.post("venues-schedule", [{ fields }]));
+    const res = paso("POST /venues-schedule", await seguro(() => api.post("venues-schedule", [{ fields }])));
 
     expect(res.status).toBeGreaterThanOrEqual(200);
     expect(res.status).toBeLessThan(300);
@@ -155,7 +166,7 @@ d("contrato del push offline", () => {
     });
     const res = paso(
       "PUT /venues-schedule",
-      await api.put("venues-schedule", [{ id: scheduleID, fields }])
+      await seguro(() => api.put("venues-schedule", [{ id: scheduleID, fields }]))
     );
 
     expect(res.status).toBeGreaterThanOrEqual(200);
@@ -163,7 +174,7 @@ d("contrato del push offline", () => {
   });
 
   it("un parametro desconocido responde 400, no 500", async () => {
-    const res = paso("GET /venues?userID=", await api.get("venues", { params: { userID: "recX" } }));
+    const res = paso("GET /venues?userID=", await seguro(() => api.get("venues", { params: { userID: "recX" } })));
 
     // Antes del error handler esto era un 500 con stack trace.
     expect(res.status).toBe(400);

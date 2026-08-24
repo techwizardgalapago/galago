@@ -40,3 +40,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# credenciales para test:contract (nunca versionar)
+.env.contract
