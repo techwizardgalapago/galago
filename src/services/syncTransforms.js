@@ -114,15 +114,6 @@ export function sanitizeSchedule(s) {
   });
 }
 
-// event_users no tiene recurso en el backend todavia.
-export function sanitizeEventUser(eu) {
-  return stripEmpty({
-    eventId: toNull(eu.eventID),
-    userId: toNull(eu.userID),
-    role: toNull(eu.role),
-  });
-}
-
 // -------------------------
 // Particionar: create/update/delete
 // - create: id local (u_/e_/v_/s_/tmp_...) o sin id real

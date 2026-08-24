@@ -7,15 +7,9 @@ import schedulesByVenueReducer, {
 import schedulesReducer, {
   fetchSchedules,
 } from "../../src/store/slices/schedulesSlice";
-import eventUsersReducer, {
-  fetchEventsByUser,
-} from "../../src/store/slices/eventUsersSlice";
-
 import * as schedulesDB from "../../src/db/schedules";
-import * as eventUsersDB from "../../src/db/eventUsers";
 
 jest.mock("../../src/db/schedules");
-jest.mock("../../src/db/eventUsers");
 
 const isWeb = Platform.OS === "web";
 
@@ -24,7 +18,6 @@ const makeStore = () =>
     reducer: {
       schedulesByVenue: schedulesByVenueReducer,
       schedules: schedulesReducer,
-      eventUsers: eventUsersReducer,
     },
   });
 
@@ -68,17 +61,4 @@ describe(`guards de SQLite en ${Platform.OS}`, () => {
     }
   });
 
-  it("fetchEventsByUser resuelve en ambas plataformas", async () => {
-    eventUsersDB.getEventsByUser.mockResolvedValue([{ eventID: "e1" }]);
-
-    const store = makeStore();
-    const result = await store.dispatch(fetchEventsByUser("u1"));
-
-    expect(result.type).toBe("eventUsers/fetchEventsByUser/fulfilled");
-    if (isWeb) {
-      expect(eventUsersDB.getEventsByUser).not.toHaveBeenCalled();
-    } else {
-      expect(eventUsersDB.getEventsByUser).toHaveBeenCalledWith("u1");
-    }
-  });
 });

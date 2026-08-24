@@ -1,6 +1,5 @@
 import { initializeDatabase } from "../db";
 import { upsertEventsFromAirtableGroups, selectAllEvents } from "../db/events";
-import { selectAllEventUsers } from "../db/eventUsers";
 
 const API_URL = "http://18.119.60.28/api/v1/events"; // 🔁 Replace with your actual API URL
 

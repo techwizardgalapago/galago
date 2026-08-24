@@ -4,7 +4,7 @@ import { getDatabase } from "./config";
 export const clearAllData = async () => {
   const db = getDatabase();
 
-  const tables = ["users", "venues", "schedules", "events", "eventUsers"];
+  const tables = ["users", "venues", "schedules", "events"];
 
   for (const table of tables) {
     try {

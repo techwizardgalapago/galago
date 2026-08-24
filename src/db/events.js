@@ -136,8 +136,6 @@ const mapEventFromAPI = (ev) => {
       : null,
     updated_at,
     deleted: source?.deleted ? 1 : 0,
-    // optionally pass through eventUsers [] (user IDs) to seed the join table
-    _eventUsers: Array.isArray(source?.eventUsers) ? source?.eventUsers : [],
   };
 };
 
@@ -210,23 +208,13 @@ export const upsertEventsFromAPI = async (events = []) => {
   });
 };
 
-// Move all references from oldId -> newId in events + event_users
+// Move all references from oldId -> newId in events
 export const remapEventId = async (oldEventID, newEventID) => {
   if (!oldEventID || !newEventID || oldEventID === newEventID) return;
   const db = getDatabase();
   try {
     await db.execAsync('BEGIN');
     await db.runAsync('PRAGMA foreign_keys = OFF');
-
-    // 1) Mover join rows (event_users) evitando duplicados
-    await db.runAsync(
-      `INSERT OR IGNORE INTO eventUsers (eventID, userID, role, updated_at, deleted, isSynced)
-       SELECT ?, userID, role, updated_at, deleted, isSynced
-       FROM event_users
-       WHERE eventID = ?`,
-      [newEventID, oldEventID]
-    );
-    await db.runAsync(`DELETE FROM eventUsers WHERE eventID = ?`, [oldEventID]);
 
     // 2) Clonar/crear el evento nuevo si no existe, copiando columnas conocidas
     await db.runAsync(
@@ -427,26 +415,6 @@ export const upsertEventsFromAirtableGroups = async (groups = []) => {
             ]
           );
 
-          // OPTIONAL: seed eventUsers join rows if provided
-          if (e._eventUsers?.length) {
-            for (const uid of e._eventUsers) {
-              const userID = coerceId(uid);
-              if (!userID) continue;
-              await db.runAsync(
-                `
-                INSERT INTO eventUsers (eventID, userID, updated_at, deleted, isSynced)
-                VALUES (?, ?, ?, 0, 1)
-                ON CONFLICT(eventID, userID) DO UPDATE SET
-                  updated_at = excluded.updated_at,
-                  deleted    = 0,
-                  isSynced   = 1
-                WHERE excluded.updated_at >= eventUsers.updated_at
-                `,
-                [e.eventID, userID, e.updated_at]
-              );
-            }
-          }
-
           await db.runAsync("RELEASE sp_event");
         } catch (rowErr) {
           console.warn("⚠️ Skipping bad event row:", rowErr?.message);
@@ -508,22 +476,6 @@ export const insertEventsFromAPI = async (events) => {
           ]
         );
 
-        // 👇 Bulk insert into eventUsers if applicable
-        if (!rawEvent.eventUsers || rawEvent.eventUsers.length === 0) {
-          console.log("No event users found for event:", rawEvent.eventID);
-          continue; // Skip if no users
-        } else {
-          if (Array.isArray(rawEvent.eventUsers)) {
-            console.log("Inserting event users for event:", rawEvent.eventID);
-            for (const userID of rawEvent.eventUsers) {
-              console.log("is there event user?", userID);
-              await db.runAsync(
-                `INSERT OR IGNORE INTO eventUsers (eventID, userID, isSynced) VALUES (?, ?, ?)`,
-                [rawEvent.eventID, userID, 1]
-              );
-            }
-          }
-        }
       }
     }
 
@@ -601,18 +553,6 @@ export const getEventsByVenue = async (eventVenueID) => {
     WHERE eventVenueID = ? AND deleted = 0
     ORDER BY startTime ASC, endTime ASC`,
     [eventVenueID]
-  );
-};
-
-export const getEventsByUser = async (userID) => {
-  const db = getDatabase();
-  // Join through eventUsers (composite relation). Adjust table/column names if your join table differs.
-  return db.getAllAsync(
-    `SELECT e.* FROM events e
-    JOIN eventUsers eu ON eu.eventID = e.eventID
-    WHERE eu.userID = ? AND e.deleted = 0 AND (eu.deleted IS NULL OR eu.deleted = 0)
-    ORDER BY e.startTime ASC, e.endTime ASC`,
-    [userID]
   );
 };
 

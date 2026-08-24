@@ -2,7 +2,6 @@ import {
   pushVenuesChanges,
   pushUsersChanges,
   pushSchedulesChanges,
-  pushEventUsersChanges,
   pushAllChanges,
 } from "../../src/services/syncService";
 import { api } from "../../src/services/api";
@@ -10,7 +9,6 @@ import * as venuesDB from "../../src/db/venues";
 import * as usersDB from "../../src/db/users";
 import * as eventsDB from "../../src/db/events";
 import * as schedulesDB from "../../src/db/schedules";
-import * as eventUsersDB from "../../src/db/eventUsers";
 
 jest.mock("../../src/services/api", () => ({
   api: {
@@ -29,7 +27,6 @@ jest.mock("../../src/db/venues");
 jest.mock("../../src/db/users");
 jest.mock("../../src/db/events");
 jest.mock("../../src/db/schedules");
-jest.mock("../../src/db/eventUsers");
 
 const httpError = (status) => Object.assign(new Error(`HTTP ${status}`), {
   response: { status },
@@ -62,8 +59,6 @@ beforeEach(() => {
   usersDB.remapUserId.mockResolvedValue();
   eventsDB.getUnsyncedEvents.mockResolvedValue([]);
   schedulesDB.getUnsyncedSchedules.mockResolvedValue([]);
-  eventUsersDB.getUnsyncedEventUsers.mockResolvedValue([]);
-  eventUsersDB.markEventUsersSynced.mockResolvedValue();
 });
 
 afterEach(() => {
@@ -194,16 +189,6 @@ describe("syncCollection: borrados", () => {
     expect(res.failed).toBe(0);
   });
 
-  it("no construye una URL de borrado sin id", async () => {
-    eventUsersDB.getUnsyncedEventUsers.mockResolvedValue([
-      { eventID: "recE1", userID: "recU1", deleted: 1 },
-    ]);
-
-    const res = await runSync(pushEventUsersChanges);
-
-    expect(api.delete).not.toHaveBeenCalled();
-    expect(res.failed).toBe(1);
-  });
 });
 
 describe("syncCollection: garantia de isSynced", () => {
@@ -250,24 +235,17 @@ describe("pushAllChanges", () => {
     venuesDB.getUnsyncedVenues.mockImplementation(async () => (orden.push("venues"), []));
     eventsDB.getUnsyncedEvents.mockImplementation(async () => (orden.push("events"), []));
     schedulesDB.getUnsyncedSchedules.mockImplementation(async () => (orden.push("schedules"), []));
-    eventUsersDB.getUnsyncedEventUsers.mockImplementation(async () => (orden.push("eventUsers"), []));
 
     await runSync(pushAllChanges);
 
     // El remapeo de ids de padres debe ocurrir antes de enviar a los hijos.
-    expect(orden).toEqual(["users", "venues", "events", "schedules", "eventUsers"]);
+    expect(orden).toEqual(["users", "venues", "events", "schedules"]);
   });
 
   it("devuelve el resumen por coleccion", async () => {
     const res = await runSync(pushAllChanges);
 
-    expect(Object.keys(res)).toEqual([
-      "users",
-      "venues",
-      "events",
-      "schedules",
-      "eventUsers",
-    ]);
+    expect(Object.keys(res)).toEqual(["users", "venues", "events", "schedules"]);
   });
 });
 
@@ -345,20 +323,5 @@ describe("contrato con el backend", () => {
         },
       },
     ]);
-  });
-
-  it("no emite peticiones de event_users mientras el recurso no exista", async () => {
-    eventUsersDB.getUnsyncedEventUsers.mockResolvedValue([
-      { eventID: "recE1", userID: "recU1", deleted: 0 },
-    ]);
-
-    const res = await runSync(pushEventUsersChanges);
-
-    expect(api.post).not.toHaveBeenCalled();
-    expect(api.put).not.toHaveBeenCalled();
-    expect(api.delete).not.toHaveBeenCalled();
-    // Quedan pendientes, no se marcan como sincronizadas.
-    expect(eventUsersDB.markEventUsersSynced).not.toHaveBeenCalled();
-    expect(res.failed).toBe(1);
   });
 });

@@ -20,8 +20,6 @@ import {
   getUnsyncedSchedules, markSchedulesSynced, remapScheduleId,
 } from '../db/schedules';
 
-// Usa event_users (snake) como tabla canónica
-import { getUnsyncedEventUsers } from '../db/eventUsers';
 
 
 // -------------------------
@@ -128,7 +126,7 @@ async function syncCollection({
   for (const r of toDelete) {
     const id = idKey ? r[idKey] : undefined;
     if (id === undefined || id === null || `${id}`.trim() === '') {
-      // p.ej. event_users: clave compuesta, no hay ruta DELETE /:id que construir.
+      // Sin idKey no hay ruta /recurso/:id que construir.
       console.warn(`⚠️ Delete ${name} omitido: la fila no tiene ${idKey || 'id'}`);
       failed.push(id);
       continue;
@@ -170,7 +168,7 @@ export async function pushUsersChanges() {
     sanitize: sanitizeUser,
     markSynced: markUsersSynced,
     remapId: async (oldId, newId) => {
-      // remapea userID en users y event_users.userID
+      // remapea userID en users
       await remapUserId(oldId, newId);
       // también puedes tocar otras tablas si referencian userID
     },
@@ -202,7 +200,7 @@ export async function pushEventsChanges() {
     sanitize: sanitizeEvent,
     markSynced: markEventsSynced,
     remapId: async (oldId, newId) => {
-      // remapea eventID en events y event_users.eventID
+      // remapea eventID en events
       await remapEventId(oldId, newId);
     },
     endpoints: { base: 'events' },
@@ -227,23 +225,6 @@ export async function pushSchedulesChanges() {
   });
 }
 
-export async function pushEventUsersChanges() {
-  // El backend no expone /event-users todavia (no hay router ni schema).
-  // Hasta que exista, no tiene sentido emitir peticiones que solo pueden
-  // fallar: dejamos las filas pendientes con isSynced = 0.
-  const rows = await getUnsyncedEventUsers();
-  if (rows.length) {
-    console.warn(
-      `⚠️ ${rows.length} event_users pendientes: el backend no expone /event-users`
-    );
-  }
-  return { created: 0, updated: 0, deleted: 0, failed: rows.length };
-}
-
-// Nota: para event_users el comportamiento típico es:
-// - CREATE (local): tiene eventID y userID (ambos reales ya), así que es PATCH/PUT/POST con ambos.
-//   Si alguno era local y cambió, tus remap* arriba ya actualizaron event_users y no hay que remapear aquí.
-
 // -------------------------
 // Sync maestro (llámalo en tu servicio de sync)
 // -------------------------
@@ -254,7 +235,6 @@ export async function pushAllChanges() {
   res.venues = await pushVenuesChanges();
   res.events = await pushEventsChanges();
   res.schedules = await pushSchedulesChanges();
-  res.eventUsers = await pushEventUsersChanges();
 
   return res;
 }

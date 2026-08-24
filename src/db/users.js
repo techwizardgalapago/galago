@@ -2,7 +2,6 @@ import { getDatabase } from "./config";
 import { enqueueDbWrite } from "./queue";
 import { sanitizeJsonField } from "./dbUtils";
 import { initEventsTable } from "./events";
-import { initEventUsersTable } from "./eventUsers";
 import { initSchedulesTable } from "./schedules";
 import { initVenuesTable } from "./venues";
 
@@ -62,23 +61,13 @@ const mapUserFromAPI = (user) => {
   };
 };
 
-// Move all references from oldId -> newId in users + event_users
+// Move all references from oldId -> newId in users
 export const remapUserId = async (oldUserID, newUserID) => {
   if (!oldUserID || !newUserID || oldUserID === newUserID) return;
   const db = getDatabase();
   try {
     await db.execAsync("BEGIN");
     await db.runAsync("PRAGMA foreign_keys = OFF");
-
-    // 1) Mover join rows evitando duplicados (PK compuesta (eventID, userID))
-    await db.runAsync(
-      `INSERT OR IGNORE INTO eventUsers (eventID, userID, role, updated_at, deleted, isSynced)
-       SELECT eventID, ?, role, updated_at, deleted, isSynced
-       FROM event_users
-       WHERE userID = ?`,
-      [newUserID, oldUserID]
-    );
-    await db.runAsync(`DELETE FROM eventUsers WHERE userID = ?`, [oldUserID]);
 
     // 2) Clonar/crear el usuario nuevo si no existe, copiando columnas conocidas
     await db.runAsync(
@@ -121,7 +110,6 @@ export const upsertUsersFromAPI = async (users = []) => {
   await initEventsTable();
 
   await db.runAsync(`DROP TABLE IF EXISTS eventUsers;`);
-  await initEventUsersTable();
 
   try {
     await db.execAsync("BEGIN TRANSACTION");
@@ -196,7 +184,6 @@ export const insertUsersFromAPI = async (users) => {
   await initEventsTable();
 
   await db.runAsync(`DROP TABLE IF EXISTS eventUsers;`);
-  await initEventUsersTable();
 
   try {
     await db.execAsync("BEGIN TRANSACTION");
