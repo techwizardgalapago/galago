@@ -103,3 +103,18 @@ describe("pickImageUrl", () => {
     expect(pickImageUrl(null)).toBeNull();
   });
 });
+
+describe("saneado del nombre de archivo", () => {
+  it("los espacios pasan a guion bajo, igual que al subir a S3", () => {
+    // El backend reconstruye la URL con esa misma regla; si aqui difiriera,
+    // la app pediria una clave que no existe en el bucket.
+    const img = {
+      url: CADUCA,
+      filename: "playa brava.jpg",
+      permanentUrl: "https://cdn.galago.ec/playa_brava.jpg",
+    };
+    expect(normalizeAttachment(img).url).toBe(
+      "https://cdn.galago.ec/playa_brava.jpg"
+    );
+  });
+});

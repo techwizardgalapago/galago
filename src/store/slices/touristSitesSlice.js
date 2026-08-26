@@ -1,13 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getTouristSites } from "../../services/touristSitesService";
+import { normalizeRecordImages } from "../../utils/images";
 
 const mapRemoteSite = (r) => {
   if (!r) return null;
-  if (r.fields && r.id) return { siteID: r.id, ...r.fields };
+  // Igual que en venues y events: la URL duradera se fija aqui, en la entrada.
+  const conImagenes = (rec) => normalizeRecordImages(rec, "siteImage");
+  if (r.fields && r.id) return conImagenes({ siteID: r.id, ...r.fields });
   // Airtable formula field puede ser siteId o siteID
   const id = r.siteID || r.siteId;
-  if (id) return { ...r, siteID: id };
-  if (r.id) return { siteID: r.id, ...r };
+  if (id) return conImagenes({ ...r, siteID: id });
+  if (r.id) return conImagenes({ siteID: r.id, ...r });
   return null;
 };
 
