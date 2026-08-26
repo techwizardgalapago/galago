@@ -140,3 +140,58 @@ describe(`fetchAllVenuesRemote en ${Platform.OS}`, () => {
     expect(store.getState().venues.list).toHaveLength(1);
   });
 });
+
+describe(`imagenes duraderas en ${Platform.OS}`, () => {
+  const CADUCA =
+    "https://v5.airtableusercontent.com/v3/u/56/56/1787673600000/abc/def";
+  const PERMANENTE = "https://cdn.galago.ec/foto_1.png";
+
+  it("guarda la URL permanente, no la de Airtable que caduca", async () => {
+    venuesService.getVenues.mockResolvedValue([
+      {
+        venueID: "recV1",
+        venueName: "La Nube",
+        venueImage: [
+          {
+            url: CADUCA,
+            permanentUrl: PERMANENTE,
+            filename: "foto_1.png",
+            thumbnails: { large: { url: CADUCA + "/t" } },
+          },
+        ],
+      },
+    ]);
+    venuesDB.selectAllVenues.mockResolvedValue([]);
+
+    const store = makeStore();
+    await store.dispatch(fetchAllVenuesRemote());
+
+    if (isWeb) {
+      const img = store.getState().venues.list[0].venueImage[0];
+      expect(img.url).toBe(PERMANENTE);
+      expect(img).not.toHaveProperty("thumbnails");
+    } else {
+      // Lo que llega a SQLite es lo que la app leera sin conexion: debe durar.
+      const persistido = venuesDB.upsertVenuesFromAPI.mock.calls[0][0];
+      const img = persistido[0].venueImage[0];
+      expect(img.url).toBe(PERMANENTE);
+      expect(img.url).not.toContain("airtableusercontent");
+      expect(img).not.toHaveProperty("thumbnails");
+    }
+  });
+
+  it("respeta las imagenes sin permanentUrl (subidas a mano en Airtable)", async () => {
+    venuesService.getVenues.mockResolvedValue([
+      { venueID: "recV1", venueName: "La Nube", venueImage: [{ url: CADUCA }] },
+    ]);
+    venuesDB.selectAllVenues.mockResolvedValue([]);
+
+    const store = makeStore();
+    await store.dispatch(fetchAllVenuesRemote());
+
+    const leido = isWeb
+      ? store.getState().venues.list[0].venueImage[0]
+      : venuesDB.upsertVenuesFromAPI.mock.calls[0][0][0].venueImage[0];
+    expect(leido.url).toBe(CADUCA);
+  });
+});

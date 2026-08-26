@@ -8,6 +8,7 @@ import {
   updateEventLocal,
 } from "../../db/events";
 import { getEvents } from "../../services/eventsService";
+import { normalizeRecordImages } from "../../utils/images";
 
 const isWeb = Platform.OS === "web";
 const ignoreDBIfWeb = async (fn, fallback) => {
@@ -25,10 +26,10 @@ const ignoreDBIfWeb = async (fn, fallback) => {
 const mapRemoteEvent = (record) => {
   if (!record) return null;
   if (record.fields && record.id) {
-    return { eventID: record.id, ...record.fields };
+    return normalizeRecordImages({ eventID: record.id, ...record.fields }, "eventImage");
   }
-  if (record.eventID) return record;
-  if (record.id) return { eventID: record.id, ...record };
+  if (record.eventID) return normalizeRecordImages(record, "eventImage");
+  if (record.id) return normalizeRecordImages({ eventID: record.id, ...record }, "eventImage");
   return null;
 };
 

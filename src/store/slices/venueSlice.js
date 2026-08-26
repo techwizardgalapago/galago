@@ -9,6 +9,7 @@ import {
 } from "../../db/venues";
 import { upsertSchedulesFromAPI as dbUpsertSchedulesFromAPI } from "../../db/schedules";
 import { getVenues, getVenuesByIds, getVenuesByUserId } from "../../services/venuesService";
+import { normalizeRecordImages } from "../../utils/images";
 
 // -------- Platform guards (como en usersSlice) --------
 const isWeb = Platform.OS === "web";
@@ -29,14 +30,13 @@ const ignoreDBIfWeb = async (fn, fallback) => {
 // Acepta { id, fields } (Airtable) o ya-flattened { venueID, ... }
 const mapRemoteVenue = (r) => {
   if (!r) return null;
+  // Se normalizan las imagenes aqui, antes de que el registro llegue a Redux o
+  // a SQLite, para que la copia offline no guarde URLs de Airtable caducables.
   if (r.fields && r.id) {
-    // Airtable-ish
-    return { venueID: r.id, ...r.fields };
+    return normalizeRecordImages({ venueID: r.id, ...r.fields }, "venueImage");
   }
-  // Si ya viene plano con venueID, úsalo tal cual
-  if (r.venueID) return r;
-  // Último recurso: si trae id pero no fields
-  if (r.id) return { venueID: r.id, ...r };
+  if (r.venueID) return normalizeRecordImages(r, "venueImage");
+  if (r.id) return normalizeRecordImages({ venueID: r.id, ...r }, "venueImage");
   return null;
 };
 
