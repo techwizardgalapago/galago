@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
+import CachedImage from "../CachedImage";
 
 // priceLevel: número 1-4 → renderiza $$$$ con activos en naranja e inactivos en naranja al 50%
 function PriceTag({ level }) {
@@ -28,7 +29,7 @@ export default function PlaceCard({
     <View style={styles.row}>
       <View style={styles.thumbnail}>
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.image} />
+          <CachedImage source={{ uri: imageUri }} style={styles.image} />
         ) : null}
       </View>
       <View style={styles.body}>

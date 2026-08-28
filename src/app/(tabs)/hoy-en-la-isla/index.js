@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { useMedia } from "../../../hooks/useMedia";
 import { useEvents } from "../../../hooks/useEvents";
+import CachedImage from "../../../components/CachedImage";
 
 const TABS = [
   { key: "hoy", label: "Hoy en la isla" },
@@ -614,7 +615,7 @@ export default function HoyEnLaIslaScreen() {
                   {featuredEvents.map((event) => (
                     <View key={event.title} style={styles.featuredCard}>
                       {event.image ? (
-                        <Image
+                        <CachedImage
                           source={{ uri: event.image }}
                           style={styles.featuredImage}
                         />

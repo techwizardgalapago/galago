@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useMedia } from "../../../../hooks/useMedia";
+import CachedImage from "../../../../components/CachedImage";
 
 const parseTags = (value) => {
   if (!value) return [];
@@ -172,7 +173,7 @@ export default function EventDetailScreen() {
               />
               <View style={styles.imageInner}>
                 {imageUrl ? (
-                  <Image source={{ uri: imageUrl }} style={styles.eventImage} />
+                  <CachedImage source={{ uri: imageUrl }} style={styles.eventImage} />
                 ) : (
                   <View style={[styles.eventImage, styles.imageFallback]} />
                 )}

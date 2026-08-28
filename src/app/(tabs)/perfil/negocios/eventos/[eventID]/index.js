@@ -20,6 +20,7 @@ import AuthCard from '../../../../../../components/auth/AuthCard';
 import { fetchEventsRemote } from '../../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../../store/slices/authSlice';
 import { getEventById } from '../../../../../../services/eventsService';
+import CachedImage from "../../../../../../components/CachedImage";
 
 // ---------- Helpers ----------
 const pad = (n) => String(n).padStart(2, '0');
@@ -146,7 +147,7 @@ export default function EventoDetailScreen() {
             {/* Hero image */}
             <View style={styles.heroWrap}>
               {imageUrl ? (
-                <Image source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
+                <CachedImage source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
               ) : (
                 <View style={styles.heroPlaceholder}>
                   <Text style={styles.heroPlaceholderText}>Sin imagen</Text>

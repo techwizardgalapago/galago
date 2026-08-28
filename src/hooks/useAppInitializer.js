@@ -11,6 +11,8 @@ import { logout } from "../store/slices/authSlice";
 import { fetchEventsRemote } from "../store/slices/eventsSlice";
 import { fetchAllVenuesRemote } from "../store/slices/venueSlice";
 import { fetchTouristSitesRemote } from "../store/slices/touristSitesSlice";
+import { initImageCache, prefetchImages } from "../utils/imageCache";
+import { collectImageUrls } from "../utils/images";
 
 export const useAppInitializer = () => {
   const dispatch = useDispatch();
@@ -56,9 +58,30 @@ export const useAppInitializer = () => {
         setReady(true);
 
         // Fetch remoto de datos públicos — independiente de qué tab se visite primero
-        dispatch(fetchEventsRemote());
-        dispatch(fetchAllVenuesRemote());
-        dispatch(fetchTouristSitesRemote());
+        const remotos = [
+          [dispatch(fetchEventsRemote()), "eventImage"],
+          [dispatch(fetchAllVenuesRemote()), "venueImage"],
+          [dispatch(fetchTouristSitesRemote()), "siteImage"],
+        ];
+
+        // Con los datos ya en mano, bajar las imágenes a disco para que la
+        // próxima apertura sin conexión las tenga. Es best-effort y no debe
+        // retrasar ni bloquear la UI, por eso no se espera aquí.
+        if (OFFLINE_ENABLED) {
+          initImageCache();
+          Promise.all(
+            remotos.map(async ([accion, campo]) => {
+              try {
+                const lista = await accion.unwrap();
+                return collectImageUrls(lista, campo);
+              } catch {
+                return [];
+              }
+            })
+          )
+            .then((grupos) => prefetchImages(grupos.flat()))
+            .catch(() => {});
+        }
 
         if (OFFLINE_ENABLED) {
           const state = await NetInfo.fetch();

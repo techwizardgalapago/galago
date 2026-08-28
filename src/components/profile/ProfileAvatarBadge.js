@@ -1,4 +1,5 @@
 import { View, Image, StyleSheet } from 'react-native';
+import CachedImage from "../CachedImage";
 
 export default function ProfileAvatarBadge({
   avatarUri,
@@ -16,10 +17,10 @@ export default function ProfileAvatarBadge({
       ]}
     >
       {avatarUri ? (
-        <Image source={{ uri: avatarUri }} style={styles.image} />
+        <CachedImage source={{ uri: avatarUri }} style={styles.image} />
       ) : null}
       {badgeUri ? (
-        <Image
+        <CachedImage
           source={{ uri: badgeUri }}
           style={[
             styles.badge,

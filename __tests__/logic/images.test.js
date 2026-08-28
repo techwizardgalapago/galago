@@ -118,3 +118,39 @@ describe("saneado del nombre de archivo", () => {
     );
   });
 });
+
+describe("collectImageUrls", () => {
+  const { collectImageUrls } = require("../../src/utils/images");
+
+  it("reune las URLs de una lista de registros", () => {
+    const venues = [
+      { venueImage: [{ url: "https://cdn/a.jpg" }, { url: "https://cdn/b.jpg" }] },
+      { venueImage: [{ url: "https://cdn/c.jpg" }] },
+    ];
+    expect(collectImageUrls(venues, "venueImage")).toEqual([
+      "https://cdn/a.jpg",
+      "https://cdn/b.jpg",
+      "https://cdn/c.jpg",
+    ]);
+  });
+
+  it("prefiere permanentUrl y elimina duplicados", () => {
+    const venues = [
+      { venueImage: [{ url: CADUCA, permanentUrl: "https://cdn/a.jpg" }] },
+      { venueImage: [{ url: "https://cdn/a.jpg" }] },
+    ];
+    expect(collectImageUrls(venues, "venueImage")).toEqual(["https://cdn/a.jpg"]);
+  });
+
+  it("lee tambien el formato guardado en SQLite (string JSON)", () => {
+    const venues = [{ venueImage: JSON.stringify([{ url: "https://cdn/a.jpg" }]) }];
+    expect(collectImageUrls(venues, "venueImage")).toEqual(["https://cdn/a.jpg"]);
+  });
+
+  it("descarta lo que no sea http(s) y no rompe con vacios", () => {
+    expect(collectImageUrls([{ venueImage: [{ url: "file:///x.jpg" }] }], "venueImage")).toEqual([]);
+    expect(collectImageUrls([], "venueImage")).toEqual([]);
+    expect(collectImageUrls(null, "venueImage")).toEqual([]);
+    expect(collectImageUrls([{}], "venueImage")).toEqual([]);
+  });
+});

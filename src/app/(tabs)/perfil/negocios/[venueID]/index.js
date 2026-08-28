@@ -12,6 +12,7 @@ import { fetchSchedulesByVenue } from '../../../../../store/slices/schedulesByVe
 import { fetchEventsRemote } from '../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../store/slices/authSlice';
 import { getVenueById } from '../../../../../services/venuesService';
+import CachedImage from "../../../../../components/CachedImage";
 
 const WEEKDAYS_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const EMPTY_SCHEDULES = [];
@@ -290,7 +291,7 @@ export default function VenueDetailScreen() {
           <View style={styles.section}>
             <View style={styles.heroWrap}>
               {imageUrl ? (
-                <Image source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
+                <CachedImage source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
               ) : (
                 <View style={styles.heroPlaceholder}>
                   <Text style={styles.heroPlaceholderText}>Sin imagen</Text>

@@ -54,3 +54,20 @@ export const normalizeRecordImages = (record, field) => {
 // Getter unico: usar en pantallas nuevas en vez de reimplementarlo.
 export const pickImageUrl = (img) =>
   img?.permanentUrl || img?.url || img?.thumbnails?.large?.url || null;
+
+// Reune las URLs de imagen de una lista de registros, para precargarlas.
+export const collectImageUrls = (records = [], field) => {
+  const urls = [];
+  (Array.isArray(records) ? records : []).forEach((record) => {
+    const adjuntos = normalizeAttachments(record?.[field]);
+    if (Array.isArray(adjuntos)) {
+      adjuntos.forEach((img) => {
+        const url = pickImageUrl(img);
+        if (typeof url === "string" && /^https?:\/\//.test(url)) urls.push(url);
+      });
+    } else if (typeof adjuntos === "string" && /^https?:\/\//.test(adjuntos)) {
+      urls.push(adjuntos);
+    }
+  });
+  return [...new Set(urls)];
+};

@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSelector } from "react-redux";
 
 import { useMedia } from "../../../hooks/useMedia";
+import CachedImage from "../../../components/CachedImage";
 
 // -------- Datos estáticos --------
 
@@ -113,7 +114,7 @@ function TouristSiteCard({ site, island }) {
     >
       <View style={styles.siteThumbnail}>
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.siteThumbnailImage} />
+          <CachedImage source={{ uri: imageUrl }} style={styles.siteThumbnailImage} />
         ) : (
           <View style={styles.siteThumbnailFallback} />
         )}

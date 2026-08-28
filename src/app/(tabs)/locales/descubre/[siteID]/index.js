@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { selectTouristSiteById } from "../../../../../store/slices/touristSitesSlice";
 import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { useMedia } from "../../../../../hooks/useMedia";
+import CachedImage from "../../../../../components/CachedImage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_WIDTH = Math.min(SCREEN_WIDTH - 60, 333);
@@ -138,7 +139,7 @@ export default function TouristSiteDetailScreen() {
             {/* Imagen */}
             <View style={styles.imageWrapper}>
               {imageUrl ? (
-                <Image
+                <CachedImage
                   source={{ uri: imageUrl }}
                   style={styles.image}
                   resizeMode="cover"

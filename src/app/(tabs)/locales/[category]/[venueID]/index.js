@@ -22,6 +22,7 @@ import { selectVenueByIdFromState } from "../../../../../store/slices/venueSlice
 import { fetchSchedulesByVenue } from "../../../../../store/slices/schedulesByVenueSlice";
 import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { getVenueById } from "../../../../../services/venuesService";
+import CachedImage from "../../../../../components/CachedImage";
 
 // -------- Constantes --------
 
@@ -296,7 +297,7 @@ export default function VenueDetailScreen() {
             >
               {images.map((url, i) =>
                 url ? (
-                  <Image
+                  <CachedImage
                     key={i}
                     source={{ uri: url }}
                     style={styles.heroImage}
