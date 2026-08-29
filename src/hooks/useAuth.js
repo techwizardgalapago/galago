@@ -2,7 +2,7 @@
 // src/hooks/useAuth.js
 // -------------------------------------------------
 import { useDispatch, useSelector } from "react-redux";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   hydrateAuth,
   login,
@@ -23,12 +23,18 @@ export const useAuth = () => {
     if (!hydrated) dispatch(hydrateAuth());
   }, [hydrated, dispatch]);
 
-  // if we have token but no user, try fetchMe
+  // Refresca el perfil desde el servidor una vez por token. Antes solo se
+  // pedia si no habia usuario, pero ahora hydrateAuth restaura el guardado, y
+  // sin esto el perfil se quedaria congelado en la copia local. Se guarda el
+  // token ya pedido en un ref para no reaccionar al usuario que devuelve la
+  // propia peticion, que provocaria un bucle.
+  const tokenRefrescado = useRef(null);
   useEffect(() => {
-    if (hydrated && token && !user) {
-      dispatch(fetchMe());
-    }
-  }, [hydrated, token, user, dispatch]);
+    if (!hydrated || !token) return;
+    if (tokenRefrescado.current === token) return;
+    tokenRefrescado.current = token;
+    dispatch(fetchMe()); // sin conexion falla en silencio y queda la copia local
+  }, [hydrated, token, dispatch]);
 
   const doLogin = useCallback(
     async ({ email, password }) => {

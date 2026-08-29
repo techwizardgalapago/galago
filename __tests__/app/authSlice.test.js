@@ -18,6 +18,9 @@ jest.mock("../../src/utils/authStorage", () => ({
     getToken: jest.fn(),
     setToken: jest.fn(),
     clearToken: jest.fn(),
+    getUser: jest.fn(),
+    setUser: jest.fn(),
+    clearUser: jest.fn(),
   },
 }));
 jest.mock("../../src/services/api", () => ({
@@ -44,6 +47,7 @@ describe(`authSlice en ${Platform.OS}`, () => {
   describe("hydrateAuth", () => {
     it("recupera el token guardado y arma el header", async () => {
       authStorage.getToken.mockResolvedValue("guardado");
+      authStorage.getUser.mockResolvedValue(null);
 
       const store = makeStore();
       await store.dispatch(hydrateAuth());
@@ -56,6 +60,7 @@ describe(`authSlice en ${Platform.OS}`, () => {
 
     it("marca hydrated aunque no haya token, para no bloquear el arranque", async () => {
       authStorage.getToken.mockResolvedValue(null);
+      authStorage.getUser.mockResolvedValue(null);
 
       const store = makeStore();
       await store.dispatch(hydrateAuth());
@@ -68,11 +73,70 @@ describe(`authSlice en ${Platform.OS}`, () => {
 
     it("marca hydrated incluso si el storage falla", async () => {
       authStorage.getToken.mockRejectedValue(new Error("storage roto"));
+      authStorage.getUser.mockResolvedValue(null);
 
       const store = makeStore();
       await store.dispatch(hydrateAuth());
 
       expect(store.getState().auth.hydrated).toBe(true);
+    });
+  });
+
+  describe("perfil sin conexion", () => {
+    it("restaura el usuario guardado, sin pedirlo a la red", async () => {
+      // /auth/me es una llamada de red: sin conexion nunca responde, y antes
+      // el perfil se quedaba vacio.
+      authStorage.getToken.mockResolvedValue("t");
+      authStorage.getUser.mockResolvedValue({ userID: "u1", firstName: "Ana" });
+
+      const store = makeStore();
+      await store.dispatch(hydrateAuth());
+
+      expect(store.getState().auth.user).toEqual({ userID: "u1", firstName: "Ana" });
+    });
+
+    it("no restaura perfil si no hay token", async () => {
+      authStorage.getToken.mockResolvedValue(null);
+      authStorage.getUser.mockResolvedValue({ userID: "u1" });
+
+      const store = makeStore();
+      await store.dispatch(hydrateAuth());
+
+      expect(store.getState().auth.user).toBeNull();
+      expect(authStorage.getUser).not.toHaveBeenCalled();
+    });
+
+    it("guarda el perfil al iniciar sesion", async () => {
+      authService.loginService.mockResolvedValue({
+        token: "t",
+        fields: [{ userID: "u1", firstName: "Ana" }],
+      });
+
+      const store = makeStore();
+      await store.dispatch(login({ email: "a@b.c", password: "x" }));
+
+      expect(authStorage.setUser).toHaveBeenCalledWith({ userID: "u1", firstName: "Ana" });
+    });
+
+    it("guarda tambien los cambios de favoritos", async () => {
+      usersService.patchUserProfile.mockResolvedValue({});
+      const store = makeStore({
+        auth: { user: { userID: "u1", favoriteEvents: [] }, token: "t", status: "idle", error: null, hydrated: true },
+      });
+
+      await store.dispatch(toggleFavorite({ type: "event", id: "recE1" }));
+
+      expect(authStorage.setUser).toHaveBeenCalledWith(
+        expect.objectContaining({ favoriteEvents: ["recE1"] })
+      );
+    });
+
+    it("olvida el perfil al cerrar sesion", () => {
+      const store = makeStore({
+        auth: { user: { userID: "u1" }, token: "t", status: "idle", error: null, hydrated: true },
+      });
+      store.dispatch(logout());
+      expect(authStorage.clearUser).toHaveBeenCalled();
     });
   });
 

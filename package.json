@@ -80,7 +80,8 @@
         "testMatch": [
           "<rootDir>/__tests__/app/**/*.test.js",
           "<rootDir>/__tests__/store/**/*.test.js",
-          "<rootDir>/__tests__/hooks/**/*.test.js"
+          "<rootDir>/__tests__/hooks/**/*.test.js",
+          "<rootDir>/__tests__/components/**/*.test.js"
         ],
         "transformIgnorePatterns": [
           "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|native-base|react-native-svg|immer|react-redux))"
@@ -92,7 +93,8 @@
         "testMatch": [
           "<rootDir>/__tests__/app/**/*.test.js",
           "<rootDir>/__tests__/store/**/*.test.js",
-          "<rootDir>/__tests__/hooks/**/*.test.js"
+          "<rootDir>/__tests__/hooks/**/*.test.js",
+          "<rootDir>/__tests__/components/**/*.test.js"
         ],
         "transformIgnorePatterns": [
           "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|native-base|react-native-svg|immer|react-redux))"

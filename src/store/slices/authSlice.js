@@ -19,7 +19,10 @@ const initialState = {
 export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
   const token = await authStorage.getToken();
   if (token) setAuthHeader(token);
-  return { token };
+  // El perfil guardado permite pintar la pantalla de perfil sin conexion,
+  // mientras fetchMe lo refresca si hay red.
+  const user = token ? await authStorage.getUser() : null;
+  return { token, user };
 });
 
 export const login = createAsyncThunk('auth/login', async ({ email, password }) => {
@@ -52,6 +55,7 @@ const authSlice = createSlice({
     // 🔹 Optional helpers (handy in some flows)
     setUser(state, action) {
       state.user = action.payload || null;
+      authStorage.setUser(state.user);
     },
     setHydrated(state, action) {
       state.hydrated = action.payload ?? true;
@@ -61,11 +65,15 @@ const authSlice = createSlice({
       state.token = null;
       state.status = 'idle';
       state.error = null;
+      authStorage.clearUser();
     },
     setAuthUserPatch(state, action) {
       const patch = action.payload || {};
       if (!state.user) state.user = {};
       state.user = { ...state.user, ...patch };
+      // Incluye los favoritos: sin esto, marcar uno y abrir la app sin
+      // conexion mostraria el estado anterior.
+      authStorage.setUser(state.user);
     },
   },
   extraReducers: (builder) => {
@@ -73,6 +81,7 @@ const authSlice = createSlice({
       .addCase(hydrateAuth.fulfilled, (state, action) => {
         state.hydrated = true;
         if (action.payload?.token) state.token = action.payload.token;
+        if (action.payload?.user) state.user = action.payload.user;
       })
       .addCase(hydrateAuth.rejected, (state) => { state.hydrated = true; })
 
@@ -81,6 +90,7 @@ const authSlice = createSlice({
         state.status = 'succeeded';
         state.token = action.payload.token;
         state.user = action.payload.user;
+        authStorage.setUser(action.payload.user);
       })
       .addCase(login.rejected, (state, action) => {
         state.status = 'failed';
@@ -101,7 +111,10 @@ const authSlice = createSlice({
         state.error = action.error?.response?.data || action.error?.message || 'Register failed';
       })
 
-      .addCase(fetchMe.fulfilled, (state, action) => { state.user = action.payload.user; })
+      .addCase(fetchMe.fulfilled, (state, action) => {
+        state.user = action.payload.user;
+        authStorage.setUser(action.payload.user);
+      })
       .addCase(fetchMe.rejected, () => { /* el interceptor 401 en api.js cierra la sesion */ });
   }
 });

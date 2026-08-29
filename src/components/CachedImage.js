@@ -1,11 +1,13 @@
 // Reemplazo directo de <Image> para imágenes remotas.
 //
-// Si el archivo ya está en disco, se pinta desde ahí: eso es lo que hace que
-// aparezca sin conexión. Si no lo está, se usa la URL remota y se descarga en
-// segundo plano SIN cambiar el uri, para no provocar un parpadeo a mitad de
-// render; la copia queda lista para la próxima vez que se abra la app.
+// El índice url -> ruta local vive en memoria y arranca vacío en cada apertura
+// de la app, aunque los archivos sigan en disco. Por eso la resolución tiene
+// que ser asíncrona: se pregunta al disco al montar y, si el archivo está, se
+// cambia el uri. Sin ese cambio, en un arranque sin conexión la primera
+// pintada se quedaba con la URL remota —que no carga— y la foto no aparecía
+// hasta que el componente se remontaba al navegar.
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Image } from "react-native";
 import { cacheImage, getCachedUri } from "../utils/imageCache";
 
@@ -15,16 +17,36 @@ export default function CachedImage({ source, ...props }) {
       ? source.uri
       : null;
 
-  const resolved = useMemo(() => {
-    if (!remote) return source;
-    const local = getCachedUri(remote);
-    return local ? { ...source, uri: local } : source;
-  }, [remote, source]);
+  // Si ya se resolvió antes en esta sesión, se parte del archivo local y no
+  // llega a pintarse la URL remota.
+  const [localUri, setLocalUri] = useState(() =>
+    remote ? getCachedUri(remote) : null
+  );
 
   useEffect(() => {
-    if (!remote || getCachedUri(remote)) return;
-    cacheImage(remote); // best-effort: sin await ni catch, no debe romper el render
+    if (!remote) {
+      setLocalUri(null);
+      return;
+    }
+
+    const conocido = getCachedUri(remote);
+    if (conocido) {
+      setLocalUri(conocido);
+      return;
+    }
+
+    let vivo = true;
+    // Encuentra el archivo si ya estaba en disco de una sesión anterior, y si
+    // no lo está lo descarga. En ambos casos devuelve la ruta local.
+    cacheImage(remote).then((ruta) => {
+      if (vivo && ruta) setLocalUri(ruta);
+    });
+    return () => {
+      vivo = false;
+    };
   }, [remote]);
+
+  const resolved = remote && localUri ? { ...source, uri: localUri } : source;
 
   return <Image source={resolved} {...props} />;
 }
