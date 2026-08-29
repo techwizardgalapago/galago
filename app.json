@@ -34,7 +34,8 @@
       "expo-router",
       "expo-web-browser",
       "expo-secure-store",
-      "expo-sqlite"
+      "expo-sqlite",
+      "./plugins/withFmtConstevalFix"
     ],
     "extra": {
       "router": {},
