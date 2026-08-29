@@ -10,6 +10,12 @@ web-build/
 expo-env.d.ts
 
 # Native
+# Proyectos nativos generados por `expo prebuild`.
+# Este proyecto es managed: la configuracion vive en app.json y estas carpetas
+# se regeneran. Versionarlas obligaria a mantenerlas a mano.
+/ios
+/android
+
 .kotlin/
 *.orig.*
 *.jks
