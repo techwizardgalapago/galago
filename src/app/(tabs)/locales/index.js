@@ -19,6 +19,7 @@ import { useSelector } from "react-redux";
 
 import { useMedia } from "../../../hooks/useMedia";
 import CachedImage from "../../../components/CachedImage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // -------- Datos estáticos --------
 
@@ -130,6 +131,11 @@ function TouristSiteCard({ site, island }) {
 // -------- Pantalla principal --------
 
 export default function LocalesScreen() {
+  // La cabecera va bajo la barra de estado y la Dynamic Island: sin esto
+  // el titulo queda cortado. El minimo conserva el espaciado que ya tenia
+  // en pantallas sin muesca.
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, 34);
   const { isMobile } = useMedia();
   const allSites = useSelector((s) => s.touristSites?.list || []);
   const params = useLocalSearchParams();
@@ -204,7 +210,7 @@ export default function LocalesScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[styles.container, contentWidth]}>
+      <View style={[styles.container, contentWidth, { paddingTop: topInset }]}>
         {/* Header: tabs + search */}
         <View style={[styles.topSection, { paddingHorizontal: hPad }]}>
           {isMobile ? (
@@ -472,7 +478,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 34,
     paddingHorizontal: 0,
   },
   fullWidth: {

@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useMedia } from "../../../../hooks/useMedia";
 import { useVenues } from "../../../../hooks/useVenues";
 import PlaceCard from "../../../../components/profile/PlaceCard";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // -------- Constantes --------
 
@@ -67,6 +68,11 @@ const getImageUrl = (value) => {
 // -------- Pantalla --------
 
 export default function VenueListScreen() {
+  // La cabecera va bajo la barra de estado y la Dynamic Island: sin esto
+  // el titulo queda cortado. El minimo conserva el espaciado que ya tenia
+  // en pantallas sin muesca.
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, 34);
   const { isMobile } = useMedia();
   const { category } = useLocalSearchParams();
   const { venues } = useVenues();
@@ -131,7 +137,7 @@ export default function VenueListScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={[styles.container, contentWidth]}>
+      <View style={[styles.container, contentWidth, { paddingTop: topInset }]}>
         {/* Header: botón regresar */}
         <View style={[styles.topSection, { paddingHorizontal: hPad }]}>
           <Pressable style={styles.backRow} onPress={() => router.replace("/(tabs)/locales")}>
@@ -330,7 +336,7 @@ export default function VenueListScreen() {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  container: { flex: 1, paddingTop: 34 },
+  container: { flex: 1 },
   fullWidth: { width: "100%" },
   maxWidth: {
     width: "100%",

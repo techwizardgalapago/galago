@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useMedia } from "../../../hooks/useMedia";
 import { useEvents } from "../../../hooks/useEvents";
 import CachedImage from "../../../components/CachedImage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TABS = [
   { key: "hoy", label: "Hoy en la isla" },
@@ -148,6 +149,11 @@ const formatTimeRange = (event) => {
 };
 
 export default function HoyEnLaIslaScreen() {
+  // La cabecera va bajo la barra de estado y la Dynamic Island: sin esto
+  // el titulo queda cortado. El minimo conserva el espaciado que ya tenia
+  // en pantallas sin muesca.
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, 34);
   const { isMobile } = useMedia();
   const [activeTab, setActiveTab] = useState("hoy");
   const [activeDay, setActiveDay] = useState(null);
@@ -418,7 +424,7 @@ export default function HoyEnLaIslaScreen() {
   return (
     <LinearGradient colors={tabStyle.gradient} style={styles.background}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.container, contentWidth]}>
+      <View style={[styles.container, contentWidth, { paddingTop: topInset }]}>
         <View style={[styles.topSection, { paddingHorizontal: hPad }]}>
           <Text style={styles.logo}>GalapaGo.</Text>
           {isMobile ? (
@@ -860,7 +866,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 34,
     paddingHorizontal: 0,
     paddingBottom: Platform.OS === "web" ? 0 : 0,
   },
