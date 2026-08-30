@@ -3,6 +3,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer, {
   hydrateAuth,
   login,
+  register,
   logout,
   setToken,
   setAuthUserPatch,
@@ -167,6 +168,60 @@ describe(`authSlice en ${Platform.OS}`, () => {
       expect(error).toBe("Credenciales");
       expect(token).toBeNull();
       expect(user).toBeNull();
+    });
+  });
+
+  describe("register", () => {
+    it("normaliza fields[0] a user, igual que login", async () => {
+      // /auth/sign-up responde { fields, token }. El reducer leia .user y
+      // recibia undefined: quedaba token sin usuario y useAuthGuard, que
+      // espera a que haya usuario, no redirigia a ningun sitio.
+      authService.registerService.mockResolvedValue({
+        token: "nuevo",
+        fields: [{ userID: "u1", firstName: "Ana" }],
+      });
+
+      const store = makeStore();
+      await store.dispatch(register({ userEmail: "a@b.c", password: "x" }));
+
+      const { token, user, status } = store.getState().auth;
+      expect(status).toBe("succeeded");
+      expect(token).toBe("nuevo");
+      expect(user).toEqual({ userID: "u1", firstName: "Ana" });
+    });
+
+    it("guarda el perfil recien creado para que sobreviva sin conexion", async () => {
+      authService.registerService.mockResolvedValue({
+        token: "nuevo",
+        fields: [{ userID: "u1" }],
+      });
+
+      const store = makeStore();
+      await store.dispatch(register({ userEmail: "a@b.c" }));
+
+      expect(authStorage.setUser).toHaveBeenCalledWith({ userID: "u1" });
+    });
+
+    it("acepta tambien una respuesta con user directo", async () => {
+      authService.registerService.mockResolvedValue({
+        token: "nuevo",
+        user: { userID: "u1" },
+      });
+
+      const store = makeStore();
+      await store.dispatch(register({ userEmail: "a@b.c" }));
+
+      expect(store.getState().auth.user).toEqual({ userID: "u1" });
+    });
+
+    it("sin token no abre sesion: la pantalla manda al login", async () => {
+      authService.registerService.mockResolvedValue({ fields: [{ userID: "u1" }] });
+
+      const store = makeStore();
+      const res = await store.dispatch(register({ userEmail: "a@b.c" }));
+
+      expect(store.getState().auth.token).toBeNull();
+      expect(res.payload.token).toBeUndefined();
     });
   });
 

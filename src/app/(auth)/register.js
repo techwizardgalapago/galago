@@ -2,9 +2,9 @@
 // src/app/(auth)/register.js
 // -------------------------------------------------
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import AuthBackground from '../../components/auth/AuthBackground';
 import AuthCard from '../../components/auth/AuthCard';
 import AuthTitle from '../../components/auth/AuthTitle';
@@ -13,6 +13,7 @@ import AuthButton from '../../components/auth/AuthButton';
 
 export default function RegisterScreen() {
   const { status, error, doRegister } = useAuth();
+  const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -26,9 +27,19 @@ export default function RegisterScreen() {
       // El payload esta dentro de un array porque tenemos airtable en mente
       const payload = [{ fields: {firstName, lastName, userEmail, password} }];
       const res = await doRegister(payload);
-      if (!res?.token) {
-        alert('Cuenta creada. Ahora inicia sesión.');
+
+      if (res?.token) {
+        // El alta ya deja sesion iniciada. Se manda a la raiz y useAuthGuard
+        // decide: como el perfil recien creado esta incompleto, llevara a
+        // completar los datos.
+        router.replace('/');
+        return;
       }
+
+      // Sin token no hay sesion: queda iniciarla a mano.
+      Alert.alert('Cuenta creada', 'Ahora inicia sesión.', [
+        { text: 'Ir al login', onPress: () => router.replace('/(auth)/login') },
+      ]);
     } catch (e) {
       setLocalError(e?.message || 'Error al crear cuenta');
     }

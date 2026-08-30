@@ -32,10 +32,13 @@ export const login = createAsyncThunk('auth/login', async ({ email, password }) 
 });
 
 export const register = createAsyncThunk('auth/register', async (payload) => {
-  // payload could include: firstName,lastName,email,password, etc.
   const res = await registerService(payload);
-  // If your backend also returns a token here, return it; otherwise you may redirect to login.
-  return res; // normalize in reducer below
+  // /auth/sign-up responde con la misma forma que /auth/login: { fields, token }.
+  // Se normaliza aqui igual que en login; el reducer esperaba `user` y recibia
+  // undefined, asi que la sesion quedaba con token pero sin usuario y
+  // useAuthGuard se quedaba esperando sin redirigir a ningun sitio.
+  const user = Array.isArray(res?.fields) ? res.fields[0] : res?.user ?? null;
+  return { ...res, user };
 });
 
 export const fetchMe = createAsyncThunk('auth/fetchMe', async () => {
@@ -100,10 +103,10 @@ const authSlice = createSlice({
       .addCase(register.pending, (state) => { state.status = 'loading'; state.error = null; })
       .addCase(register.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Some APIs return {token,user}, others just the created user
         if (action.payload?.token) {
           state.token = action.payload.token;
-          state.user = action.payload.user;
+          state.user = action.payload.user || null;
+          authStorage.setUser(state.user);
         }
       })
       .addCase(register.rejected, (state, action) => {
