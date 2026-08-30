@@ -142,6 +142,30 @@ describe(`authSlice en ${Platform.OS}`, () => {
   });
 
   describe("login", () => {
+    it("arma el header ANTES de devolver, no despues", async () => {
+      // En cuanto el token entra en Redux, useAuth pide /auth/me. Si el header
+      // se pusiera al volver de unwrap, esa peticion saldria sin Authorization
+      // y el 401 cerraria la sesion recien abierta.
+      authService.loginService.mockResolvedValue({
+        token: "nuevo",
+        fields: [{ userID: "u1" }],
+      });
+
+      const store = makeStore();
+      await store.dispatch(login({ email: "a@b.c", password: "x" }));
+
+      expect(setAuthHeader).toHaveBeenCalledWith("nuevo");
+    });
+
+    it("no arma header si el backend no devuelve token", async () => {
+      authService.loginService.mockResolvedValue({ fields: [{ userID: "u1" }] });
+
+      const store = makeStore();
+      await store.dispatch(login({ email: "a@b.c", password: "x" }));
+
+      expect(setAuthHeader).not.toHaveBeenCalled();
+    });
+
     it("guarda token y usuario tomando el primero de fields", async () => {
       authService.loginService.mockResolvedValue({
         token: "nuevo",
@@ -172,6 +196,18 @@ describe(`authSlice en ${Platform.OS}`, () => {
   });
 
   describe("register", () => {
+    it("tambien arma el header al registrarse", async () => {
+      authService.registerService.mockResolvedValue({
+        token: "nuevo",
+        fields: [{ userID: "u1" }],
+      });
+
+      const store = makeStore();
+      await store.dispatch(register({ userEmail: "a@b.c" }));
+
+      expect(setAuthHeader).toHaveBeenCalledWith("nuevo");
+    });
+
     it("normaliza fields[0] a user, igual que login", async () => {
       // /auth/sign-up responde { fields, token }. El reducer leia .user y
       // recibia undefined: quedaba token sin usuario y useAuthGuard, que

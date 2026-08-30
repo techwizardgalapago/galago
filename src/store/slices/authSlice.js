@@ -28,6 +28,12 @@ export const hydrateAuth = createAsyncThunk('auth/hydrate', async () => {
 export const login = createAsyncThunk('auth/login', async ({ email, password }) => {
   const { token, fields } = await loginService({ email, password });
   const user = fields[0];
+  // El header se arma AQUI, antes de que el token llegue al estado. En cuanto
+  // se guarda en Redux, useAuth reacciona y pide /auth/me: si el header se
+  // pusiera despues (al volver de unwrap), esa peticion saldria sin
+  // Authorization, el backend responderia 401 y el interceptor cerraria la
+  // sesion recien abierta.
+  if (token) setAuthHeader(token);
   return { token, user };
 });
 
@@ -38,6 +44,7 @@ export const register = createAsyncThunk('auth/register', async (payload) => {
   // undefined, asi que la sesion quedaba con token pero sin usuario y
   // useAuthGuard se quedaba esperando sin redirigir a ningun sitio.
   const user = Array.isArray(res?.fields) ? res.fields[0] : res?.user ?? null;
+  if (res?.token) setAuthHeader(res.token); // mismo motivo que en login
   return { ...res, user };
 });
 
