@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,17 +29,22 @@ export default function TabLayout() {
         // Como la barra reserva insets.bottom para el area de gestos de
         // Android, el desenfoque se quedaba corto y esa franja aparecia sin
         // cubrir. Se extiende por debajo del padding.
-        tabBarBackground: () => (
-          <BlurView
-            intensity={40}
-            tint="light"
-            // En Android BlurView NO desenfoca por defecto
-            // (experimentalBlurMethod: 'none'): solo pinta un rectangulo
-            // translucido. Hay que pedir el metodo explicitamente.
-            experimentalBlurMethod="dimezisBlurView"
-            style={[StyleSheet.absoluteFill, { bottom: -insets.bottom }]}
-          />
-        ),
+        // Solo en iOS, donde el desenfoque es nativo y no cuesta nada.
+        //
+        // En Android habria que pedir experimentalBlurMethod, que redibuja la
+        // jerarquia de vistas para desenfocarla: eso dejaba toda la app con un
+        // tinte blanco y colgaba el detalle de un local en una pantalla en
+        // blanco. Ahi basta el fondo translucido de la propia barra.
+        tabBarBackground:
+          Platform.OS === "ios"
+            ? () => (
+                <BlurView
+                  intensity={40}
+                  tint="light"
+                  style={[StyleSheet.absoluteFill, { bottom: -insets.bottom }]}
+                />
+              )
+            : undefined,
       }}
     >
       <Tabs.Screen
