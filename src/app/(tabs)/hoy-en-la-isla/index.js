@@ -188,6 +188,11 @@ export default function HoyEnLaIslaScreen() {
     return Array.from(seen);
   }, [allEvents]);
 
+  // Hoy en la isla no ofrece filtros: no se muestra el boton y tampoco se
+  // aplican. Si se ocultara solo el boton, un filtro puesto en Agenda seguiria
+  // recortando esta pestana sin forma de verlo ni quitarlo.
+  const mostrarFiltros = activeTab !== "hoy";
+
   const filteredBase = useMemo(() => {
     let base =
       activeTab === "regeneracion"
@@ -198,7 +203,7 @@ export default function HoyEnLaIslaScreen() {
           )
         : allEvents;
 
-    if (activeIsland !== "Todo") {
+    if (mostrarFiltros && activeIsland !== "Todo") {
       base = base.filter((event) =>
         normalizeToken(String(event.eventIslandLocation ?? "")).includes(
           normalizeToken(activeIsland)
@@ -206,7 +211,7 @@ export default function HoyEnLaIslaScreen() {
       );
     }
 
-    if (activeTags.length > 0 && activeTab !== 'regeneracion') {
+    if (mostrarFiltros && activeTags.length > 0 && activeTab !== 'regeneracion') {
       base = base.filter((event) => {
         const tags = parseTags(event.eventTags).map((t) => normalizeToken(t));
         return activeTags.some((at) => tags.includes(normalizeToken(at)));
@@ -214,7 +219,7 @@ export default function HoyEnLaIslaScreen() {
     }
 
     return base;
-  }, [allEvents, activeTab, activeIsland, activeTags]);
+  }, [allEvents, activeTab, activeIsland, activeTags, mostrarFiltros]);
 
   const searchResults = useMemo(() => {
     const q = normalizeToken(searchQuery.trim().toLowerCase());
@@ -528,23 +533,25 @@ export default function HoyEnLaIslaScreen() {
                 </Pressable>
               )}
             </View>
-            <Pressable
-              style={[
-                styles.filterButton,
-                (activeIsland !== "Todo" || (activeTab !== 'regeneracion' && activeTags.length > 0)) && styles.filterButtonActive,
-              ]}
-              onPress={() => {
-                setPendingIsland(activeIsland);
-                setPendingTags(activeTags);
-                setFilterVisible(true);
-              }}
-            >
-              <Ionicons
-                name="options-outline"
-                size={18}
-                color={(activeIsland !== "Todo" || (activeTab !== 'regeneracion' && activeTags.length > 0)) ? "#FDFDFC" : "#99A0A0"}
-              />
-            </Pressable>
+            {mostrarFiltros && (
+              <Pressable
+                style={[
+                  styles.filterButton,
+                  (activeIsland !== "Todo" || (activeTab !== 'regeneracion' && activeTags.length > 0)) && styles.filterButtonActive,
+                ]}
+                onPress={() => {
+                  setPendingIsland(activeIsland);
+                  setPendingTags(activeTags);
+                  setFilterVisible(true);
+                }}
+              >
+                <Ionicons
+                  name="options-outline"
+                  size={18}
+                  color={(activeIsland !== "Todo" || (activeTab !== 'regeneracion' && activeTags.length > 0)) ? "#FDFDFC" : "#99A0A0"}
+                />
+              </Pressable>
+            )}
           </View>
         </View>
         <CardWrapper
