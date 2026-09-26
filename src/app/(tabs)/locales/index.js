@@ -697,7 +697,9 @@ const styles = StyleSheet.create({
 
   // ---- Modal filtros (idéntico a hoy-en-la-isla) ----
   filterBackdrop: {
-    flex: 1,
+    // Cubre toda la ventana, no solo el hueco sobre la hoja: al limitar el
+    // ancho de la hoja, las franjas laterales quedaban sin oscurecer.
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
   },
   filterSheet: {
@@ -707,6 +709,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 720,
     alignSelf: "center",
+    marginTop: "auto",
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
     paddingTop: 24,
