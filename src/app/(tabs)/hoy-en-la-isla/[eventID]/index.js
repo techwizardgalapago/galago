@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { useMedia } from "../../../../hooks/useMedia";
 import CachedImage from "../../../../components/CachedImage";
+import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 
 const parseTags = (value) => {
   if (!value) return [];
@@ -97,6 +98,7 @@ const INFO_ROWS = [
 ];
 
 export default function EventDetailScreen() {
+  const tabBarInset = useTabBarInset();
   const { eventID } = useLocalSearchParams();
   const dispatch = useDispatch();
   const allEvents = useSelector((state) => state.events.list);
@@ -159,7 +161,7 @@ export default function EventDetailScreen() {
       {/* White card */}
       <View style={[styles.card, contentWidth]}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}

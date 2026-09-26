@@ -28,6 +28,7 @@ import {
   parseCreatedEventId,
 } from '../../../../../../services/eventsService';
 import { upsertEventsFromAPIThunk } from '../../../../../../store/slices/eventsSlice';
+import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 
 // ---------- Helpers de fecha ----------
 const pad = (n) => String(n).padStart(2, '0');
@@ -88,6 +89,7 @@ const compressImageWeb = (uri) =>
 
 // ---------- Componente principal ----------
 export default function CrearEventoScreen() {
+  const tabBarInset = useTabBarInset();
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
   const { venueID: preselectedVenueID } = useLocalSearchParams();
@@ -396,7 +398,7 @@ export default function CrearEventoScreen() {
 
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={{ paddingTop: 108, flexGrow: 1, justifyContent: 'flex-end' }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 108, paddingBottom: tabBarInset, flexGrow: 1, justifyContent: 'flex-end' }}>
         <AuthCard
           style={{
             borderTopLeftRadius: 20,

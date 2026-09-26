@@ -20,6 +20,7 @@ import { useSelector } from "react-redux";
 import { useMedia } from "../../../hooks/useMedia";
 import CachedImage from "../../../components/CachedImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabBarInset } from "../../../hooks/useTabBarInset";
 
 // -------- Datos estáticos --------
 
@@ -131,6 +132,7 @@ function TouristSiteCard({ site, island }) {
 // -------- Pantalla principal --------
 
 export default function LocalesScreen() {
+  const tabBarInset = useTabBarInset();
   // La cabecera va bajo la barra de estado y la Dynamic Island: sin esto
   // el titulo queda cortado. El minimo conserva el espaciado que ya tenia
   // en pantallas sin muesca.
@@ -383,7 +385,7 @@ export default function LocalesScreen() {
               </View>
               <ScrollView
                 style={styles.sitesScroll}
-                contentContainerStyle={styles.sitesContent}
+                contentContainerStyle={[styles.sitesContent, { paddingBottom: tabBarInset }]}
                 showsVerticalScrollIndicator={false}
               >
                 {filteredSites.map((site) => (

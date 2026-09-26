@@ -26,6 +26,7 @@ import {
   fetchUserVenuesByUserId,
 } from '../../../../store/slices/venueSlice';
 import { fetchEventsRemote } from '../../../../store/slices/eventsSlice';
+import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 
 const isWeb = Platform.OS === 'web';
 
@@ -84,6 +85,7 @@ const getVenueImageUrl = (venue) => {
 };
 
 export default function MisNegociosScreen() {
+  const tabBarInset = useTabBarInset();
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
   const userVenueIds = authUser?.userVenues || [];
@@ -183,6 +185,7 @@ export default function MisNegociosScreen() {
         }
         contentContainerStyle={{
           paddingTop: topGap,
+          paddingBottom: tabBarInset,
           flexGrow: 1,
           justifyContent: 'flex-end',
         }}

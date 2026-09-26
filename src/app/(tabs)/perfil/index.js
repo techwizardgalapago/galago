@@ -15,6 +15,7 @@ import ProfileActionsSheet from "../../../components/profile/ProfileActionsSheet
 import { joinFullName } from "../../../features/users/profileComplition";
 import { getVenueById } from "../../../services/venuesService";
 import { upsertVenueLocal } from "../../../store/slices/venueSlice";
+import { useTabBarInset } from "../../../hooks/useTabBarInset";
 
 const CATEGORY_VENUE_TYPES = {
   alimentos: ["restaurante", "café", "cafe"],
@@ -71,6 +72,7 @@ const formatEventTime = (isoString) => {
 };
 
 export default function PerfilScreen() {
+  const tabBarInset = useTabBarInset();
   const [activeTab, setActiveTab] = useState("saved");
   const [sheetVisible, setSheetVisible] = useState(false);
   const dispatch = useDispatch();
@@ -130,7 +132,7 @@ export default function PerfilScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: topGap + topInset },
+          { paddingTop: topGap + topInset, paddingBottom: tabBarInset },
         ]}
       >
         <AuthCard style={styles.card}>

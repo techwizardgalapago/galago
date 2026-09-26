@@ -24,6 +24,7 @@ import { updateUser, upsertUsersFromAPI } from '../../../../../store/slices/user
 import { fetchMe } from '../../../../../store/slices/authSlice';
 import { splitFullName, joinFullName } from '../../../../../features/users/profileComplition';
 import { patchUserProfile } from '../../../../../services/usersService';
+import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 // ------------------------
 // NEW GENDER OPTIONS
@@ -47,6 +48,7 @@ const TRAVEL_REASONS = [
 ];
 
 export default function RegisterProfileScreen() {
+  const tabBarInset = useTabBarInset();
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth || {});
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -186,7 +188,7 @@ export default function RegisterProfileScreen() {
   // ------------------------------------------------
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}>
         <AuthCard style={styles.card}>
           <View style={styles.contentWrap}>
             <View style={styles.topBlock}>

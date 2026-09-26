@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 
 // Contorno cuando la pestaña esta inactiva y solido en la actual, que es la
 // convencion de iOS y Android: marca donde estas sin depender solo del color.
@@ -18,6 +19,10 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
+        // Sin fondo propio: lo pinta el desenfoque de abajo.
+        tabBarBackground: () => (
+          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+        ),
       }}
     >
       <Tabs.Screen
@@ -54,11 +59,17 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    // Mismo ancho que la columna de contenido (720). Sin esto, en pantallas
-    // anchas las tres pestañas se reparten todo el navegador y quedan
-    // separadisimas. En movil la pantalla es mas estrecha, asi que no aplica.
-    width: "100%",
+    // Flota sobre el contenido para que el desenfoque tenga algo que
+    // desenfocar. Lo que hay debajo se tapa, por eso cada scroll reserva
+    // espacio al final con useTabBarInset.
+    position: "absolute",
+    backgroundColor: "transparent",
+    borderTopColor: "rgba(0,0,0,0.06)",
+    // Mismo ancho que la columna de contenido (720). Con position absolute
+    // alignSelf no aplica: se centra con left/right a 0 y margenes auto.
+    left: 0,
+    right: 0,
+    marginHorizontal: "auto",
     maxWidth: 720,
-    alignSelf: "center",
   },
 });

@@ -13,11 +13,13 @@ import { fetchEventsRemote } from '../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../store/slices/authSlice';
 import { getVenueById } from '../../../../../services/venuesService';
 import CachedImage from "../../../../../components/CachedImage";
+import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 const WEEKDAYS_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const EMPTY_SCHEDULES = [];
 
 export default function VenueDetailScreen() {
+  const tabBarInset = useTabBarInset();
   const { venueID } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
@@ -272,7 +274,7 @@ export default function VenueDetailScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: topGap + topInset },
+          { paddingTop: topGap + topInset, paddingBottom: tabBarInset },
         ]}
       >
         <AuthCard style={styles.card}>

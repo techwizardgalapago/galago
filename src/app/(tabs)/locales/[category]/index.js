@@ -19,6 +19,7 @@ import { useMedia } from "../../../../hooks/useMedia";
 import { useVenues } from "../../../../hooks/useVenues";
 import PlaceCard from "../../../../components/profile/PlaceCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 
 // -------- Constantes --------
 
@@ -68,6 +69,7 @@ const getImageUrl = (value) => {
 // -------- Pantalla --------
 
 export default function VenueListScreen() {
+  const tabBarInset = useTabBarInset();
   // La cabecera va bajo la barra de estado y la Dynamic Island: sin esto
   // el titulo queda cortado. El minimo conserva el espaciado que ya tenia
   // en pantallas sin muesca.
@@ -234,7 +236,7 @@ export default function VenueListScreen() {
 
           <ScrollView
             style={styles.listScroll}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: tabBarInset }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >

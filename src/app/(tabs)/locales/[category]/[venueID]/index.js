@@ -23,6 +23,7 @@ import { fetchSchedulesByVenue } from "../../../../../store/slices/schedulesByVe
 import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { getVenueById } from "../../../../../services/venuesService";
 import CachedImage from "../../../../../components/CachedImage";
+import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 // -------- Constantes --------
 
@@ -75,6 +76,7 @@ const getImageUrl = (imgObj) =>
 // -------- Componente principal --------
 
 export default function VenueDetailScreen() {
+  const tabBarInset = useTabBarInset();
   const { venueID, category } = useLocalSearchParams();
   const dispatch = useDispatch();
 
@@ -276,7 +278,7 @@ export default function VenueDetailScreen() {
       {/* Tarjeta blanca scrollable */}
       <View style={styles.card}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}
           showsVerticalScrollIndicator={false}
         >
           {/* Carousel de imágenes */}

@@ -50,6 +50,7 @@ import {
   buildDeleteIds,
   validateDaySegments,
 } from '../../../../../../features/venues/schedules';
+import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 
 const normalizeVenueResponse = (payload, fallback) => {
   if (!payload && !fallback) return null;
@@ -115,6 +116,7 @@ const TimeSelect = ({ value, onChange }) => (
 
 
 export default function EditVenueScreen() {
+  const tabBarInset = useTabBarInset();
   const { venueID } = useLocalSearchParams();
   const dispatch = useDispatch();
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));
@@ -482,7 +484,7 @@ export default function EditVenueScreen() {
 
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={{ paddingTop: 108, flexGrow: 1, justifyContent: 'flex-end' }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 108, paddingBottom: tabBarInset, flexGrow: 1, justifyContent: 'flex-end' }}>
         <AuthCard
           style={{
             borderTopLeftRadius: 20,

@@ -20,6 +20,7 @@ import { useMedia } from "../../../hooks/useMedia";
 import { useEvents } from "../../../hooks/useEvents";
 import CachedImage from "../../../components/CachedImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabBarInset } from "../../../hooks/useTabBarInset";
 
 const TABS = [
   { key: "hoy", label: "Hoy en la isla" },
@@ -149,6 +150,7 @@ const formatTimeRange = (event) => {
 };
 
 export default function HoyEnLaIslaScreen() {
+  const tabBarInset = useTabBarInset();
   // La cabecera va bajo la barra de estado y la Dynamic Island: sin esto
   // el titulo queda cortado. El minimo conserva el espaciado que ya tenia
   // en pantallas sin muesca.
@@ -560,7 +562,7 @@ export default function HoyEnLaIslaScreen() {
         >
           {searchActive ? (
             <ScrollView
-              contentContainerStyle={styles.searchResultsContent}
+              contentContainerStyle={[styles.searchResultsContent, { paddingBottom: tabBarInset }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
@@ -596,7 +598,7 @@ export default function HoyEnLaIslaScreen() {
             </ScrollView>
           ) : isHoyTab ? (
             <ScrollView
-              contentContainerStyle={styles.hoyContent}
+              contentContainerStyle={[styles.hoyContent, { paddingBottom: tabBarInset }]}
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.section}>
@@ -732,7 +734,7 @@ export default function HoyEnLaIslaScreen() {
               </ScrollView>
               <ScrollView
                 style={styles.eventsScroll}
-                contentContainerStyle={styles.eventsContent}
+                contentContainerStyle={[styles.eventsContent, { paddingBottom: tabBarInset }]}
                 showsVerticalScrollIndicator={false}
               >
                 {events.map((event, index) => (

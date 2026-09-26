@@ -31,6 +31,7 @@ import {
   editEventLocal,
   upsertEventsFromAPIThunk,
 } from '../../../../../../../store/slices/eventsSlice';
+import { useTabBarInset } from "../../../../../../../hooks/useTabBarInset";
 
 // ---------- Constantes ----------
 const EVENT_TAGS = [
@@ -97,6 +98,7 @@ const safeDate = (value) => {
 
 // ---------- Componente principal ----------
 export default function EditarEventoScreen() {
+  const tabBarInset = useTabBarInset();
   const { eventID } = useLocalSearchParams();
   const dispatch = useDispatch();
   const { isDesktop, isWide } = useMedia();
@@ -436,7 +438,7 @@ export default function EditarEventoScreen() {
 
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={{ paddingTop: 108, flexGrow: 1, justifyContent: 'flex-end' }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 108, paddingBottom: tabBarInset, flexGrow: 1, justifyContent: 'flex-end' }}>
         <AuthCard
           style={{
             borderTopLeftRadius: 20,

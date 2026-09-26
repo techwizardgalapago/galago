@@ -21,6 +21,7 @@ import { fetchEventsRemote } from '../../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../../store/slices/authSlice';
 import { getEventById } from '../../../../../../services/eventsService';
 import CachedImage from "../../../../../../components/CachedImage";
+import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 
 // ---------- Helpers ----------
 const pad = (n) => String(n).padStart(2, '0');
@@ -54,6 +55,7 @@ const getEventImageUrl = (eventImage) => {
 };
 
 export default function EventoDetailScreen() {
+  const tabBarInset = useTabBarInset();
   const { eventID } = useLocalSearchParams();
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
@@ -131,7 +133,10 @@ export default function EventoDetailScreen() {
 
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 108 }]}>
+      <ScrollView contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: 108, paddingBottom: tabBarInset },
+        ]}>
         <AuthCard style={styles.card}>
           <Pressable onPress={() => router.push('/(tabs)/perfil/negocios')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={18} color="#1B2222" />

@@ -31,6 +31,7 @@ import {
 
 import { upsertVenuesFromAPIThunk } from '../../../../../store/slices/venueSlice';
 import { getCoordsFromGoogleMapsLink } from '../../../../../utils/maps';
+import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 // ---------- Constantes ----------
 const VENUE_CATEGORIES = [
@@ -113,6 +114,7 @@ const validateDaySegments = (segments = []) => {
 
 // ---------- Componente principal ----------
 export default function CrearNegocioScreen() {
+  const tabBarInset = useTabBarInset();
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
   const { isDesktop, isWide } = useMedia();
@@ -392,6 +394,7 @@ export default function CrearNegocioScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingTop: topGap,
+          paddingBottom: tabBarInset,
           flexGrow: 1,
           justifyContent: 'flex-end',
         }}

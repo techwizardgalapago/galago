@@ -31,6 +31,7 @@
     "expo": "~53.0.9",
     "expo-application": "~6.1.5",
     "expo-auth-session": "~6.2.1",
+    "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.6",
     "expo-crypto": "~14.1.5",
     "expo-file-system": "~18.1.11",

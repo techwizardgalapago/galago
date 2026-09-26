@@ -20,6 +20,7 @@ import { selectTouristSiteById } from "../../../../../store/slices/touristSitesS
 import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { useMedia } from "../../../../../hooks/useMedia";
 import CachedImage from "../../../../../components/CachedImage";
+import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_WIDTH = Math.min(SCREEN_WIDTH - 60, 333);
@@ -60,6 +61,7 @@ const formatEntryFee = (fee) => {
 };
 
 export default function TouristSiteDetailScreen() {
+  const tabBarInset = useTabBarInset();
   const { siteID, island } = useLocalSearchParams();
   const backUrl = `/(tabs)/locales?tab=descubre&island=${encodeURIComponent(island || "San Cristóbal")}`;
   const { isMobile } = useMedia();
@@ -133,7 +135,7 @@ export default function TouristSiteDetailScreen() {
         {/* Tarjeta blanca */}
         <View style={styles.card}>
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}
             showsVerticalScrollIndicator={false}
           >
             {/* Imagen */}
