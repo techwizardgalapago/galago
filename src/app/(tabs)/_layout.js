@@ -33,6 +33,10 @@ export default function TabLayout() {
           <BlurView
             intensity={40}
             tint="light"
+            // En Android BlurView NO desenfoca por defecto
+            // (experimentalBlurMethod: 'none'): solo pinta un rectangulo
+            // translucido. Hay que pedir el metodo explicitamente.
+            experimentalBlurMethod="dimezisBlurView"
             style={[StyleSheet.absoluteFill, { bottom: -insets.bottom }]}
           />
         ),
@@ -76,7 +80,10 @@ const styles = StyleSheet.create({
     // desenfocar. Lo que hay debajo se tapa, por eso cada scroll reserva
     // espacio al final con useTabBarInset.
     position: "absolute",
-    backgroundColor: "transparent",
+    // Fondo translucido propio del contenedor, no de un hijo absoluto: cubre
+    // tambien el relleno inferior del area de gestos, donde el desenfoque no
+    // llega. Sin esto quedaba una franja sin cubrir.
+    backgroundColor: "rgba(253,253,252,0.82)",
     borderTopColor: "rgba(0,0,0,0.06)",
     // Mismo ancho que la columna de contenido (720). Con position absolute
     // alignSelf no aplica: se centra con left/right a 0 y margenes auto.
