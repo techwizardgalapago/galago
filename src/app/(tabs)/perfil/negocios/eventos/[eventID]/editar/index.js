@@ -438,7 +438,7 @@ export default function EditarEventoScreen() {
 
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={{ paddingTop: 108, paddingBottom: tabBarInset, flexGrow: 1, justifyContent: 'flex-end' }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 108, flexGrow: 1, justifyContent: 'flex-end' }}>
         <AuthCard
           style={{
             borderTopLeftRadius: 20,
@@ -446,7 +446,7 @@ export default function EditarEventoScreen() {
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
             paddingTop: 20,
-            paddingBottom: 24,
+            paddingBottom: 24 + tabBarInset,
           }}
         >
           <Pressable onPress={() => router.back()} style={{ position: 'absolute', top: 16, right: 20, width: 32, height: 32, borderRadius: 16, backgroundColor: '#F2F2F2', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>

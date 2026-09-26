@@ -470,7 +470,7 @@ export default function EditVenueScreen() {
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
               paddingTop: 20,
-              paddingBottom: 24,
+              paddingBottom: 24 + tabBarInset,
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -484,7 +484,7 @@ export default function EditVenueScreen() {
 
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={{ paddingTop: 108, paddingBottom: tabBarInset, flexGrow: 1, justifyContent: 'flex-end' }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 108, flexGrow: 1, justifyContent: 'flex-end' }}>
         <AuthCard
           style={{
             borderTopLeftRadius: 20,

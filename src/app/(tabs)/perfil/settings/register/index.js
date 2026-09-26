@@ -188,8 +188,13 @@ export default function RegisterProfileScreen() {
   // ------------------------------------------------
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}>
-        <AuthCard style={styles.card}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <AuthCard
+          style={[
+            styles.card,
+            // La barra flota encima: el contenido necesita despejarla.
+            { paddingBottom: (styles.card.paddingBottom ?? 0) + tabBarInset },
+          ]}>
           <View style={styles.contentWrap}>
             <View style={styles.topBlock}>
               <View style={styles.headerBlock}>

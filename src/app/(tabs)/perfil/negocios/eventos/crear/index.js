@@ -398,7 +398,7 @@ export default function CrearEventoScreen() {
 
   return (
     <AuthBackground>
-      <ScrollView contentContainerStyle={{ paddingTop: 108, paddingBottom: tabBarInset, flexGrow: 1, justifyContent: 'flex-end' }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 108, flexGrow: 1, justifyContent: 'flex-end' }}>
         <AuthCard
           style={{
             borderTopLeftRadius: 20,
@@ -406,7 +406,7 @@ export default function CrearEventoScreen() {
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
             paddingTop: 20,
-            paddingBottom: 24,
+            paddingBottom: 24 + tabBarInset,
           }}
         >
           <View style={{ gap: 25, paddingHorizontal: 30, paddingBottom: 32 }}>

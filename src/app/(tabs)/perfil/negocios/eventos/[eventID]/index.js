@@ -135,9 +135,14 @@ export default function EventoDetailScreen() {
     <AuthBackground>
       <ScrollView contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: 108, paddingBottom: tabBarInset },
+          { paddingTop: 108 },
         ]}>
-        <AuthCard style={styles.card}>
+        <AuthCard
+          style={[
+            styles.card,
+            // La barra flota encima: el contenido necesita despejarla.
+            { paddingBottom: (styles.card.paddingBottom ?? 0) + tabBarInset },
+          ]}>
           <Pressable onPress={() => router.push('/(tabs)/perfil/negocios')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={18} color="#1B2222" />
           </Pressable>

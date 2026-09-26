@@ -185,8 +185,7 @@ export default function MisNegociosScreen() {
         }
         contentContainerStyle={{
           paddingTop: topGap,
-          paddingBottom: tabBarInset,
-          flexGrow: 1,
+                   flexGrow: 1,
           justifyContent: 'flex-end',
         }}
       >
@@ -197,7 +196,7 @@ export default function MisNegociosScreen() {
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
             paddingTop: 30,
-            paddingBottom: 24,
+            paddingBottom: 24 + tabBarInset,
           }}
         >
           <View style={{ gap: 50, paddingBottom: 24 }}>

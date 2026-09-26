@@ -274,10 +274,15 @@ export default function VenueDetailScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: topGap + topInset, paddingBottom: tabBarInset },
+          { paddingTop: topGap + topInset },
         ]}
       >
-        <AuthCard style={styles.card}>
+        <AuthCard
+          style={[
+            styles.card,
+            // La barra flota encima: el contenido necesita despejarla.
+            { paddingBottom: (styles.card.paddingBottom ?? 0) + tabBarInset },
+          ]}>
           <Pressable
             onPress={() => router.push('/(tabs)/perfil/negocios')}
             style={styles.backButton}
