@@ -406,7 +406,7 @@ export default function VenueDetailScreen() {
       </View>
 
       {/* Barra de acciones sticky */}
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { bottom: tabBarInset }]}>
         <Pressable style={styles.actionBack} onPress={() => router.replace(`/(tabs)/locales/${category}`)}>
           <Ionicons name="arrow-back" size={20} color="#1B2222" />
         </Pressable>
@@ -765,6 +765,9 @@ const styles = StyleSheet.create({
   // Barra de acciones sticky
   actionBar: {
     position: "absolute",
+    // El `bottom` se fija en el elemento con la altura de la barra de
+    // pestañas: esta flota tambien en bottom 0 y se dibuja despues, asi que
+    // con 0 aqui quedaria tapada por completo.
     bottom: 0,
     left: 0,
     right: 0,
