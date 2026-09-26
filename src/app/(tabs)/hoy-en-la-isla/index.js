@@ -426,7 +426,13 @@ export default function HoyEnLaIslaScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.container, contentWidth, { paddingTop: topInset }]}>
         <View style={[styles.topSection, { paddingHorizontal: hPad }]}>
-          <Text style={styles.logo}>GalapaGo.</Text>
+          <Image
+            source={require("../../../../assets/logo-galago-blanco.png")}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityRole="image"
+            accessibilityLabel="GalaGO"
+          />
           {isMobile ? (
             <View
               style={[styles.tabsScrollView, { marginHorizontal: -hPad }]}
@@ -885,10 +891,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   logo: {
-    fontSize: 26,
-    fontWeight: "700",
-    lineHeight: 30,
-    color: "#FDFDFC",
+    // El PNG es 600x138 (4.35:1). Se fija el alto y el ancho en proporcion
+    // para que no dependa de la resolucion del archivo.
+    width: 139,
+    height: 32,
   },
   tabsScrollView: {
     marginHorizontal: -30,
