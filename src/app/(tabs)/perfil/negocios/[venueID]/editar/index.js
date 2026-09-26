@@ -90,7 +90,10 @@ const VENUE_CATEGORIES = [
   'Souvenirs',
   'Otro',
 ];
-const VENUE_LOCATIONS = ['Isla San Cristobal', 'Isla Isabela', 'Isla Santa Cruz'];
+// Deben coincidir EXACTAMENTE con las opciones del select en Airtable: el
+// backend escribe sin typecast, asi que un valor que no este en la lista
+// de la tabla se rechaza al guardar.
+const VENUE_LOCATIONS = ['Isla San Cristóbal', 'Isla Isabela', 'Isla Santa Cruz'];
 
 const inputStyle = {
   backgroundColor: '#EDEDED',
