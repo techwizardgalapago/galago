@@ -702,6 +702,11 @@ const styles = StyleSheet.create({
   },
   filterSheet: {
     backgroundColor: "#FDFDFC",
+    // Mismo ancho que la columna de contenido: el Modal ocupa toda la ventana,
+    // asi que en web la hoja se estiraba de lado a lado.
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
     paddingTop: 24,
