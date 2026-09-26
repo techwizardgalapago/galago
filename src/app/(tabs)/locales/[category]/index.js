@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // -------- Constantes --------
 
-const ISLANDS = ["Todo", "San Cristobal", "Isabela", "Santa Cruz"];
+const ISLANDS = ["Todo", "San Cristóbal", "Isabela", "Santa Cruz"];
 
 // Mapeo categoría-key → valores de venueCategory
 const CATEGORY_VENUE_TYPES = {
@@ -80,8 +80,8 @@ export default function VenueListScreen() {
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
-  const [pendingIsland, setPendingIsland] = useState("San Cristobal");
-  const [activeIsland, setActiveIsland] = useState("San Cristobal");
+  const [pendingIsland, setPendingIsland] = useState("San Cristóbal");
+  const [activeIsland, setActiveIsland] = useState("San Cristóbal");
 
   const searchInputRef = useRef(null);
   const tabTranslateX = useRef(new Animated.Value(0)).current;
@@ -210,7 +210,8 @@ export default function VenueListScreen() {
               contentContainerStyle={styles.islandChipsRow}
             >
               {ISLANDS.filter((i) => i !== "Todo").map((island) => {
-                const isActive = activeIsland === island;
+                const isActive =
+                  normalizeToken(activeIsland) === normalizeToken(island);
                 return (
                   <Pressable
                     key={island}
@@ -287,7 +288,8 @@ export default function VenueListScreen() {
             contentContainerStyle={styles.filterIslandRow}
           >
             {ISLANDS.map((island) => {
-              const selected = pendingIsland === island;
+              const selected =
+                normalizeToken(pendingIsland) === normalizeToken(island);
               return (
                 <Pressable
                   key={island}

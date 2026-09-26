@@ -28,7 +28,7 @@ const TABS = [
   { key: "descubre", label: "DESCUBRE LAS ISLAS" },
 ];
 
-const ISLANDS = ["Todo", "San Cristobal", "Isabela", "Santa Cruz"];
+const ISLANDS = ["Todo", "San Cristóbal", "Isabela", "Santa Cruz"];
 
 const CATEGORIES = [
   {
@@ -111,7 +111,7 @@ function TouristSiteCard({ site, island }) {
   return (
     <Pressable
       style={styles.siteCard}
-      onPress={() => router.push(`/(tabs)/locales/descubre/${site.siteID}?island=${encodeURIComponent(island || "San Cristobal")}`)}
+      onPress={() => router.push(`/(tabs)/locales/descubre/${site.siteID}?island=${encodeURIComponent(island || "San Cristóbal")}`)}
     >
       <View style={styles.siteThumbnail}>
         {imageUrl ? (
@@ -144,8 +144,8 @@ export default function LocalesScreen() {
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
-  const [pendingIsland, setPendingIsland] = useState(params.island || "San Cristobal");
-  const [activeIsland, setActiveIsland] = useState(params.island || "San Cristobal");
+  const [pendingIsland, setPendingIsland] = useState(params.island || "San Cristóbal");
+  const [activeIsland, setActiveIsland] = useState(params.island || "San Cristóbal");
 
   const tabTranslateX = useRef(new Animated.Value(0)).current;
   const tabLayouts = useRef({});
@@ -357,7 +357,8 @@ export default function LocalesScreen() {
                   contentContainerStyle={styles.islandChipsRow}
                 >
                   {ISLANDS.filter((i) => i !== "Todo").map((island) => {
-                    const isActive = activeIsland === island;
+                    const isActive =
+                      normalizeToken(activeIsland) === normalizeToken(island);
                     return (
                       <Pressable
                         key={island}
@@ -422,7 +423,8 @@ export default function LocalesScreen() {
             contentContainerStyle={styles.filterIslandRow}
           >
             {ISLANDS.map((island) => {
-              const selected = pendingIsland === island;
+              const selected =
+                normalizeToken(pendingIsland) === normalizeToken(island);
               return (
                 <Pressable
                   key={island}

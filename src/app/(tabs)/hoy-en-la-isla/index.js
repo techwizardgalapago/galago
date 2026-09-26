@@ -175,7 +175,7 @@ export default function HoyEnLaIslaScreen() {
   const [activeTags, setActiveTags] = useState([]);
   const { events: allEvents } = useEvents();
 
-  const ISLANDS = ["Todo", "San Cristobal", "Isabela", "Santa Cruz"];
+  const ISLANDS = ["Todo", "San Cristóbal", "Isabela", "Santa Cruz"];
 
   const allTags = useMemo(() => {
     const seen = new Set();
@@ -802,7 +802,8 @@ export default function HoyEnLaIslaScreen() {
             contentContainerStyle={styles.islandRow}
           >
             {ISLANDS.map((island) => {
-              const selected = pendingIsland === island;
+              const selected =
+                normalizeToken(pendingIsland) === normalizeToken(island);
               return (
                 <Pressable
                   key={island}

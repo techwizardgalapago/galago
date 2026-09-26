@@ -61,7 +61,7 @@ const formatEntryFee = (fee) => {
 
 export default function TouristSiteDetailScreen() {
   const { siteID, island } = useLocalSearchParams();
-  const backUrl = `/(tabs)/locales?tab=descubre&island=${encodeURIComponent(island || "San Cristobal")}`;
+  const backUrl = `/(tabs)/locales?tab=descubre&island=${encodeURIComponent(island || "San Cristóbal")}`;
   const { isMobile } = useMedia();
   const dispatch = useDispatch();
   const site = useSelector((s) => selectTouristSiteById(s, siteID));
