@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Contorno cuando la pestaña esta inactiva y solido en la actual, que es la
 // convencion de iOS y Android: marca donde estas sin depender solo del color.
@@ -14,14 +15,26 @@ const icono = (base) => {
 };
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
         // Sin fondo propio: lo pinta el desenfoque de abajo.
+        //
+        // react-navigation monta este elemento con StyleSheet.absoluteFill,
+        // y un hijo absoluto se posiciona DENTRO del padding del contenedor.
+        // Como la barra reserva insets.bottom para el area de gestos de
+        // Android, el desenfoque se quedaba corto y esa franja aparecia sin
+        // cubrir. Se extiende por debajo del padding.
         tabBarBackground: () => (
-          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView
+            intensity={40}
+            tint="light"
+            style={[StyleSheet.absoluteFill, { bottom: -insets.bottom }]}
+          />
         ),
       }}
     >
