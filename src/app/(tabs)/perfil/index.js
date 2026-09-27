@@ -202,7 +202,7 @@ export default function PerfilScreen() {
                 {savedVenues.map((v) => (
                   <Pressable
                     key={v.venueID}
-                    onPress={() => router.push(`/(tabs)/locales/${getCategoryForVenue(v)}/${v.venueID}`)}
+                    onPress={() => router.push(`/(tabs)/locales/${getCategoryForVenue(v)}/${v.venueID}?from=perfil&tab=saved`)}
                   >
                     <PlaceCard
                       imageUri={getVenueImageUrl(v.venueImage)}
@@ -221,7 +221,7 @@ export default function PerfilScreen() {
                 {savedPlaces.map((v) => (
                   <Pressable
                     key={v.venueID}
-                    onPress={() => router.push(`/(tabs)/locales/${getCategoryForVenue(v)}/${v.venueID}`)}
+                    onPress={() => router.push(`/(tabs)/locales/${getCategoryForVenue(v)}/${v.venueID}?from=perfil&tab=places`)}
                   >
                     <PlaceCard
                       imageUri={getVenueImageUrl(v.venueImage)}
@@ -233,7 +233,7 @@ export default function PerfilScreen() {
                 {savedSites.map((s) => (
                   <Pressable
                     key={s.siteID}
-                    onPress={() => router.push(`/(tabs)/locales/descubre/${s.siteID}`)}
+                    onPress={() => router.push(`/(tabs)/locales/descubre/${s.siteID}?from=perfil&tab=places`)}
                   >
                     <PlaceCard
                       imageUri={getSiteImageUrl(s.siteImage)}

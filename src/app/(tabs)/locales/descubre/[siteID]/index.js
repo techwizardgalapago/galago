@@ -62,8 +62,12 @@ const formatEntryFee = (fee) => {
 
 export default function TouristSiteDetailScreen() {
   const tabBarInset = useTabBarInset();
-  const { siteID, island } = useLocalSearchParams();
-  const backUrl = `/(tabs)/locales?tab=descubre&island=${encodeURIComponent(island || "San Cristóbal")}`;
+  const { siteID, island, from, tab } = useLocalSearchParams();
+  // Ruta de vuelta por parametro, no por historial.
+  const backUrl =
+    from === "perfil"
+      ? `/(tabs)/perfil${typeof tab === "string" ? `?tab=${tab}` : ""}`
+      : `/(tabs)/locales?tab=descubre&island=${encodeURIComponent(island || "San Cristóbal")}`;
   const { isMobile } = useMedia();
   const dispatch = useDispatch();
   const site = useSelector((s) => selectTouristSiteById(s, siteID));
@@ -104,7 +108,7 @@ export default function TouristSiteDetailScreen() {
           <Text style={styles.notFoundText}>Sitio no encontrado.</Text>
           <Pressable
             style={styles.notFoundBack}
-            onPress={() => router.replace("/(tabs)/locales")}
+            onPress={() => router.replace(backUrl)}
           >
             <Text style={styles.notFoundBackText}>Regresar</Text>
           </Pressable>

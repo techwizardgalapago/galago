@@ -84,7 +84,13 @@ export default function VenueDetailScreen() {
   const contentWidth = isMobile
     ? { width: "100%" }
     : { width: "100%", maxWidth: 720, alignSelf: "center" };
-  const { venueID, category } = useLocalSearchParams();
+  const { venueID, category, from, tab } = useLocalSearchParams();
+  // Ruta de vuelta por parametro, no por historial: asi se regresa a donde se
+  // entro aunque el usuario haya cambiado de pestaña mientras estaba aqui.
+  const backHref =
+    from === "perfil"
+      ? `/(tabs)/perfil${typeof tab === "string" ? `?tab=${tab}` : ""}`
+      : `/(tabs)/locales/${category}`;
   const dispatch = useDispatch();
 
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));
@@ -265,7 +271,7 @@ export default function VenueDetailScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.notFound}>
           <Text style={styles.notFoundText}>No se encontró el local.</Text>
-          <Pressable onPress={() => router.replace(`/(tabs)/locales/${category}`)} style={styles.notFoundBack}>
+          <Pressable onPress={() => router.replace(backHref)} style={styles.notFoundBack}>
             <Text style={styles.notFoundBackText}>Regresar</Text>
           </Pressable>
         </View>
@@ -414,7 +420,7 @@ export default function VenueDetailScreen() {
 
       {/* Barra de acciones sticky */}
       <View style={[styles.actionBar, { bottom: tabBarInset }]}>
-        <Pressable style={styles.actionBack} onPress={() => router.replace(`/(tabs)/locales/${category}`)}>
+        <Pressable style={styles.actionBack} onPress={() => router.replace(backHref)}>
           <Ionicons name="arrow-back" size={20} color="#1B2222" />
         </Pressable>
 
