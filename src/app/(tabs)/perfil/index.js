@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Platform, ScrollView, Pressable } from "react-n
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import AuthBackground from "../../../components/auth/AuthBackground";
 import AuthCard from "../../../components/auth/AuthCard";
 import AuthButton from "../../../components/auth/AuthButton";
@@ -73,7 +73,12 @@ const formatEventTime = (isoString) => {
 
 export default function PerfilScreen() {
   const tabBarInset = useTabBarInset();
-  const [activeTab, setActiveTab] = useState("saved");
+  // La pestaña viaja en la URL para poder volver a ella desde el detalle de un
+  // evento, y de paso sobrevive a un refresco o a un enlace compartido.
+  const params = useLocalSearchParams();
+  const [activeTab, setActiveTab] = useState(() =>
+    ["agenda", "saved", "places"].includes(params.tab) ? params.tab : "saved"
+  );
   const [sheetVisible, setSheetVisible] = useState(false);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
@@ -178,7 +183,7 @@ export default function PerfilScreen() {
                 {savedEvents.map((ev) => (
                   <Pressable
                     key={ev.eventID}
-                    onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${ev.eventID}`)}
+                    onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${ev.eventID}?from=perfil&tab=agenda`)}
                   >
                     <ProfileEventCard
                       time={formatEventTime(ev.startTime)}

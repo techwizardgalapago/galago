@@ -99,9 +99,18 @@ const INFO_ROWS = [
 
 export default function EventDetailScreen() {
   const tabBarInset = useTabBarInset();
-  const { eventID, tab } = useLocalSearchParams();
-  // Pestaña desde la que se entro, para volver a ella y no siempre a "hoy".
-  const backTab = typeof tab === "string" ? tab : null;
+  const { eventID, tab, from } = useLocalSearchParams();
+  // Ruta de vuelta, construida con lo que llego por parametro y no con el
+  // historial: al historial le da igual de donde entraste, y si cambias de
+  // pestaña mientras estas aqui te devolveria al ultimo sitio visitado.
+  const backHref = (() => {
+    const pestana = typeof tab === "string" ? tab : null;
+    const origen = typeof from === "string" ? from : null;
+    if (origen === "perfil") {
+      return `/(tabs)/perfil${pestana ? `?tab=${pestana}` : ""}`;
+    }
+    return `/(tabs)/hoy-en-la-isla${pestana ? `?tab=${pestana}` : ""}`;
+  })();
   const dispatch = useDispatch();
   const allEvents = useSelector((state) => state.events.list);
   const event = allEvents.find((e) => e.eventID === eventID);
@@ -138,7 +147,7 @@ export default function EventDetailScreen() {
       <View style={styles.centerContainer}>
       {/* Action bar — absolute, above the card */}
       <View style={[styles.actionBar, contentWidth]}>
-        <Pressable style={styles.circleBtn} onPress={() => router.replace(`/(tabs)/hoy-en-la-isla${backTab ? `?tab=${backTab}` : ""}`)}>
+        <Pressable style={styles.circleBtn} onPress={() => router.replace(backHref)}>
           <Ionicons name="arrow-back" size={22} color="#1B2222" />
         </Pressable>
         <View style={styles.rightActions}>
