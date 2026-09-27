@@ -30,6 +30,8 @@ const TABS = [
 ];
 
 const ISLANDS = ["Todo", "San Cristóbal", "Isabela", "Santa Cruz"];
+// Isla con la que arranca la pantalla cuando no llega ninguna en la URL.
+const ISLA_POR_DEFECTO = "San Cristóbal";
 
 const CATEGORIES = [
   {
@@ -99,7 +101,7 @@ function CategoryTile({ category, island }) {
         // La isla seleccionada acompaña a la categoria, para que el listado
         // abra con el mismo filtro y pueda devolverlo al volver de un local.
         router.push(
-          `/(tabs)/locales/${category.key}?island=${encodeURIComponent(island || "San Cristóbal")}`
+          `/(tabs)/locales/${category.key}?island=${encodeURIComponent(island || ISLA_POR_DEFECTO)}`
         )
       }
     >
@@ -120,7 +122,7 @@ function TouristSiteCard({ site, island }) {
   return (
     <Pressable
       style={styles.siteCard}
-      onPress={() => router.push(`/(tabs)/locales/descubre/${site.siteID}?island=${encodeURIComponent(island || "San Cristóbal")}`)}
+      onPress={() => router.push(`/(tabs)/locales/descubre/${site.siteID}?island=${encodeURIComponent(island || ISLA_POR_DEFECTO)}`)}
     >
       <View style={styles.siteThumbnail}>
         {imageUrl ? (
@@ -154,8 +156,8 @@ export default function LocalesScreen() {
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
-  const [pendingIsland, setPendingIsland] = useState(params.island || "San Cristóbal");
-  const [activeIsland, setActiveIsland] = useState(params.island || "San Cristóbal");
+  const [pendingIsland, setPendingIsland] = useState(params.island || ISLA_POR_DEFECTO);
+  const [activeIsland, setActiveIsland] = useState(params.island || ISLA_POR_DEFECTO);
 
   const tabTranslateX = useRef(new Animated.Value(0)).current;
   const tabLayouts = useRef({});
@@ -164,7 +166,6 @@ export default function LocalesScreen() {
   const searchInputRef = useRef(null);
 
   const isLocalesTab = activeTab === "locales";
-  const filterActive = activeIsland !== "Todo";
 
   const hPad = isMobile ? 16 : 30;
   const contentWidth = isMobile ? styles.fullWidth : styles.maxWidth;
@@ -316,7 +317,7 @@ export default function LocalesScreen() {
               )}
             </View>
             <Pressable
-              style={[styles.filterButton, filterActive && styles.filterButtonActive]}
+              style={styles.filterButton}
               onPress={() => {
                 setPendingIsland(activeIsland);
                 setFilterVisible(true);
@@ -325,7 +326,7 @@ export default function LocalesScreen() {
               <Ionicons
                 name="options-outline"
                 size={18}
-                color={filterActive ? "#FDFDFC" : "#99A0A0"}
+                color="#99A0A0"
               />
             </Pressable>
           </View>
@@ -573,9 +574,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FDFDFC",
     alignItems: "center",
     justifyContent: "center",
-  },
-  filterButtonActive: {
-    backgroundColor: "#8D45E9",
   },
 
   // Tarjeta blanca — idéntico a hoy-en-la-isla

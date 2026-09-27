@@ -24,6 +24,8 @@ import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 // -------- Constantes --------
 
 const ISLANDS = ["Todo", "San Cristóbal", "Isabela", "Santa Cruz"];
+// Isla con la que arranca la pantalla cuando no llega ninguna en la URL.
+const ISLA_POR_DEFECTO = "San Cristóbal";
 
 // Mapeo categoría-key → valores de venueCategory
 const CATEGORY_VENUE_TYPES = {
@@ -84,14 +86,13 @@ export default function VenueListScreen() {
   const [filterVisible, setFilterVisible] = useState(false);
   // La isla viaja en la URL para conservarse al volver del detalle de un local
   // y para sobrevivir a un refresco o a un enlace compartido.
-  const islaInicial = typeof island === "string" && island ? island : "San Cristóbal";
+  const islaInicial = typeof island === "string" && island ? island : ISLA_POR_DEFECTO;
   const [pendingIsland, setPendingIsland] = useState(islaInicial);
   const [activeIsland, setActiveIsland] = useState(islaInicial);
 
   const searchInputRef = useRef(null);
   const tabTranslateX = useRef(new Animated.Value(0)).current;
 
-  const filterActive = activeIsland !== "Todo";
   const hPad = isMobile ? 16 : 30;
   const contentWidth = isMobile ? styles.fullWidth : styles.maxWidth;
   const CardWrapper = Platform.OS === "ios" ? KeyboardAvoidingView : View;
@@ -186,7 +187,7 @@ export default function VenueListScreen() {
               )}
             </View>
             <Pressable
-              style={[styles.filterButton, filterActive && styles.filterButtonActive]}
+              style={styles.filterButton}
               onPress={() => {
                 setPendingIsland(activeIsland);
                 setFilterVisible(true);
@@ -195,7 +196,7 @@ export default function VenueListScreen() {
               <Ionicons
                 name="options-outline"
                 size={18}
-                color={filterActive ? "#FDFDFC" : "#99A0A0"}
+                color="#99A0A0"
               />
             </Pressable>
           </View>
@@ -414,7 +415,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  filterButtonActive: { backgroundColor: "#8D45E9" },
 
   // Tarjeta blanca — mismo sizing que hoy-en-la-isla y locales/index
   card: {
