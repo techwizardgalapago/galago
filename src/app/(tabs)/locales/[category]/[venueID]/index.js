@@ -24,6 +24,7 @@ import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { getVenueById } from "../../../../../services/venuesService";
 import CachedImage from "../../../../../components/CachedImage";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
+import { useMedia } from "../../../../../hooks/useMedia";
 
 // -------- Constantes --------
 
@@ -77,6 +78,12 @@ const getImageUrl = (imgObj) =>
 
 export default function VenueDetailScreen() {
   const tabBarInset = useTabBarInset();
+  const { isMobile } = useMedia();
+  // Igual que el detalle de lugar turistico: en web la tarjeta se estiraba a
+  // todo el navegador mientras el resto de la app vive en una columna de 720.
+  const contentWidth = isMobile
+    ? { width: "100%" }
+    : { width: "100%", maxWidth: 720, alignSelf: "center" };
   const { venueID, category } = useLocalSearchParams();
   const dispatch = useDispatch();
 
@@ -276,7 +283,7 @@ export default function VenueDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Tarjeta blanca scrollable */}
-      <View style={styles.card}>
+      <View style={[styles.card, contentWidth]}>
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarInset }]}
           showsVerticalScrollIndicator={false}
@@ -769,8 +776,12 @@ const styles = StyleSheet.create({
     // pestañas: esta flota tambien en bottom 0 y se dibuja despues, asi que
     // con 0 aqui quedaria tapada por completo.
     bottom: 0,
+    // Acotada como el resto del contenido. Con position absolute alignSelf no
+    // aplica: se centra con left/right a 0 y margenes automaticos.
     left: 0,
     right: 0,
+    maxWidth: 720,
+    marginHorizontal: "auto",
     backgroundColor: "rgba(255,255,255,0.9)",
     flexDirection: "row",
     justifyContent: "space-between",

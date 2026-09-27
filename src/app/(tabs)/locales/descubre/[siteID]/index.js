@@ -377,8 +377,12 @@ const styles = StyleSheet.create({
     // pestañas: esta flota tambien en bottom 0 y se dibuja despues, asi que
     // con 0 aqui quedaria tapada por completo.
     bottom: 0,
+    // Acotada como el resto del contenido. Con position absolute alignSelf no
+    // aplica: se centra con left/right a 0 y margenes automaticos.
     left: 0,
     right: 0,
+    maxWidth: 720,
+    marginHorizontal: "auto",
     height: 90,
     backgroundColor: "rgba(255,255,255,0.95)",
     flexDirection: "row",
