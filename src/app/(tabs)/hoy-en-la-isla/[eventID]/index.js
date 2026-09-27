@@ -99,7 +99,9 @@ const INFO_ROWS = [
 
 export default function EventDetailScreen() {
   const tabBarInset = useTabBarInset();
-  const { eventID } = useLocalSearchParams();
+  const { eventID, tab } = useLocalSearchParams();
+  // Pestaña desde la que se entro, para volver a ella y no siempre a "hoy".
+  const backTab = typeof tab === "string" ? tab : null;
   const dispatch = useDispatch();
   const allEvents = useSelector((state) => state.events.list);
   const event = allEvents.find((e) => e.eventID === eventID);
@@ -136,7 +138,7 @@ export default function EventDetailScreen() {
       <View style={styles.centerContainer}>
       {/* Action bar — absolute, above the card */}
       <View style={[styles.actionBar, contentWidth]}>
-        <Pressable style={styles.circleBtn} onPress={() => router.replace("/(tabs)/hoy-en-la-isla")}>
+        <Pressable style={styles.circleBtn} onPress={() => router.replace(`/(tabs)/hoy-en-la-isla${backTab ? `?tab=${backTab}` : ""}`)}>
           <Ionicons name="arrow-back" size={22} color="#1B2222" />
         </Pressable>
         <View style={styles.rightActions}>

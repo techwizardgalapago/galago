@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Modal,
 } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -157,7 +157,13 @@ export default function HoyEnLaIslaScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, 34);
   const { isMobile } = useMedia();
-  const [activeTab, setActiveTab] = useState("hoy");
+  // La pestaña viaja en la URL para poder volver a ella desde el detalle de un
+  // evento. Sin esto, regresar siempre caia en "hoy" aunque hubieras entrado
+  // desde Agenda.
+  const params = useLocalSearchParams();
+  const [activeTab, setActiveTab] = useState(() =>
+    TABS.some((t) => t.key === params.tab) ? params.tab : "hoy"
+  );
   const [activeDay, setActiveDay] = useState(null);
   const tabTranslateX = useRef(new Animated.Value(0)).current;
   const tabLayouts = useRef({});
@@ -571,7 +577,7 @@ export default function HoyEnLaIslaScreen() {
                 <Text style={styles.noResults}>Sin resultados</Text>
               ) : (
                 searchResults.map((event, index) => (
-                  <Pressable key={`${event.eventID}-${index}`} style={styles.eventRow} onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${event.eventID}`)}>
+                  <Pressable key={`${event.eventID}-${index}`} style={styles.eventRow} onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${event.eventID}?tab=${activeTab}`)}>
                     <View style={[styles.eventBar, { backgroundColor: tabStyle.accent }]} />
                     <View style={styles.eventInfo}>
                       <Text style={[styles.eventTime, { color: tabStyle.accent }]}>
@@ -738,7 +744,7 @@ export default function HoyEnLaIslaScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 {events.map((event, index) => (
-                  <Pressable key={`${event.eventID ?? event.title}-${index}`} style={styles.eventRow} onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${event.eventID}`)}>
+                  <Pressable key={`${event.eventID ?? event.title}-${index}`} style={styles.eventRow} onPress={() => router.push(`/(tabs)/hoy-en-la-isla/${event.eventID}?tab=${activeTab}`)}>
                     <View
                       style={[
                         styles.eventBar,
