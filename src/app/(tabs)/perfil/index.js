@@ -260,9 +260,11 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "flex-end",
   },
   card: {
+    // Se estira hasta la barra, como la tarjeta de Hoy y Locales, en vez de
+    // quedarse anclada abajo con su altura fija.
+    flexGrow: 1,
     minHeight: 744,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
