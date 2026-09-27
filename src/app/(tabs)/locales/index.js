@@ -92,9 +92,17 @@ const normalizeToken = (value) =>
 
 // -------- Componentes internos --------
 
-function CategoryTile({ category }) {
+function CategoryTile({ category, island }) {
   return (
-    <Pressable onPress={() => router.push(`/(tabs)/locales/${category.key}`)}>
+    <Pressable
+      onPress={() =>
+        // La isla seleccionada acompaña a la categoria, para que el listado
+        // abra con el mismo filtro y pueda devolverlo al volver de un local.
+        router.push(
+          `/(tabs)/locales/${category.key}?island=${encodeURIComponent(island || "San Cristóbal")}`
+        )
+      }
+    >
       <LinearGradient
         colors={category.colors}
         start={category.start}
@@ -340,7 +348,7 @@ export default function LocalesScreen() {
               <Text style={styles.sectionTitle}>Categorías Populares</Text>
               <View style={styles.categoryGrid}>
                 {filteredCategories.map((cat) => (
-                  <CategoryTile key={cat.key} category={cat} />
+                  <CategoryTile key={cat.key} category={cat} island={activeIsland} />
                 ))}
                 {filteredCategories.length === 0 && (
                   <Text style={styles.noResults}>Sin resultados</Text>

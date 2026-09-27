@@ -84,13 +84,21 @@ export default function VenueDetailScreen() {
   const contentWidth = isMobile
     ? { width: "100%" }
     : { width: "100%", maxWidth: 720, alignSelf: "center" };
-  const { venueID, category, from, tab } = useLocalSearchParams();
+  const { venueID, category, from, tab, island } = useLocalSearchParams();
   // Ruta de vuelta por parametro, no por historial: asi se regresa a donde se
   // entro aunque el usuario haya cambiado de pestaña mientras estaba aqui.
-  const backHref =
-    from === "perfil"
-      ? `/(tabs)/perfil${typeof tab === "string" ? `?tab=${tab}` : ""}`
-      : `/(tabs)/locales/${category}`;
+  const backHref = (() => {
+    if (from === "perfil") {
+      return `/(tabs)/perfil${typeof tab === "string" ? `?tab=${tab}` : ""}`;
+    }
+    // Se devuelve la isla que estaba seleccionada en el listado, para no
+    // reiniciar el filtro al volver.
+    const isla =
+      typeof island === "string" && island
+        ? `?island=${encodeURIComponent(island)}`
+        : "";
+    return `/(tabs)/locales/${category}${isla}`;
+  })();
   const dispatch = useDispatch();
 
   const venue = useSelector((s) => selectVenueByIdFromState(s, venueID));

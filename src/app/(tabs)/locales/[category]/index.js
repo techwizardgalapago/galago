@@ -76,14 +76,17 @@ export default function VenueListScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, 34);
   const { isMobile } = useMedia();
-  const { category } = useLocalSearchParams();
+  const { category, island } = useLocalSearchParams();
   const { venues } = useVenues();
 
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
-  const [pendingIsland, setPendingIsland] = useState("San Cristóbal");
-  const [activeIsland, setActiveIsland] = useState("San Cristóbal");
+  // La isla viaja en la URL para conservarse al volver del detalle de un local
+  // y para sobrevivir a un refresco o a un enlace compartido.
+  const islaInicial = typeof island === "string" && island ? island : "San Cristóbal";
+  const [pendingIsland, setPendingIsland] = useState(islaInicial);
+  const [activeIsland, setActiveIsland] = useState(islaInicial);
 
   const searchInputRef = useRef(null);
   const tabTranslateX = useRef(new Animated.Value(0)).current;
@@ -245,7 +248,9 @@ export default function VenueListScreen() {
                 <Pressable
                   key={venue.venueID}
                   onPress={() =>
-                    router.push(`/(tabs)/locales/${category}/${venue.venueID}`)
+                    router.push(
+                      `/(tabs)/locales/${category}/${venue.venueID}?island=${encodeURIComponent(activeIsland)}`
+                    )
                   }
                 >
                   <PlaceCard
