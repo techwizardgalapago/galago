@@ -85,10 +85,18 @@ const styles = StyleSheet.create({
     // desenfocar. Lo que hay debajo se tapa, por eso cada scroll reserva
     // espacio al final con useTabBarInset.
     position: "absolute",
-    // Fondo translucido propio del contenedor, no de un hijo absoluto: cubre
-    // tambien el relleno inferior del area de gestos, donde el desenfoque no
-    // llega. Sin esto quedaba una franja sin cubrir.
-    backgroundColor: "rgba(253,253,252,0.82)",
+    // En iOS translucido, porque encima va el desenfoque nativo.
+    //
+    // En Android OPACO a proposito. Android superpone su propia capa clara
+    // sobre la zona de navegacion, y con un fondo translucido esa capa se
+    // nota como un recuadro mas brillante, metido por los lados. Con el fondo
+    // opaco queda camuflada, que es como se veia antes de hacer flotar la
+    // barra. Ademas Android no desenfoca, asi que la translucidez no aportaba
+    // nada ahi.
+    backgroundColor: Platform.select({
+      ios: "rgba(253,253,252,0.82)",
+      default: "#FDFDFC",
+    }),
     borderTopColor: "rgba(0,0,0,0.06)",
     // Mismo ancho que la columna de contenido (720). Con position absolute
     // alignSelf no aplica: se centra con left/right a 0 y margenes auto.
