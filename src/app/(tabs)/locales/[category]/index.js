@@ -20,6 +20,10 @@ import { useVenues } from "../../../../hooks/useVenues";
 import PlaceCard from "../../../../components/profile/PlaceCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTabBarInset } from "../../../../hooks/useTabBarInset";
+import {
+  tagsForCategory,
+  venueMatchesTags,
+} from "../../../../features/venues/categoryTags";
 
 // -------- Constantes --------
 
@@ -29,7 +33,7 @@ const ISLA_POR_DEFECTO = "San Cristóbal";
 
 // Mapeo categoría-key → valores de venueCategory
 const CATEGORY_VENUE_TYPES = {
-  alimentos: ["restaurante", "café", "cafe"],
+  alimentos: ["restaurante", "café", "cafe", "bar"],
   hoteles: ["hotel", "hostal", "alojamiento", "hospedaje"],
   actividades: ["teatro", "spa", "museo", "centro turistico", "casa cultural", "parque", "otro"],
   nocturna: ["club", "bar"],
@@ -87,8 +91,11 @@ export default function VenueListScreen() {
   // La isla viaja en la URL para conservarse al volver del detalle de un local
   // y para sobrevivir a un refresco o a un enlace compartido.
   const islaInicial = typeof island === "string" && island ? island : ISLA_POR_DEFECTO;
-  const [pendingIsland, setPendingIsland] = useState(islaInicial);
   const [activeIsland, setActiveIsland] = useState(islaInicial);
+  // La isla se elige en los chips de la cabecera; el overlay filtra por tags.
+  const tagsDisponibles = useMemo(() => tagsForCategory(category), [category]);
+  const [pendingTags, setPendingTags] = useState([]);
+  const [activeTags, setActiveTags] = useState([]);
 
   const searchInputRef = useRef(null);
   const tabTranslateX = useRef(new Animated.Value(0)).current;
@@ -118,6 +125,9 @@ export default function VenueListScreen() {
         if (!loc.includes(normalizeToken(activeIsland))) return false;
       }
 
+      // Filtro por tags
+      if (!venueMatchesTags(v, activeTags)) return false;
+
       return true;
     });
 
@@ -132,7 +142,7 @@ export default function VenueListScreen() {
     }
 
     return list;
-  }, [venues, category, activeIsland, searchQuery, allowedTypes]);
+  }, [venues, category, activeIsland, activeTags, searchQuery, allowedTypes]);
 
   return (
     <LinearGradient
@@ -189,7 +199,7 @@ export default function VenueListScreen() {
             <Pressable
               style={styles.filterButton}
               onPress={() => {
-                setPendingIsland(activeIsland);
+                setPendingTags(activeTags);
                 setFilterVisible(true);
               }}
             >
@@ -289,20 +299,20 @@ export default function VenueListScreen() {
         <View style={styles.filterSheet}>
           <Text style={styles.filterTitle}>Filtros</Text>
 
-          <Text style={styles.filterSectionLabel}>Isla</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterIslandRow}
-          >
-            {ISLANDS.map((island) => {
-              const selected =
-                normalizeToken(pendingIsland) === normalizeToken(island);
+          <View style={styles.filterTagRow}>
+            {tagsDisponibles.map((t) => {
+              const selected = pendingTags.some((p) => p.label === t.label);
               return (
                 <Pressable
-                  key={island}
+                  key={t.label}
                   style={[styles.islandChip, selected && styles.islandChipSelected]}
-                  onPress={() => setPendingIsland(island)}
+                  onPress={() =>
+                    setPendingTags((previos) =>
+                      selected
+                        ? previos.filter((p) => p.label !== t.label)
+                        : [...previos, t]
+                    )
+                  }
                 >
                   <Text
                     style={[
@@ -310,18 +320,18 @@ export default function VenueListScreen() {
                       selected && styles.islandChipTextSelected,
                     ]}
                   >
-                    {island}
+                    {t.label}
                   </Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
 
           <View style={styles.filterActions}>
             <Pressable
               style={styles.applyButton}
               onPress={() => {
-                setActiveIsland(pendingIsland);
+                setActiveTags(pendingTags);
                 setFilterVisible(false);
               }}
             >
@@ -330,8 +340,8 @@ export default function VenueListScreen() {
             <Pressable
               style={styles.resetButton}
               onPress={() => {
-                setPendingIsland("Todo");
-                setActiveIsland("Todo");
+                setPendingTags([]);
+                setActiveTags([]);
                 setFilterVisible(false);
               }}
             >
@@ -492,15 +502,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 16,
   },
-  filterSectionLabel: {
-    fontSize: 18,
-    color: "#000000",
-    paddingHorizontal: 30,
-    paddingVertical: 10,
-  },
-  filterIslandRow: {
+  filterTagRow: {
+    flexDirection: "row",
+    // Los tags son varios y de ancho desigual: en una sola fila se saldrian.
+    flexWrap: "wrap",
     paddingHorizontal: 30,
     gap: 12,
+    paddingTop: 10,
     paddingBottom: 16,
   },
   filterActions: {
