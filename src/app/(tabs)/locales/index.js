@@ -610,12 +610,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
     justifyContent: "center",
-    // En web la columna de contenido deja 660 de ancho util. Con el hueco de
-    // 12 caben cuatro baldosas por fila (155*4 + 12*3 = 656) y las seis
-    // categorias salian en 4 + 2; separandolas 60 solo caben tres (585) y
-    // cuatro necesitarian 800, asi que quedan dos filas de tres bien aireadas
-    // sin fijar ningun ancho. En una ventana mas estrecha envuelven solas.
-    ...(Platform.OS === "web" ? { gap: 60 } : null),
   },
   categoryTile: {
     width: 155,
@@ -624,6 +618,21 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 18,
     justifyContent: "flex-end",
+    // La baldosa de 155 esta pensada para movil y en la columna de 660 de web
+    // quedaba perdida, con el hueco repartiendo vacio. Aqui crece hasta un
+    // tercio de la fila (212) y la llena de lado a lado. Con base 180 caben
+    // tres (180*3 + 12*2 de hueco = 564) y una cuarta se iria a 756, asi que
+    // siguen siendo dos filas de tres; el maximo evita que una fila
+    // incompleta estire una baldosa suelta a todo lo ancho.
+    ...(Platform.OS === "web"
+      ? {
+          width: "auto",
+          height: 170,
+          flexGrow: 1,
+          flexBasis: 180,
+          maxWidth: 212,
+        }
+      : null),
   },
   categoryTileText: {
     fontSize: 19,
