@@ -27,6 +27,7 @@ import {
 } from '../../../../store/slices/venueSlice';
 import { fetchEventsRemote } from '../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../hooks/useTabBarInset";
+import { isCurator } from '../../../../features/users/roles';
 
 const isWeb = Platform.OS === 'web';
 
@@ -89,6 +90,8 @@ export default function MisNegociosScreen() {
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth?.user);
   const userVenueIds = authUser?.userVenues || [];
+  // Solo los curators registran negocios; a un explorer no se le ofrece.
+  const puedeRegistrarNegocio = isCurator(authUser);
   const { list: venues, status } = useSelector((s) => s.venues);
   const isOnline = useNetworkStatus();
   const userID = authUser?.userID;
@@ -280,12 +283,14 @@ export default function MisNegociosScreen() {
                 style={{ flex: 1, backgroundColor: '#F26719' }}
                 textStyle={{ color: 'white' }}
               />
-              <AuthButton
-                label="Registrar negocio"
-                onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
-                style={{ flex: 1, backgroundColor: '#EDEDEC' }}
-                textStyle={{ color: '#1B2222' }}
-              />
+              {puedeRegistrarNegocio ? (
+                <AuthButton
+                  label="Registrar negocio"
+                  onPress={() => router.push('/(tabs)/perfil/negocios/crear')}
+                  style={{ flex: 1, backgroundColor: '#EDEDEC' }}
+                  textStyle={{ color: '#1B2222' }}
+                />
+              ) : null}
             </View>
           </View>
         </AuthCard>

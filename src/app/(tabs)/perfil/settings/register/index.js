@@ -20,6 +20,7 @@ import Select from '../../../../../components/Select';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COUNTRIES } from '../../../../../utils/countries';
+import { USER_ROLES, DEFAULT_USER_ROLE } from '../../../../../features/users/roles';
 import { updateUser, upsertUsersFromAPI } from '../../../../../store/slices/userSlice';
 import { fetchMe } from '../../../../../store/slices/authSlice';
 import { splitFullName, joinFullName } from '../../../../../features/users/profileComplition';
@@ -35,7 +36,6 @@ const GENDER_OPTIONS = [
   'Utilizo otra palabra para definirme'
 ];
 
-const USER_ROLES = ['Curators & Providers', 'Explorer'];
 const TRAVEL_REASONS = [
   'Holidays & Leisure',
   'Scientific Research',
@@ -56,7 +56,7 @@ export default function RegisterProfileScreen() {
   const [form, setForm] = useState({
     fullName: '',
     userEmail: '',
-    userRole: USER_ROLES[0],
+    userRole: DEFAULT_USER_ROLE,
     countryOfOrigin: '',
     reasonForTravel: '',
     dateOfBirth: '',
@@ -120,7 +120,7 @@ export default function RegisterProfileScreen() {
     setForm({
       fullName: full || '',
       userEmail: user.userEmail || '',
-      userRole: user.userRole || USER_ROLES[0],
+      userRole: user.userRole || DEFAULT_USER_ROLE,
       countryOfOrigin: user.countryOfOrigin || '',
       reasonForTravel: reason,
       dateOfBirth: user.dateOfBirth || '',
