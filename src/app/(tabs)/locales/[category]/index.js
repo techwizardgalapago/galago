@@ -38,14 +38,26 @@ const CATEGORY_VENUE_TYPES = {
   actividades: ["teatro", "spa", "museo", "centro turistico", "casa cultural", "parque", "otro"],
   nocturna: ["club", "bar"],
   tiendas: ["tienda", "souvenirs"],
+  // Ninguno de estos tipos existe todavia en las opciones de Airtable, asi que
+  // la categoria sale vacia. Se listan igualmente y no se deja la lista a cero
+  // porque una lista vacia significa "acepta cualquier local".
+  informacion: [
+    "transporte",
+    "farmacia",
+    "hospital",
+    "banco",
+    "cajero",
+    "informacion turistica",
+  ],
 };
 
 const CATEGORY_LABELS = {
   alimentos: "Alimentos y Bebidas",
   hoteles: "Hoteles y Alojamientos",
-  actividades: "Actividades y Bienestar",
+  actividades: "Tours y Actividades",
   nocturna: "Vida Nocturna",
   tiendas: "Tiendas y Souvenirs",
+  informacion: "Información",
 };
 
 const normalizeToken = (value) =>

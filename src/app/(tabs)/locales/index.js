@@ -50,7 +50,7 @@ const CATEGORIES = [
   },
   {
     key: "actividades",
-    label: "Actividades y Bienestar",
+    label: "Tours y Actividades",
     colors: ["#057DBE", "#009CAD"],
     start: { x: 0.76, y: 0.07 },
     end: { x: 0.24, y: 0.93 },
@@ -68,6 +68,13 @@ const CATEGORIES = [
     colors: ["#2E7D32", "#66BB6A"],
     start: { x: 0.2, y: 0.9 },
     end: { x: 0.8, y: 0.1 },
+  },
+  {
+    key: "informacion",
+    label: "Información",
+    colors: ["#C43D3D", "#F2766B"],
+    start: { x: 0.85, y: 0.12 },
+    end: { x: 0.15, y: 0.88 },
   },
 ];
 

@@ -43,6 +43,16 @@ describe("tags por categoría", () => {
     expect(venueMatchesTag({ venueCategory: "Restaurante" }, heladerias)).toBe(false);
   });
 
+  it("la categoría de información tiene sus cinco tags", () => {
+    expect(tagsForCategory("informacion").map((t) => t.label)).toEqual([
+      "Transporte",
+      "Farmacias",
+      "Hospitales",
+      "Bancos y cajeros",
+      "Centros de información turística",
+    ]);
+  });
+
   it("sin tags seleccionados no filtra", () => {
     expect(venueMatchesTags({ venueCategory: "Tienda" }, [])).toBe(true);
   });

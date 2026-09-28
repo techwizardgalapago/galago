@@ -44,15 +44,12 @@ export const CATEGORY_TAGS = {
     tag("Tiendas", ["tienda"]),
     tag("Supermercados"),
   ],
-  // La categoria "Servicios e Información" todavia no existe en la app: no
-  // esta en CATEGORY_LABELS ni tiene tipos de local asociados. Sus tags se
-  // dejan definidos para cuando se cree.
-  servicios: [
-    tag("Transporte"),
-    tag("Farmacias"),
-    tag("Hospitales"),
-    tag("Bancos y cajeros"),
-    tag("Centros de información turística"),
+  informacion: [
+    tag("Transporte", ["transporte"]),
+    tag("Farmacias", ["farmacia"]),
+    tag("Hospitales", ["hospital"]),
+    tag("Bancos y cajeros", ["banco", "cajero"]),
+    tag("Centros de información turística", ["informacion turistica"]),
   ],
 };
 
