@@ -58,8 +58,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name='locales'
         options={{
-          title: "Locales",
-          tabBarLabel: "Locales",
+          title: "Descubre",
+          tabBarLabel: "Descubre",
           tabBarIcon: icono("storefront"),
         }}
       />
