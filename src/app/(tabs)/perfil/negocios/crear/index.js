@@ -34,6 +34,8 @@ import { getCoordsFromGoogleMapsLink } from '../../../../../utils/maps';
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 // ---------- Constantes ----------
+const MAX_IMAGENES = 6;
+
 const VENUE_CATEGORIES = [
   'Restaurante',
   'Café',
@@ -113,6 +115,41 @@ const validateDaySegments = (segments = []) => {
 
 
 // ---------- Componente principal ----------
+const GaleriaNuevas = ({ imagenes, onQuitar }) => {
+  if (imagenes.length === 0) return null;
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {imagenes.map((img) => (
+        <View key={img.uri}>
+          <Image
+            source={{ uri: img.uri }}
+            style={{ width: 100, height: 100, borderRadius: 10 }}
+            resizeMode="cover"
+          />
+          <Pressable
+            onPress={() => onQuitar(img.uri)}
+            style={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ color: '#FDFDFC', fontSize: 15, lineHeight: 17, fontWeight: '600' }}>
+              ×
+            </Text>
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+};
+
 export default function CrearNegocioScreen() {
   const tabBarInset = useTabBarInset();
   const dispatch = useDispatch();
@@ -134,7 +171,7 @@ export default function CrearNegocioScreen() {
   });
 
   const [schedules, setSchedules] = useState(buildDefaultSchedules());
-  const [image, setImage] = useState(null); // { uri, name, type }
+  const [images, setImages] = useState([]); // { uri, name, type }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -147,18 +184,30 @@ export default function CrearNegocioScreen() {
   );
 
   const pickImage = async () => {
+    const huecosLibres = MAX_IMAGENES - images.length;
+    if (huecosLibres === 0) {
+      setError(`Un local admite como máximo ${MAX_IMAGENES} imágenes`);
+      return;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
+      allowsMultipleSelection: true,
+      selectionLimit: huecosLibres,
     });
-    if (!res.canceled && res.assets?.[0]) {
-      const asset = res.assets[0];
-      const name = asset.fileName || `venue_${Date.now()}.jpg`;
-      const type = asset.mimeType || 'image/jpeg';
-      setImage({ uri: asset.uri, name, type });
-    }
+    if (res.canceled) return;
+    // Se recorta igualmente: en web `selectionLimit` no siempre se respeta.
+    const elegidas = (res.assets ?? []).slice(0, huecosLibres).map((asset, i) => ({
+      uri: asset.uri,
+      name: asset.fileName || `venue_${Date.now()}_${i}.jpg`,
+      type: asset.mimeType || 'image/jpeg',
+    }));
+    setImages((previas) => [...previas, ...elegidas]);
   };
+
+  const quitarImagen = (uri) =>
+    setImages((previas) => previas.filter((img) => img.uri !== uri));
 
   // ---------- Helpers de horarios ----------
   const quickFillDay = (dayIdx, open = '08:00', close = '22:00') => {
@@ -351,25 +400,27 @@ export default function CrearNegocioScreen() {
         await createVenueSchedules(payload);
       }
 
-      // 4) Subir logo si existe (no-fatal: el negocio ya fue creado)
-      if (image) {
+      // 4) Subir las fotos si las hay (no-fatal: el negocio ya fue creado)
+      if (images.length) {
         try {
           if (Platform.OS === 'web') {
-            const res = await fetch(image.uri);
-            const blob = await res.blob();
-            const file = new File(
-              [blob],
-              image.name || 'venue.jpg',
-              { type: blob.type || image.type || 'image/jpeg' }
-            );
             const formData = new FormData();
-            formData.append('image', file);
+            for (const img of images) {
+              const res = await fetch(img.uri);
+              const blob = await res.blob();
+              formData.append(
+                'images',
+                new File([blob], img.name || 'venue.jpg', {
+                  type: blob.type || img.type || 'image/jpeg',
+                })
+              );
+            }
             await uploadVenueImage(venueID, formData);
           } else {
-            await uploadVenueImage(venueID, image);
+            await uploadVenueImage(venueID, images);
           }
         } catch (imgErr) {
-          console.warn('No se pudo subir la imagen del negocio:', imgErr);
+          console.warn('No se pudieron subir las imagenes del negocio:', imgErr);
         }
       }
 
@@ -528,13 +579,7 @@ export default function CrearNegocioScreen() {
                       </Text>
                     </Pressable>
                   </View>
-                  {image ? (
-                    <Image
-                      source={{ uri: image.uri }}
-                      style={{ width: 100, height: 100, borderRadius: 10 }}
-                      resizeMode="cover"
-                    />
-                  ) : null}
+                  <GaleriaNuevas imagenes={images} onQuitar={quitarImagen} />
                 </View>
               </View>
             ) : (
@@ -616,13 +661,7 @@ export default function CrearNegocioScreen() {
                     </Text>
                   </Pressable>
                 </View>
-                {image ? (
-                  <Image
-                    source={{ uri: image.uri }}
-                    style={{ width: 100, height: 100, borderRadius: 10 }}
-                    resizeMode="cover"
-                  />
-                ) : null}
+                <GaleriaNuevas imagenes={images} onQuitar={quitarImagen} />
               </>
             )}
 

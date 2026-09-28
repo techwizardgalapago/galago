@@ -9,6 +9,7 @@ import {
   ScrollView,
   Switch,
   Image,
+  StyleSheet,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
@@ -34,6 +35,7 @@ import {
   patchVenue,
   getVenueById,
   uploadVenueImage,
+  deleteVenueImage,
   createVenueSchedules,
   updateVenueSchedules,
   deleteVenueScheduleById,
@@ -51,6 +53,89 @@ import {
   validateDaySegments,
 } from '../../../../../../features/venues/schedules';
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
+
+const MAX_IMAGENES = 6;
+
+// Las imagenes llegan como lista de adjuntos de Airtable, o como esa lista ya
+// serializada cuando vienen de la copia local en SQLite.
+const parseVenueImages = (venueImage) => {
+  let lista = venueImage;
+  if (typeof lista === 'string' && lista.trim()) {
+    try {
+      lista = JSON.parse(lista);
+    } catch {
+      lista = [{ url: lista }];
+    }
+  }
+  if (!Array.isArray(lista)) return [];
+  return lista
+    .map((img) => ({
+      // `permanentUrl` es la de CloudFront; la de Airtable caduca a las ocho horas.
+      url: img?.permanentUrl || img?.url || (typeof img === 'string' ? img : ''),
+      filename: img?.filename || '',
+    }))
+    .filter((img) => img.url);
+};
+
+// Miniaturas de las imagenes del local: las ya guardadas se borran en el
+// servidor, las recien elegidas solo se descartan de la seleccion.
+const GaleriaImagenes = ({ guardadas, nuevas, onQuitarGuardada, onQuitarNueva, borrando }) => {
+  if (guardadas.length === 0 && nuevas.length === 0) return null;
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {guardadas.map((img) => (
+        <View key={img.filename || img.url}>
+          <Image
+            source={{ uri: img.url }}
+            style={{ width: 100, height: 100, borderRadius: 10 }}
+            resizeMode="cover"
+          />
+          <Pressable
+            onPress={() => onQuitarGuardada(img.filename)}
+            disabled={!!borrando}
+            style={estilosGaleria.quitar}
+          >
+            <Text style={estilosGaleria.quitarTexto}>
+              {borrando === img.filename ? '…' : '×'}
+            </Text>
+          </Pressable>
+        </View>
+      ))}
+      {nuevas.map((img) => (
+        <View key={img.uri}>
+          <Image
+            source={{ uri: img.uri }}
+            style={{ width: 100, height: 100, borderRadius: 10, opacity: 0.85 }}
+            resizeMode="cover"
+          />
+          <Pressable onPress={() => onQuitarNueva(img.uri)} style={estilosGaleria.quitar}>
+            <Text style={estilosGaleria.quitarTexto}>×</Text>
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const estilosGaleria = StyleSheet.create({
+  quitar: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quitarTexto: {
+    color: '#FDFDFC',
+    fontSize: 15,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+});
 
 const normalizeVenueResponse = (payload, fallback) => {
   if (!payload && !fallback) return null;
@@ -143,7 +228,18 @@ export default function EditVenueScreen() {
   const [schedules, setSchedules] = useState(buildDefaultSchedules());
   const originalFlatRef = useRef([]);
 
-  const [image, setImage] = useState(null);
+  // Imagenes recien elegidas, todavia sin subir.
+  const [images, setImages] = useState([]);
+  const [borrandoImagen, setBorrandoImagen] = useState(null);
+
+  const imagenesGuardadas = useMemo(
+    () => parseVenueImages(venue?.venueImage),
+    [venue?.venueImage]
+  );
+  const huecosLibres = Math.max(
+    0,
+    MAX_IMAGENES - imagenesGuardadas.length - images.length
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -318,16 +414,46 @@ export default function EditVenueScreen() {
   };
 
   const pickImage = async () => {
+    if (huecosLibres === 0) {
+      setError(`Un local admite como máximo ${MAX_IMAGENES} imágenes`);
+      return;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
+      allowsMultipleSelection: true,
+      selectionLimit: huecosLibres,
     });
-    if (!res.canceled && res.assets?.[0]) {
-      const asset = res.assets[0];
-      const name = asset.fileName || `venue_${Date.now()}.jpg`;
-      const type = asset.mimeType || 'image/jpeg';
-      setImage({ uri: asset.uri, name, type });
+    if (res.canceled) return;
+    // Se recorta igualmente: en web `selectionLimit` no siempre se respeta.
+    const elegidas = (res.assets ?? []).slice(0, huecosLibres).map((asset, i) => ({
+      uri: asset.uri,
+      name: asset.fileName || `venue_${Date.now()}_${i}.jpg`,
+      type: asset.mimeType || 'image/jpeg',
+    }));
+    setImages((previas) => [...previas, ...elegidas]);
+  };
+
+  const quitarImagenNueva = (uri) =>
+    setImages((previas) => previas.filter((img) => img.uri !== uri));
+
+  // Las que ya estan guardadas se borran en el servidor al momento: si se
+  // esperara al guardar, el local podria quedarse por encima del maximo.
+  const quitarImagenGuardada = async (filename) => {
+    if (!filename || borrandoImagen) return;
+    setBorrandoImagen(filename);
+    try {
+      await deleteVenueImage(venueID, filename);
+      const refrescado = await getVenueById(venueID);
+      await dispatch(
+        upsertVenuesFromAPIThunk([normalizeVenueResponse(refrescado, venue)])
+      ).unwrap();
+    } catch (e) {
+      console.warn('No se pudo borrar la imagen:', e?.message || e);
+      setError('No se pudo borrar la imagen');
+    } finally {
+      setBorrandoImagen(null);
     }
   };
 
@@ -394,16 +520,19 @@ export default function EditVenueScreen() {
       }
 
       if (Platform.OS === 'web') {
-        if (image) {
-          const res = await fetch(image.uri);
-          const blob = await res.blob();
-          const file = new File(
-            [blob],
-            image.name || 'venue.jpg',
-            { type: blob.type || image.type || 'image/jpeg' }
-          );
+        if (images.length) {
+          // Todas en una sola peticion: el backend las anade a las que ya hay.
           const formData = new FormData();
-          formData.append('image', file);
+          for (const img of images) {
+            const res = await fetch(img.uri);
+            const blob = await res.blob();
+            formData.append(
+              'images',
+              new File([blob], img.name || 'venue.jpg', {
+                type: blob.type || img.type || 'image/jpeg',
+              })
+            );
+          }
           await uploadVenueImage(venueID, formData);
         }
       } else {
@@ -425,8 +554,8 @@ export default function EditVenueScreen() {
           })
         ).unwrap();
 
-        if (image) {
-          await uploadVenueImage(venueID, image);
+        if (images.length) {
+          await uploadVenueImage(venueID, images);
         }
       }
 
@@ -636,13 +765,13 @@ export default function EditVenueScreen() {
                       </Text>
                     </Pressable>
                   </View>
-                  {image ? (
-                    <Image
-                      source={{ uri: image.uri }}
-                      style={{ width: 100, height: 100, borderRadius: 10 }}
-                      resizeMode="cover"
-                    />
-                  ) : null}
+                  <GaleriaImagenes
+                    guardadas={imagenesGuardadas}
+                    nuevas={images}
+                    onQuitarGuardada={quitarImagenGuardada}
+                    onQuitarNueva={quitarImagenNueva}
+                    borrando={borrandoImagen}
+                  />
                 </View>
               </View>
             ) : (
@@ -726,13 +855,13 @@ export default function EditVenueScreen() {
                     </Text>
                   </Pressable>
                 </View>
-                {image ? (
-                  <Image
-                    source={{ uri: image.uri }}
-                    style={{ width: 100, height: 100, borderRadius: 10 }}
-                    resizeMode="cover"
-                  />
-                ) : null}
+                <GaleriaImagenes
+                  guardadas={imagenesGuardadas}
+                  nuevas={images}
+                  onQuitarGuardada={quitarImagenGuardada}
+                  onQuitarNueva={quitarImagenNueva}
+                  borrando={borrandoImagen}
+                />
               </>
             )}
 

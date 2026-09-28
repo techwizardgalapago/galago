@@ -29,6 +29,8 @@ export const createVenueSchedules = async (records) => {
   return res.data;
 };
 
+// Acepta un archivo suelto o una lista: el backend las anade a las que el
+// local ya tiene, hasta seis.
 export const uploadVenueImage = async (venueID, fileOrFormData) => {
   if (typeof FormData !== 'undefined' && fileOrFormData instanceof FormData) {
     // ✅ send as-is, no manual headers
@@ -36,8 +38,17 @@ export const uploadVenueImage = async (venueID, fileOrFormData) => {
     return res.data;
   }
   const form = new FormData();
-  form.append('image', fileOrFormData);  // native { uri, name, type }
+  const lista = Array.isArray(fileOrFormData) ? fileOrFormData : [fileOrFormData];
+  lista.forEach((file) => form.append('images', file)); // native { uri, name, type }
   const res = await api.put(`/venues-img/${venueID}`, form);
+  return res.data;
+};
+
+// Sin `filename` el backend borra todas las imagenes del local.
+export const deleteVenueImage = async (venueID, filename) => {
+  const res = await api.delete(`/venues-img/${venueID}`, {
+    params: filename ? { filename } : undefined,
+  });
   return res.data;
 };
 
