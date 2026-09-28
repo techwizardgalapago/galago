@@ -610,11 +610,12 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
     justifyContent: "center",
-    // En web caben cuatro baldosas por fila (155*4 + 12*3 = 656 en una columna
-    // de 720) y las seis categorias quedaban repartidas en 4 + 2. Con el ancho
-    // justo de tres (155*3 + 12*2 = 489) salen dos filas de tres. En una
-    // ventana mas estrecha manda el ancho del contenedor y siguen envolviendo.
-    ...(Platform.OS === "web" ? { maxWidth: 489, alignSelf: "center" } : null),
+    // En web la columna de contenido deja 660 de ancho util. Con el hueco de
+    // 12 caben cuatro baldosas por fila (155*4 + 12*3 = 656) y las seis
+    // categorias salian en 4 + 2; separandolas 60 solo caben tres (585) y
+    // cuatro necesitarian 800, asi que quedan dos filas de tres bien aireadas
+    // sin fijar ningun ancho. En una ventana mas estrecha envuelven solas.
+    ...(Platform.OS === "web" ? { gap: 60 } : null),
   },
   categoryTile: {
     width: 155,
