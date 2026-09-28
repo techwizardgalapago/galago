@@ -29,7 +29,6 @@ import {
 } from '../../../../../../services/eventsService';
 import { upsertEventsFromAPIThunk } from '../../../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
-import { joinFullName } from '../../../../../../features/users/profileComplition';
 
 // ---------- Helpers de fecha ----------
 const pad = (n) => String(n).padStart(2, '0');
@@ -92,7 +91,6 @@ const compressImageWeb = (uri) =>
 export default function CrearEventoScreen() {
   const tabBarInset = useTabBarInset();
   const dispatch = useDispatch();
-  const authUser = useSelector((s) => s.auth?.user);
   const { venueID: preselectedVenueID } = useLocalSearchParams();
   const { isDesktop, isWide } = useMedia();
   const isDesktopLayout = isDesktop || isWide;
@@ -200,8 +198,10 @@ export default function CrearEventoScreen() {
         eventCapacity: form.eventCapacity ? Number(form.eventCapacity) : undefined,
         eventTags: selectedTags.length ? selectedTags : undefined,
         TelOrganizador: form.telOrganizador.trim() || undefined,
-        organizador:
-          joinFullName(authUser?.firstName, authUser?.lastName) || undefined,
+        // Organiza el negocio, no la persona que rellena el formulario. El dia
+        // que alguien ajeno al local pueda publicar un evento en el, aqui ira
+        // el nombre de quien lo organiza y no el del negocio.
+        organizador: selectedVenue?.venueName?.trim() || undefined,
       };
 
       const eventResp = await createEvent(fields);
