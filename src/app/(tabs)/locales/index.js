@@ -102,8 +102,12 @@ const normalizeToken = (value) =>
 // -------- Componentes internos --------
 
 function CategoryTile({ category, island }) {
+  const { isMobile } = useMedia();
   return (
     <Pressable
+      // El tamano va en el Pressable, que es el hijo de la rejilla: puesto en
+      // el degradado, el porcentaje del movil no tendria contra que calcularse.
+      style={isMobile ? styles.categoryTileMovil : styles.categoryTileEscritorio}
       onPress={() =>
         // La isla seleccionada acompaña a la categoria, para que el listado
         // abra con el mismo filtro y pueda devolverlo al volver de un local.
@@ -116,7 +120,7 @@ function CategoryTile({ category, island }) {
         colors={category.colors}
         start={category.start}
         end={category.end}
-        style={styles.categoryTile}
+        style={styles.categoryTileFondo}
       >
         <Text style={styles.categoryTileText}>{category.label}</Text>
       </LinearGradient>
@@ -611,19 +615,27 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: "center",
   },
-  categoryTile: {
-    width: 155,
-    height: 155,
+  // Un tercio exacto de la columna: 212*3 mas los dos huecos de 12 suman justo
+  // los 660 utiles. El ancho va fijo y no con flexGrow, porque al crecer cada
+  // baldosa partia de su contenido y acababa con un ancho distinto segun lo
+  // larga que fuera su etiqueta.
+  categoryTileEscritorio: {
+    width: 212,
+    height: 170,
+  },
+  // Dos por fila en cualquier telefono. Con el ancho fijo de 155 que habia
+  // antes, uno estrecho solo admitia una por fila; el porcentaje deja sitio al
+  // hueco de 12 en todos los anchos y la baldosa se encoge con la pantalla.
+  categoryTileMovil: {
+    width: "47%",
+    aspectRatio: 1,
+  },
+  categoryTileFondo: {
+    flex: 1,
     borderRadius: 20,
     padding: 20,
     paddingBottom: 18,
     justifyContent: "flex-end",
-    // La baldosa de 155 esta pensada para movil y en la columna de 660 de web
-    // quedaba perdida. Aqui ocupa un tercio exacto de la fila: 212*3 mas los
-    // dos huecos de 12 suman justo 660. El ancho va fijo y no con flexGrow,
-    // porque al crecer cada baldosa partia de su contenido y acababa con un
-    // ancho distinto segun lo largo que fuera su etiqueta.
-    ...(Platform.OS === "web" ? { width: 212, height: 170 } : null),
   },
   categoryTileText: {
     fontSize: 19,

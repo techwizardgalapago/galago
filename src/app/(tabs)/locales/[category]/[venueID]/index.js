@@ -33,8 +33,11 @@ const WEEKDAYS_ORDER = [
 ];
 const EMPTY_SCHEDULES = [];
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const IMAGE_WIDTH = Math.min(SCREEN_WIDTH - 60, 333);
-const IMAGE_HEIGHT = 222;
+// El tope de 333 esta pensado para un telefono; en la columna de 720 de
+// escritorio dejaba la foto pequena y perdida. Se mantiene la proporcion 3:2.
+const IMAGE_MAX = Platform.OS === "web" ? 560 : 333;
+const IMAGE_WIDTH = Math.min(SCREEN_WIDTH - 60, IMAGE_MAX);
+const IMAGE_HEIGHT = Math.round((IMAGE_WIDTH * 2) / 3);
 
 // -------- Helpers (misma lógica que perfil/negocios/[venueID]) --------
 

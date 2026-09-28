@@ -23,8 +23,11 @@ import CachedImage from "../../../../../components/CachedImage";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const IMAGE_WIDTH = Math.min(SCREEN_WIDTH - 60, 333);
-const IMAGE_HEIGHT = 222;
+// Mismo criterio que el detalle de un local: el tope de 333 es de telefono y
+// en la columna de escritorio dejaba la foto pequena. Se mantiene el 3:2.
+const IMAGE_MAX = Platform.OS === "web" ? 560 : 333;
+const IMAGE_WIDTH = Math.min(SCREEN_WIDTH - 60, IMAGE_MAX);
+const IMAGE_HEIGHT = Math.round((IMAGE_WIDTH * 2) / 3);
 
 const getImageUrl = (siteImage) => {
   try {
