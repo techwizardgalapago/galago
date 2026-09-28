@@ -83,6 +83,15 @@ const formatDayDate = (startTime) => {
   });
 };
 
+// Los eventos creados antes guardaban aqui el id del usuario. Un
+// `recXXXXXXXXXXXXXX` no le dice nada a quien lee la ficha, asi que se trata
+// como si no hubiera organizador y la fila no se pinta.
+const ID_AIRTABLE = /^rec[A-Za-z0-9]{14}$/;
+const nombreOrganizador = (valor) => {
+  const texto = `${valor ?? ""}`.trim();
+  return ID_AIRTABLE.test(texto) ? "" : texto;
+};
+
 const INFO_ROWS = [
   { label: "día", getValue: (e) => formatDayDate(e.startTime) },
   { label: "hora", getValue: (e) => formatTimeRange(e), highlight: true },
@@ -94,7 +103,7 @@ const INFO_ROWS = [
       e.eventPrice ? `$${Number(e.eventPrice).toFixed(2)}` : "Gratis",
     highlight: true,
   },
-  { label: "Organiza", getValue: (e) => e.organizador || "" },
+  { label: "Organiza", getValue: (e) => nombreOrganizador(e.organizador) },
 ];
 
 export default function EventDetailScreen() {

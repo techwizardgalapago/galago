@@ -29,6 +29,7 @@ import {
 } from '../../../../../../services/eventsService';
 import { upsertEventsFromAPIThunk } from '../../../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
+import { joinFullName } from '../../../../../../features/users/profileComplition';
 
 // ---------- Helpers de fecha ----------
 const pad = (n) => String(n).padStart(2, '0');
@@ -199,7 +200,8 @@ export default function CrearEventoScreen() {
         eventCapacity: form.eventCapacity ? Number(form.eventCapacity) : undefined,
         eventTags: selectedTags.length ? selectedTags : undefined,
         TelOrganizador: form.telOrganizador.trim() || undefined,
-        organizador: authUser?.userID || undefined,
+        organizador:
+          joinFullName(authUser?.firstName, authUser?.lastName) || undefined,
       };
 
       const eventResp = await createEvent(fields);
