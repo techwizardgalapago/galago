@@ -9,6 +9,7 @@ import {
   ScrollView,
   Image,
   Modal,
+  Switch,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,7 +21,11 @@ import Select from '../../../../../components/Select';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COUNTRIES } from '../../../../../utils/countries';
-import { USER_ROLES, DEFAULT_USER_ROLE } from '../../../../../features/users/roles';
+import {
+  CURATOR_ROLE,
+  EXPLORER_ROLE,
+  DEFAULT_USER_ROLE,
+} from '../../../../../features/users/roles';
 import { updateUser, upsertUsersFromAPI } from '../../../../../store/slices/userSlice';
 import { fetchMe, setAuthUserPatch } from '../../../../../store/slices/authSlice';
 import { splitFullName, joinFullName } from '../../../../../features/users/profileComplition';
@@ -268,12 +273,23 @@ export default function RegisterProfileScreen() {
                 />
 
                 <Text style={styles.inputLabel}>Rol</Text>
-                <Select
-                  value={form.userRole}
-                  onChange={(v) => setForm(f => ({ ...f, userRole: v }))}
-                  options={USER_ROLES}
-                  style={styles.select}
-                />
+                <View style={styles.toggleRow}>
+                  <Text style={styles.toggleText}>
+                    Registro y gestiono negocios
+                  </Text>
+                  <Switch
+                    value={form.userRole === CURATOR_ROLE}
+                    onValueChange={(esCurator) =>
+                      setForm((f) => ({
+                        ...f,
+                        userRole: esCurator ? CURATOR_ROLE : EXPLORER_ROLE,
+                      }))
+                    }
+                    trackColor={{ false: '#EDEDEC', true: '#8D45E9' }}
+                    thumbColor="#FDFDFC"
+                    ios_backgroundColor="#EDEDEC"
+                  />
+                </View>
 
                 <Text style={styles.inputLabel}>País de Origen</Text>
                 <Select
@@ -413,6 +429,20 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     paddingHorizontal: 16,
     maxWidth: 333,
+  },
+  toggleRow: {
+    width: '100%',
+    maxWidth: 333,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    minHeight: 34,
+  },
+  toggleText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1B2222',
   },
   dateField: {
     height: 34,
