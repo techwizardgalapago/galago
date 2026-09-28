@@ -22,7 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COUNTRIES } from '../../../../../utils/countries';
 import { USER_ROLES, DEFAULT_USER_ROLE } from '../../../../../features/users/roles';
 import { updateUser, upsertUsersFromAPI } from '../../../../../store/slices/userSlice';
-import { fetchMe } from '../../../../../store/slices/authSlice';
+import { fetchMe, setAuthUserPatch } from '../../../../../store/slices/authSlice';
 import { splitFullName, joinFullName } from '../../../../../features/users/profileComplition';
 import { patchUserProfile } from '../../../../../services/usersService';
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
@@ -154,7 +154,7 @@ export default function RegisterProfileScreen() {
     try {
       const { firstName, lastName } = splitFullName(form.fullName);
 
-      const remote = await patchUserProfile(user.userID, {
+      const perfil = {
         firstName,
         lastName,
         userEmail: form.userEmail,
@@ -163,7 +163,9 @@ export default function RegisterProfileScreen() {
         reasonForTravel: form.reasonForTravel,
         dateOfBirth: form.dateOfBirth,
         genero: form.genero, // <-- SAVE GENDER
-      });
+      };
+
+      const remote = await patchUserProfile(user.userID, perfil);
 
       if (remote?.user) {
         await dispatch(upsertUsersFromAPI([remote.user]));
@@ -174,6 +176,22 @@ export default function RegisterProfileScreen() {
       }
 
       await dispatch(fetchMe());
+
+      // Lo guardado se refleja ya en `auth.user`. No basta con fetchMe: /auth/me
+      // cachea el usuario diez minutos en Redis, asi que hasta que esa clave
+      // caduque devolveria el perfil viejo y la interfaz que depende del rol
+      // (el boton de registrar negocio) seguiria mostrando el estado anterior.
+      dispatch(
+        setAuthUserPatch({
+          ...perfil,
+          // Airtable guarda el motivo como lista; el formulario lo tiene suelto.
+          reasonForTravel: Array.isArray(form.reasonForTravel)
+            ? form.reasonForTravel
+            : form.reasonForTravel
+              ? [form.reasonForTravel]
+              : [],
+        })
+      );
       router.replace('/');
     } catch (e) {
       console.error('Save profile failed', e);
