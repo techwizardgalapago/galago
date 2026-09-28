@@ -619,20 +619,11 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
     justifyContent: "flex-end",
     // La baldosa de 155 esta pensada para movil y en la columna de 660 de web
-    // quedaba perdida, con el hueco repartiendo vacio. Aqui crece hasta un
-    // tercio de la fila (212) y la llena de lado a lado. Con base 180 caben
-    // tres (180*3 + 12*2 de hueco = 564) y una cuarta se iria a 756, asi que
-    // siguen siendo dos filas de tres; el maximo evita que una fila
-    // incompleta estire una baldosa suelta a todo lo ancho.
-    ...(Platform.OS === "web"
-      ? {
-          width: "auto",
-          height: 170,
-          flexGrow: 1,
-          flexBasis: 180,
-          maxWidth: 212,
-        }
-      : null),
+    // quedaba perdida. Aqui ocupa un tercio exacto de la fila: 212*3 mas los
+    // dos huecos de 12 suman justo 660. El ancho va fijo y no con flexGrow,
+    // porque al crecer cada baldosa partia de su contenido y acababa con un
+    // ancho distinto segun lo largo que fuera su etiqueta.
+    ...(Platform.OS === "web" ? { width: 212, height: 170 } : null),
   },
   categoryTileText: {
     fontSize: 19,
