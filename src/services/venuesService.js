@@ -44,6 +44,13 @@ export const uploadVenueImage = async (venueID, fileOrFormData) => {
   return res.data;
 };
 
+// Cambia el orden de las imagenes ya guardadas. La lista debe traer todos los
+// nombres del local, en el orden deseado; la primera es la portada.
+export const reorderVenueImages = async (venueID, filenames) => {
+  const res = await api.patch(`/venues-img/${venueID}/orden`, { filenames });
+  return res.data;
+};
+
 // Sin `filename` el backend borra todas las imagenes del local.
 export const deleteVenueImage = async (venueID, filename) => {
   const res = await api.delete(`/venues-img/${venueID}`, {
