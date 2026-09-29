@@ -41,6 +41,7 @@ import {
   deleteVenueScheduleById,
 } from '../../../../../../services/venuesService';
 import { getCoordsFromGoogleMapsLink } from '../../../../../../utils/maps';
+import { parseVenueImages } from '../../../../../../features/venues/images';
 
 import {
   ALLOWED_TIMES,
@@ -55,27 +56,6 @@ import {
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 
 const MAX_IMAGENES = 6;
-
-// Las imagenes llegan como lista de adjuntos de Airtable, o como esa lista ya
-// serializada cuando vienen de la copia local en SQLite.
-const parseVenueImages = (venueImage) => {
-  let lista = venueImage;
-  if (typeof lista === 'string' && lista.trim()) {
-    try {
-      lista = JSON.parse(lista);
-    } catch {
-      lista = [{ url: lista }];
-    }
-  }
-  if (!Array.isArray(lista)) return [];
-  return lista
-    .map((img) => ({
-      // `permanentUrl` es la de CloudFront; la de Airtable caduca a las ocho horas.
-      url: img?.permanentUrl || img?.url || (typeof img === 'string' ? img : ''),
-      filename: img?.filename || '',
-    }))
-    .filter((img) => img.url);
-};
 
 // Miniaturas de las imagenes del local: las ya guardadas se borran en el
 // servidor, las recien elegidas solo se descartan de la seleccion.
