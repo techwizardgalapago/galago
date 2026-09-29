@@ -1,4 +1,5 @@
-// Lectura de las imagenes de un local. El campo llega de tres formas:
+// Lectura de un campo de adjuntos de Airtable (las fotos de un local o de un
+// evento). El campo llega de tres formas:
 // lista de adjuntos de Airtable, esa misma lista ya serializada cuando viene
 // de la copia local en SQLite, o una URL suelta en registros antiguos.
 
@@ -12,7 +13,7 @@ const primeraUrl = (img) => {
   );
 };
 
-export const parseVenueImages = (venueImage) => {
+export const parseAttachmentImages = (venueImage) => {
   let lista = venueImage;
 
   if (typeof lista === "string" && lista.trim()) {

@@ -42,7 +42,8 @@ import {
   deleteVenueScheduleById,
 } from '../../../../../../services/venuesService';
 import { getCoordsFromGoogleMapsLink } from '../../../../../../utils/maps';
-import { parseVenueImages } from '../../../../../../features/venues/images';
+import { parseAttachmentImages } from '../../../../../../features/attachments/images';
+import PhotoGallery from '../../../../../../components/PhotoGallery';
 
 import {
   ALLOWED_TIMES,
@@ -57,150 +58,6 @@ import {
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 
 const MAX_IMAGENES = 6;
-
-// Miniaturas de las imagenes del local: las ya guardadas se pueden reordenar y
-// se borran en el servidor; las recien elegidas solo se descartan de la
-// seleccion. La primera guardada es la portada que usan los listados.
-const GaleriaImagenes = ({
-  guardadas,
-  nuevas,
-  onQuitarGuardada,
-  onQuitarNueva,
-  onMover,
-  borrando,
-  ordenando,
-}) => {
-  if (guardadas.length === 0 && nuevas.length === 0) return null;
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-      {guardadas.map((img, i) => (
-        <View key={img.filename || img.url}>
-          <Image
-            source={{ uri: img.url }}
-            style={{ width: 100, height: 100, borderRadius: 10 }}
-            resizeMode="cover"
-          />
-          {i === 0 ? (
-            <View style={estilosGaleria.portada}>
-              <Text style={estilosGaleria.portadaTexto}>Portada</Text>
-            </View>
-          ) : null}
-          <Pressable
-            onPress={() => onQuitarGuardada(img.filename)}
-            disabled={!!borrando || !!ordenando}
-            style={estilosGaleria.quitar}
-          >
-            <Text style={estilosGaleria.quitarTexto}>
-              {borrando === img.filename ? '…' : '×'}
-            </Text>
-          </Pressable>
-          {guardadas.length > 1 ? (
-            <View style={estilosGaleria.barraOrden}>
-              <Pressable
-                onPress={() => onMover(i, i - 1)}
-                disabled={i === 0 || !!ordenando || !!borrando}
-                style={estilosGaleria.mover}
-              >
-                <Text
-                  style={[
-                    estilosGaleria.moverTexto,
-                    i === 0 && estilosGaleria.moverApagado,
-                  ]}
-                >
-                  ‹
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => onMover(i, i + 1)}
-                disabled={i === guardadas.length - 1 || !!ordenando || !!borrando}
-                style={estilosGaleria.mover}
-              >
-                <Text
-                  style={[
-                    estilosGaleria.moverTexto,
-                    i === guardadas.length - 1 && estilosGaleria.moverApagado,
-                  ]}
-                >
-                  ›
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </View>
-      ))}
-      {nuevas.map((img) => (
-        <View key={img.uri}>
-          <Image
-            source={{ uri: img.uri }}
-            style={{ width: 100, height: 100, borderRadius: 10, opacity: 0.85 }}
-            resizeMode="cover"
-          />
-          <Pressable onPress={() => onQuitarNueva(img.uri)} style={estilosGaleria.quitar}>
-            <Text style={estilosGaleria.quitarTexto}>×</Text>
-          </Pressable>
-        </View>
-      ))}
-    </View>
-  );
-};
-
-const estilosGaleria = StyleSheet.create({
-  quitar: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quitarTexto: {
-    color: '#FDFDFC',
-    fontSize: 15,
-    lineHeight: 17,
-    fontWeight: '600',
-  },
-  portada: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  portadaTexto: {
-    color: '#FDFDFC',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  barraOrden: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  mover: {
-    paddingHorizontal: 12,
-    paddingVertical: 2,
-  },
-  moverTexto: {
-    color: '#FDFDFC',
-    fontSize: 18,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  moverApagado: {
-    color: 'rgba(253,253,252,0.35)',
-  },
-});
 
 const normalizeVenueResponse = (payload, fallback) => {
   if (!payload && !fallback) return null;
@@ -299,7 +156,7 @@ export default function EditVenueScreen() {
   const [ordenandoImagenes, setOrdenandoImagenes] = useState(false);
 
   const imagenesGuardadas = useMemo(
-    () => parseVenueImages(venue?.venueImage),
+    () => parseAttachmentImages(venue?.venueImage),
     [venue?.venueImage]
   );
   const huecosLibres = Math.max(
@@ -860,7 +717,7 @@ export default function EditVenueScreen() {
                       </Text>
                     </Pressable>
                   </View>
-                  <GaleriaImagenes
+                  <PhotoGallery
                     guardadas={imagenesGuardadas}
                     nuevas={images}
                     onQuitarGuardada={quitarImagenGuardada}
@@ -952,7 +809,7 @@ export default function EditVenueScreen() {
                     </Text>
                   </Pressable>
                 </View>
-                <GaleriaImagenes
+                <PhotoGallery
                   guardadas={imagenesGuardadas}
                   nuevas={images}
                   onQuitarGuardada={quitarImagenGuardada}

@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/eventos/[eventID]/index.js
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { fetchEventsRemote } from '../../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../../store/slices/authSlice';
 import { getEventById } from '../../../../../../services/eventsService';
 import CachedImage from "../../../../../../components/CachedImage";
+import { parseAttachmentImages } from "../../../../../../features/attachments/images";
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 
 // ---------- Helpers ----------
@@ -35,24 +36,6 @@ const formatDateTime = (isoString) => {
   return `${days[d.getDay()]} ${pad(d.getDate())} ${months[d.getMonth()]} — ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const getEventImageUrl = (eventImage) => {
-  if (!eventImage) return null;
-  try {
-    if (Array.isArray(eventImage)) {
-      const first = eventImage[0];
-      return first?.thumbnails?.large?.url || first?.url || null;
-    }
-    if (typeof eventImage === 'string' && eventImage.trim()) {
-      if (eventImage.startsWith('http')) return eventImage;
-      const parsed = JSON.parse(eventImage);
-      if (Array.isArray(parsed)) {
-        const first = parsed[0];
-        return first?.thumbnails?.large?.url || first?.url || null;
-      }
-    }
-  } catch (_) {}
-  return null;
-};
 
 export default function EventoDetailScreen() {
   const tabBarInset = useTabBarInset();
@@ -91,7 +74,23 @@ export default function EventoDetailScreen() {
 
   const ev = event || remoteEvent;
 
-  const imageUrl = getEventImageUrl(ev?.eventImage);
+  // --- Imagenes del carrusel ---
+  const images = useMemo(
+    () => parseAttachmentImages(ev?.eventImage),
+    [ev?.eventImage]
+  );
+  const [imageIndex, setImageIndex] = useState(0);
+  const imageScrollRef = useRef(null);
+  // El contenedor mide al 100% del ancho disponible, asi que el paso del
+  // carrusel se mide al colocarse en vez de darlo por sabido.
+  const [anchoHero, setAnchoHero] = useState(0);
+
+  const irAImagen = (destino) => {
+    if (images.length < 2 || !anchoHero) return;
+    const i = (destino + images.length) % images.length;
+    setImageIndex(i);
+    imageScrollRef.current?.scrollTo({ x: i * anchoHero, animated: true });
+  };
 
   const tags = ev?.eventTags
     ? String(ev.eventTags)
@@ -155,13 +154,56 @@ export default function EventoDetailScreen() {
 
           <View style={styles.section}>
             {/* Hero image */}
-            <View style={styles.heroWrap}>
-              {imageUrl ? (
-                <CachedImage source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
+            <View
+              style={styles.heroWrap}
+              onLayout={(e) => setAnchoHero(e.nativeEvent.layout.width)}
+            >
+              {images.length ? (
+                <ScrollView
+                  ref={imageScrollRef}
+                  horizontal
+                  pagingEnabled
+                  scrollEnabled={images.length > 1}
+                  showsHorizontalScrollIndicator={false}
+                  onMomentumScrollEnd={(e) => {
+                    if (!anchoHero) return;
+                    setImageIndex(
+                      Math.round(e.nativeEvent.contentOffset.x / anchoHero)
+                    );
+                  }}
+                >
+                  {images.map((img, i) => (
+                    <CachedImage
+                      key={img.filename || img.url || i}
+                      source={{ uri: img.url }}
+                      style={[
+                        styles.heroImage,
+                        anchoHero ? { width: anchoHero } : null,
+                      ]}
+                      resizeMode="cover"
+                    />
+                  ))}
+                </ScrollView>
               ) : (
                 <View style={styles.heroPlaceholder}>
                   <Text style={styles.heroPlaceholderText}>Sin imagen</Text>
                 </View>
+              )}
+              {images.length > 1 && imageIndex < images.length - 1 && (
+                <Pressable
+                  style={styles.heroArrow}
+                  onPress={() => irAImagen(imageIndex + 1)}
+                >
+                  <Ionicons name="chevron-forward" size={20} color="#FDFDFC" />
+                </Pressable>
+              )}
+              {images.length > 1 && imageIndex > 0 && (
+                <Pressable
+                  style={styles.heroArrowIzquierda}
+                  onPress={() => irAImagen(imageIndex - 1)}
+                >
+                  <Ionicons name="chevron-back" size={20} color="#FDFDFC" />
+                </Pressable>
               )}
             </View>
 
@@ -287,6 +329,30 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: '#F0F0F0',
+  },
+  heroArrow: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    marginTop: -16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroArrowIzquierda: {
+    position: 'absolute',
+    left: 12,
+    top: '50%',
+    marginTop: -16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroImage: { width: '100%', aspectRatio: 333 / 200 },
   heroPlaceholder: {

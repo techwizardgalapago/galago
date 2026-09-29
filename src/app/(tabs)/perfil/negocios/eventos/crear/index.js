@@ -29,6 +29,9 @@ import {
 } from '../../../../../../services/eventsService';
 import { upsertEventsFromAPIThunk } from '../../../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
+import PhotoGallery from '../../../../../../components/PhotoGallery';
+
+const MAX_IMAGENES = 6;
 
 // ---------- Helpers de fecha ----------
 const pad = (n) => String(n).padStart(2, '0');
@@ -127,7 +130,7 @@ export default function CrearEventoScreen() {
 
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -135,18 +138,30 @@ export default function CrearEventoScreen() {
   const [pickerConfig, setPickerConfig] = useState(null); // { field: 'start'|'end', mode: 'date'|'time' }
 
   const pickImage = async () => {
+    const huecosLibres = MAX_IMAGENES - images.length;
+    if (huecosLibres === 0) {
+      setError(`Un evento admite como máximo ${MAX_IMAGENES} imágenes`);
+      return;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
+      allowsMultipleSelection: true,
+      selectionLimit: huecosLibres,
     });
-    if (!res.canceled && res.assets?.[0]) {
-      const asset = res.assets[0];
-      const name = asset.fileName || `event_${Date.now()}.jpg`;
-      const type = asset.mimeType || 'image/jpeg';
-      setImage({ uri: asset.uri, name, type });
-    }
+    if (res.canceled) return;
+    // Se recorta igualmente: en web `selectionLimit` no siempre se respeta.
+    const elegidas = (res.assets ?? []).slice(0, huecosLibres).map((asset, i) => ({
+      uri: asset.uri,
+      name: asset.fileName || `event_${Date.now()}_${i}.jpg`,
+      type: asset.mimeType || 'image/jpeg',
+    }));
+    setImages((previas) => [...previas, ...elegidas]);
   };
+
+  const quitarImagen = (uri) =>
+    setImages((previas) => previas.filter((img) => img.uri !== uri));
 
   const handlePickerChange = (event, selected) => {
     if (Platform.OS === 'android') setPickerConfig(null);
@@ -208,15 +223,20 @@ export default function CrearEventoScreen() {
       const eventID = parseCreatedEventId(eventResp) || eventResp?.eventID || eventResp?.id;
       if (!eventID) throw new Error('No se recibió el ID del evento creado');
 
-      if (image) {
+      if (images.length) {
         if (Platform.OS === 'web') {
-          const blob = await compressImageWeb(image.uri);
-          const file = new File([blob], image.name || 'event.jpg', { type: 'image/jpeg' });
+          // Todas en una sola peticion: el backend las anade en orden.
           const formData = new FormData();
-          formData.append('image', file);
+          for (const img of images) {
+            const blob = await compressImageWeb(img.uri);
+            formData.append(
+              'images',
+              new File([blob], img.name || 'event.jpg', { type: 'image/jpeg' })
+            );
+          }
           await uploadEventImage(eventID, formData);
         } else {
-          await uploadEventImage(eventID, image);
+          await uploadEventImage(eventID, images);
         }
       }
 
@@ -392,9 +412,7 @@ export default function CrearEventoScreen() {
           <Text style={{ color: '#99A0A0', fontSize: 14 }}>Seleccionar</Text>
         </Pressable>
       </View>
-      {image ? (
-        <Image source={{ uri: image.uri }} style={{ width: 100, height: 100, borderRadius: 10 }} resizeMode="cover" />
-      ) : null}
+      <PhotoGallery nuevas={images} onQuitarNueva={quitarImagen} />
     </>
   );
 

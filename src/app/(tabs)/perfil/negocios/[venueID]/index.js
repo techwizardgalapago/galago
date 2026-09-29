@@ -13,7 +13,7 @@ import { fetchEventsRemote } from '../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../store/slices/authSlice';
 import { getVenueById } from '../../../../../services/venuesService';
 import CachedImage from "../../../../../components/CachedImage";
-import { parseVenueImages } from "../../../../../features/venues/images";
+import { parseAttachmentImages } from "../../../../../features/attachments/images";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
 const WEEKDAYS_ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -79,7 +79,7 @@ export default function VenueDetailScreen() {
 
   // --- Imagenes del carrusel ---
   const images = useMemo(
-    () => parseVenueImages(venue?.venueImage),
+    () => parseAttachmentImages(venue?.venueImage),
     [venue?.venueImage]
   );
   const [imageIndex, setImageIndex] = useState(0);

@@ -26,14 +26,32 @@ export const deleteEvent = async (eventID) => {
   return res.data;
 };
 
+// Acepta un archivo suelto o una lista: el backend las anade a las que el
+// evento ya tiene, hasta seis.
 export const uploadEventImage = async (eventID, fileOrFormData) => {
   if (typeof FormData !== 'undefined' && fileOrFormData instanceof FormData) {
     const res = await api.put(`/events-img/${eventID}`, fileOrFormData);
     return res.data;
   }
   const form = new FormData();
-  form.append('image', fileOrFormData);
+  const lista = Array.isArray(fileOrFormData) ? fileOrFormData : [fileOrFormData];
+  lista.forEach((file) => form.append('images', file));
   const res = await api.put(`/events-img/${eventID}`, form);
+  return res.data;
+};
+
+// Sin `filename` el backend borra todas las imagenes del evento.
+export const deleteEventImage = async (eventID, filename) => {
+  const res = await api.delete(`/events-img/${eventID}`, {
+    params: filename ? { filename } : undefined,
+  });
+  return res.data;
+};
+
+// Cambia el orden de las imagenes ya guardadas. La lista debe traer todos los
+// nombres del evento, en el orden deseado; la primera es la portada.
+export const reorderEventImages = async (eventID, filenames) => {
+  const res = await api.patch(`/events-img/${eventID}/orden`, { filenames });
   return res.data;
 };
 

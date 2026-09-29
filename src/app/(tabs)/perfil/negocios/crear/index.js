@@ -32,6 +32,7 @@ import {
 import { upsertVenuesFromAPIThunk } from '../../../../../store/slices/venueSlice';
 import { getCoordsFromGoogleMapsLink } from '../../../../../utils/maps';
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
+import PhotoGallery from '../../../../../components/PhotoGallery';
 
 // ---------- Constantes ----------
 const MAX_IMAGENES = 6;
@@ -115,41 +116,6 @@ const validateDaySegments = (segments = []) => {
 
 
 // ---------- Componente principal ----------
-const GaleriaNuevas = ({ imagenes, onQuitar }) => {
-  if (imagenes.length === 0) return null;
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-      {imagenes.map((img) => (
-        <View key={img.uri}>
-          <Image
-            source={{ uri: img.uri }}
-            style={{ width: 100, height: 100, borderRadius: 10 }}
-            resizeMode="cover"
-          />
-          <Pressable
-            onPress={() => onQuitar(img.uri)}
-            style={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: 'rgba(0,0,0,0.55)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ color: '#FDFDFC', fontSize: 15, lineHeight: 17, fontWeight: '600' }}>
-              ×
-            </Text>
-          </Pressable>
-        </View>
-      ))}
-    </View>
-  );
-};
-
 export default function CrearNegocioScreen() {
   const tabBarInset = useTabBarInset();
   const dispatch = useDispatch();
@@ -579,7 +545,7 @@ export default function CrearNegocioScreen() {
                       </Text>
                     </Pressable>
                   </View>
-                  <GaleriaNuevas imagenes={images} onQuitar={quitarImagen} />
+                  <PhotoGallery nuevas={images} onQuitarNueva={quitarImagen} />
                 </View>
               </View>
             ) : (
@@ -661,7 +627,7 @@ export default function CrearNegocioScreen() {
                     </Text>
                   </Pressable>
                 </View>
-                <GaleriaNuevas imagenes={images} onQuitar={quitarImagen} />
+                <PhotoGallery nuevas={images} onQuitarNueva={quitarImagen} />
               </>
             )}
 

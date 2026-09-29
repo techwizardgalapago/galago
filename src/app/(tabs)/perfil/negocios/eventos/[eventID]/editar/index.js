@@ -25,6 +25,8 @@ import { useMedia } from '../../../../../../../hooks/useMedia';
 import {
   patchEvent,
   uploadEventImage,
+  deleteEventImage,
+  reorderEventImages,
   getEventById,
 } from '../../../../../../../services/eventsService';
 import {
@@ -32,8 +34,12 @@ import {
   upsertEventsFromAPIThunk,
 } from '../../../../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../../../../hooks/useTabBarInset";
+import PhotoGallery from '../../../../../../../components/PhotoGallery';
+import { parseAttachmentImages } from '../../../../../../../features/attachments/images';
 
 // ---------- Constantes ----------
+const MAX_IMAGENES = 6;
+
 const EVENT_TAGS = [
   'Live Music',
   'Community Art',
@@ -140,8 +146,10 @@ export default function EditarEventoScreen() {
 
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  const [image, setImage] = useState(null);
-  const [existingImageUrl, setExistingImageUrl] = useState(null);
+  const [images, setImages] = useState([]);
+  const [imagenesGuardadas, setImagenesGuardadas] = useState([]);
+  const [borrandoImagen, setBorrandoImagen] = useState(null);
+  const [ordenandoImagenes, setOrdenandoImagenes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -172,15 +180,8 @@ export default function EditarEventoScreen() {
       setStartDate(safeDate(ev.startTime));
       setEndDate(safeDate(ev.endTime));
 
-      // Imagen existente
-      try {
-        if (Array.isArray(ev.eventImage) && ev.eventImage[0]) {
-          const u = ev.eventImage[0]?.thumbnails?.large?.url || ev.eventImage[0]?.url;
-          if (u && active) setExistingImageUrl(u);
-        } else if (typeof ev.eventImage === 'string' && ev.eventImage.startsWith('http')) {
-          if (active) setExistingImageUrl(ev.eventImage);
-        }
-      } catch (_) {}
+      // Imagenes existentes
+      if (active) setImagenesGuardadas(parseAttachmentImages(ev.eventImage));
 
       if (active) setLoaded(true);
     };
@@ -199,17 +200,80 @@ export default function EditarEventoScreen() {
     return () => { active = false; };
   }, [eventFromStore, eventID]);
 
+  const huecosLibres = Math.max(
+    0,
+    MAX_IMAGENES - imagenesGuardadas.length - images.length
+  );
+
   const pickImage = async () => {
+    if (huecosLibres === 0) {
+      setError(`Un evento admite como máximo ${MAX_IMAGENES} imágenes`);
+      return;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
+      allowsMultipleSelection: true,
+      selectionLimit: huecosLibres,
     });
-    if (!res.canceled && res.assets?.[0]) {
-      const asset = res.assets[0];
-      const name = asset.fileName || `event_${Date.now()}.jpg`;
-      const type = asset.mimeType || 'image/jpeg';
-      setImage({ uri: asset.uri, name, type });
+    if (res.canceled) return;
+    // Se recorta igualmente: en web `selectionLimit` no siempre se respeta.
+    const elegidas = (res.assets ?? []).slice(0, huecosLibres).map((asset, i) => ({
+      uri: asset.uri,
+      name: asset.fileName || `event_${Date.now()}_${i}.jpg`,
+      type: asset.mimeType || 'image/jpeg',
+    }));
+    setImages((previas) => [...previas, ...elegidas]);
+  };
+
+  const quitarImagenNueva = (uri) =>
+    setImages((previas) => previas.filter((img) => img.uri !== uri));
+
+  // Igual que en los locales: borrar y reordenar se guardan al momento y no al
+  // pulsar guardar, para que la portada en pantalla sea la almacenada.
+  const refrescarEvento = async () => {
+    const completo = await getEventById(eventID);
+    if (!completo) return;
+    const ev = completo?.fields ? completo.fields : completo;
+    setImagenesGuardadas(parseAttachmentImages(ev.eventImage));
+    await dispatch(upsertEventsFromAPIThunk([completo]));
+  };
+
+  const quitarImagenGuardada = async (filename) => {
+    if (!filename || borrandoImagen || ordenandoImagenes) return;
+    setBorrandoImagen(filename);
+    try {
+      await deleteEventImage(eventID, filename);
+      await refrescarEvento();
+    } catch (e) {
+      console.warn('No se pudo borrar la imagen:', e?.message || e);
+      setError('No se pudo borrar la imagen');
+    } finally {
+      setBorrandoImagen(null);
+    }
+  };
+
+  const moverImagen = async (desde, hasta) => {
+    if (ordenandoImagenes || borrandoImagen) return;
+    if (hasta < 0 || hasta >= imagenesGuardadas.length) return;
+
+    const reordenadas = [...imagenesGuardadas];
+    const [movida] = reordenadas.splice(desde, 1);
+    reordenadas.splice(hasta, 0, movida);
+
+    setOrdenandoImagenes(true);
+    try {
+      await reorderEventImages(
+        eventID,
+        reordenadas.map((img) => img.filename)
+      );
+      await refrescarEvento();
+    } catch (e) {
+      console.warn('No se pudo reordenar las imagenes:', e?.message || e);
+      setError('No se pudo cambiar el orden de las fotos');
+    } finally {
+      setOrdenandoImagenes(false);
     }
   };
 
@@ -266,15 +330,20 @@ export default function EditarEventoScreen() {
 
       await patchEvent(eventID, fieldsPatch);
 
-      if (image) {
+      if (images.length) {
         if (Platform.OS === 'web') {
-          const blob = await compressImageWeb(image.uri);
-          const file = new File([blob], image.name || 'event.jpg', { type: 'image/jpeg' });
+          // Todas en una sola peticion: el backend las anade a las que ya hay.
           const formData = new FormData();
-          formData.append('image', file);
+          for (const img of images) {
+            const blob = await compressImageWeb(img.uri);
+            formData.append(
+              'images',
+              new File([blob], img.name || 'event.jpg', { type: 'image/jpeg' })
+            );
+          }
           await uploadEventImage(eventID, formData);
         } else {
-          await uploadEventImage(eventID, image);
+          await uploadEventImage(eventID, images);
         }
         try {
           await new Promise((r) => setTimeout(r, 2000));
@@ -423,16 +492,18 @@ export default function EditarEventoScreen() {
           onPress={pickImage}
           style={{ backgroundColor: '#EDEDED', height: 34, borderRadius: 50, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}
         >
-          <Text style={{ color: '#99A0A0', fontSize: 14 }}>
-            {image ? 'Cambiar' : 'Seleccionar'}
-          </Text>
+          <Text style={{ color: '#99A0A0', fontSize: 14 }}>Seleccionar</Text>
         </Pressable>
       </View>
-      {image ? (
-        <Image source={{ uri: image.uri }} style={{ width: 100, height: 100, borderRadius: 10 }} resizeMode="cover" />
-      ) : existingImageUrl ? (
-        <Image source={{ uri: existingImageUrl }} style={{ width: 100, height: 100, borderRadius: 10 }} resizeMode="cover" />
-      ) : null}
+      <PhotoGallery
+        guardadas={imagenesGuardadas}
+        nuevas={images}
+        onQuitarGuardada={quitarImagenGuardada}
+        onQuitarNueva={quitarImagenNueva}
+        onMover={moverImagen}
+        borrando={borrandoImagen}
+        ordenando={ordenandoImagenes}
+      />
     </>
   );
 
