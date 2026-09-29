@@ -353,7 +353,13 @@ export default function LocalesScreen() {
             <ScrollView
               contentContainerStyle={[
                 styles.localesContent,
-                { paddingHorizontal: hPad },
+                // La barra de pestanas flota encima: sin sumar su alto, la
+                // ultima fila de categorias queda debajo y no hay forma de
+                // subirla para verla entera.
+                {
+                  paddingHorizontal: hPad,
+                  paddingBottom: styles.localesContent.paddingBottom + tabBarInset,
+                },
               ]}
               showsVerticalScrollIndicator={false}
             >
