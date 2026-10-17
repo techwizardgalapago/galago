@@ -1,5 +1,5 @@
 // src/app/(tabs)/perfil/negocios/[venueID]/index.js
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, Pressable, Image, ScrollView, StyleSheet, Platform, Linking } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
@@ -12,7 +12,7 @@ import { fetchSchedulesByVenue } from '../../../../../store/slices/schedulesByVe
 import { fetchEventsRemote } from '../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../store/slices/authSlice';
 import { getVenueById } from '../../../../../services/venuesService';
-import CachedImage from "../../../../../components/CachedImage";
+import PhotoCarousel from "../../../../../components/PhotoCarousel";
 import { parseAttachmentImages } from "../../../../../features/attachments/images";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
@@ -82,18 +82,6 @@ export default function VenueDetailScreen() {
     () => parseAttachmentImages(venue?.venueImage),
     [venue?.venueImage]
   );
-  const [imageIndex, setImageIndex] = useState(0);
-  const imageScrollRef = useRef(null);
-  // El contenedor mide al 100% del ancho disponible, asi que el paso del
-  // carrusel se mide al colocarse en vez de darlo por sabido.
-  const [anchoHero, setAnchoHero] = useState(0);
-
-  const irAImagen = (destino) => {
-    if (images.length < 2 || !anchoHero) return;
-    const i = (destino + images.length) % images.length;
-    setImageIndex(i);
-    imageScrollRef.current?.scrollTo({ x: i * anchoHero, animated: true });
-  };
 
   // --- Normalizar horarios si existen ---
   const normalizedSchedules = useMemo(() => {
@@ -300,58 +288,16 @@ export default function VenueDetailScreen() {
             <Ionicons name={isFavorited ? 'heart' : 'heart-outline'} size={20} color={isFavorited ? '#E65300' : '#1B2222'} />
           </Pressable>
           <View style={styles.section}>
-            <View
+            <PhotoCarousel
+              images={images}
               style={styles.heroWrap}
-              onLayout={(e) => setAnchoHero(e.nativeEvent.layout.width)}
-            >
-              {images.length ? (
-                <ScrollView
-                  ref={imageScrollRef}
-                  horizontal
-                  pagingEnabled
-                  scrollEnabled={images.length > 1}
-                  showsHorizontalScrollIndicator={false}
-                  onMomentumScrollEnd={(e) => {
-                    if (!anchoHero) return;
-                    setImageIndex(
-                      Math.round(e.nativeEvent.contentOffset.x / anchoHero)
-                    );
-                  }}
-                >
-                  {images.map((img, i) => (
-                    <CachedImage
-                      key={img.filename || img.url || i}
-                      source={{ uri: img.url }}
-                      style={[
-                        styles.heroImage,
-                        anchoHero ? { width: anchoHero } : null,
-                      ]}
-                      resizeMode="cover"
-                    />
-                  ))}
-                </ScrollView>
-              ) : (
+              imageStyle={styles.heroImage}
+              vacio={
                 <View style={styles.heroPlaceholder}>
                   <Text style={styles.heroPlaceholderText}>Sin imagen</Text>
                 </View>
-              )}
-              {images.length > 1 && imageIndex < images.length - 1 && (
-                <Pressable
-                  style={styles.heroArrow}
-                  onPress={() => irAImagen(imageIndex + 1)}
-                >
-                  <Ionicons name="chevron-forward" size={20} color="#FDFDFC" />
-                </Pressable>
-              )}
-              {images.length > 1 && imageIndex > 0 && (
-                <Pressable
-                  style={styles.heroArrowIzquierda}
-                  onPress={() => irAImagen(imageIndex - 1)}
-                >
-                  <Ionicons name="chevron-back" size={20} color="#FDFDFC" />
-                </Pressable>
-              )}
-            </View>
+              }
+            />
 
             <View style={styles.titleBlock}>
               <Text style={styles.title}>{venue.venueName || 'Sin nombre'}</Text>
@@ -590,30 +536,6 @@ const styles = StyleSheet.create({
   heroPlaceholderText: {
     color: '#8F8F90',
     fontSize: 14,
-  },
-  heroArrowIzquierda: {
-    position: 'absolute',
-    left: 12,
-    top: '50%',
-    marginTop: -16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroArrow: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    marginTop: -16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   titleBlock: {
     alignItems: 'center',

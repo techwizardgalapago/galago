@@ -18,6 +18,8 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { useMedia } from "../../../../hooks/useMedia";
 import CachedImage from "../../../../components/CachedImage";
+import PhotoCarousel from "../../../../components/PhotoCarousel";
+import { parseAttachmentImages } from "../../../../features/attachments/images";
 import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 
 const parseTags = (value) => {
@@ -138,6 +140,9 @@ export default function EventDetailScreen() {
   }
 
   const imageUrl = getImageUrl(event.eventImage);
+  // La del aro es la portada, en pequeño y junto al título. La galería de
+  // abajo las enseña todas a tamaño util.
+  const fotos = parseAttachmentImages(event.eventImage);
   const tags = parseTags(event.eventTags);
   const category = tags[0]?.replace(/^#/, "").toUpperCase() || "";
 
@@ -215,6 +220,17 @@ export default function EventDetailScreen() {
                   <Text style={styles.tagText}>{tag}</Text>
                 </View>
               ))}
+            </View>
+          )}
+
+          {/* Galería de fotos */}
+          {fotos.length > 0 && (
+            <View style={styles.galeriaWrapper}>
+              <PhotoCarousel
+                images={fotos}
+                style={styles.galeria}
+                imageStyle={styles.galeriaImagen}
+              />
             </View>
           )}
 
@@ -413,6 +429,21 @@ const styles = StyleSheet.create({
   },
   tableWrapper: {
     paddingHorizontal: 30,
+  },
+  // Mismo margen lateral que la tabla de abajo, para que la foto no se salga
+  // de la columna de texto.
+  galeriaWrapper: {
+    paddingHorizontal: 30,
+  },
+  galeria: {
+    width: "100%",
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#F0F0F0",
+  },
+  galeriaImagen: {
+    width: "100%",
+    aspectRatio: 333 / 200,
   },
   table: {
     borderRadius: 10,
