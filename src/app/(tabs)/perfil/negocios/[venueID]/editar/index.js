@@ -965,7 +965,7 @@ export default function EditVenueScreen() {
               <AuthButton
                 label="Regresar"
                 variant="outline"
-                onPress={() => router.back()}
+                onPress={() => router.replace(`/(tabs)/perfil/negocios/${venueID}`)}
                 style={{ flex: 1, backgroundColor: '#9B9B9B' }}
                 textStyle={{ color: '#1B2222' }}
               />

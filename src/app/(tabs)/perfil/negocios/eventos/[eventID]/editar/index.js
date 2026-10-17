@@ -200,6 +200,11 @@ export default function EditarEventoScreen() {
     return () => { active = false; };
   }, [eventFromStore, eventID]);
 
+  // Al editor solo se entra desde la ficha del evento, asi que el regreso va
+  // a esa ruta y no al historial: con `back` se volvia a la ultima pantalla
+  // visitada, que tras cambiar de pestaña ya no es el evento.
+  const detalleHref = `/(tabs)/perfil/negocios/eventos/${eventID}`;
+
   const huecosLibres = Math.max(
     0,
     MAX_IMAGENES - imagenesGuardadas.length - images.length
@@ -354,7 +359,7 @@ export default function EditarEventoScreen() {
 
       dispatch(editEventLocal({ eventID, ...fieldsPatch }));
 
-      router.back();
+      router.replace(detalleHref);
     } catch (e) {
       console.error('Editar evento falló:', e?.response?.data || e);
       setError('No se pudo guardar el evento. Intenta de nuevo.');
@@ -520,7 +525,7 @@ export default function EditarEventoScreen() {
             paddingBottom: 24 + tabBarInset,
           }}
         >
-          <Pressable onPress={() => router.back()} style={{ position: 'absolute', top: 16, right: 20, width: 32, height: 32, borderRadius: 16, backgroundColor: '#F2F2F2', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+          <Pressable onPress={() => router.replace(detalleHref)} style={{ position: 'absolute', top: 16, right: 20, width: 32, height: 32, borderRadius: 16, backgroundColor: '#F2F2F2', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
             <Ionicons name="arrow-back" size={18} color="#1B2222" />
           </Pressable>
 
@@ -573,7 +578,7 @@ export default function EditarEventoScreen() {
               <AuthButton
                 label="Regresar"
                 variant="outline"
-                onPress={() => router.back()}
+                onPress={() => router.replace(detalleHref)}
                 style={{ flex: 1, backgroundColor: '#9B9B9B' }}
                 textStyle={{ color: '#1B2222' }}
               />
