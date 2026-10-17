@@ -38,23 +38,9 @@ const parseTags = (value) => {
   return [];
 };
 
-const getImageUrl = (value) => {
-  if (!value) return "";
-  if (Array.isArray(value)) return value[0]?.url || "";
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed.startsWith("[")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed)) return parsed[0]?.url || "";
-      } catch (_) {
-        return trimmed;
-      }
-    }
-    return trimmed;
-  }
-  return "";
-};
+// La portada es la primera foto. Se usa el parser compartido para que el
+// origen de la URL sea el mismo que en la galeria.
+const getImageUrl = (value) => parseAttachmentImages(value)[0]?.url || "";
 
 const formatTimeValue = (value) => {
   if (!value) return "";

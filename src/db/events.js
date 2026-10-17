@@ -24,14 +24,26 @@ const toDateString = (value) => {
   }
   return "";
 };
-// Choose how you want to store eventImage: first URL or JSON string of array
-const imageToText = (arr) => {
-  if (!Array.isArray(arr) || !arr.length) return "";
-  // Good option A: store first URL only
-  const firstUrl = arr[0]?.url ?? "";
-  return String(firstUrl);
-  // Option B: store entire array as JSON
-  // return JSON.stringify(arr);
+// Se guarda la lista entera, como ya hacian los locales, y no solo la primera
+// imagen: un evento puede tener varias fotos y con una sola URL suelta la
+// galeria no puede pasar de la primera por mucho que el servidor las devuelva.
+//
+// Se prefiere `permanentUrl`, que apunta a CloudFront. La `url` de Airtable va
+// firmada y caduca a las ocho horas, asi que una copia guardada con ella deja
+// de cargar y la foto se queda en un cuadro vacio.
+const imageToText = (valor) => {
+  // Una cadena ya viene de una copia local mapeada antes: se deja igual.
+  if (typeof valor === "string") return valor;
+  if (!Array.isArray(valor) || !valor.length) return "";
+
+  const lista = valor
+    .map((img) => ({
+      url: img?.permanentUrl || img?.url || "",
+      filename: img?.filename || "",
+    }))
+    .filter((img) => img.url);
+
+  return lista.length ? JSON.stringify(lista) : "";
 };
 
 export const initEventsTable = async () => {
