@@ -30,6 +30,7 @@ import {
 import { upsertEventsFromAPIThunk } from '../../../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 import PhotoGallery from '../../../../../../components/PhotoGallery';
+import { mensajeDeError } from '../../../../../../services/errores';
 
 const MAX_IMAGENES = 6;
 
@@ -246,7 +247,7 @@ export default function CrearEventoScreen() {
       router.replace('/(tabs)/perfil/negocios/eventos/crear/confirmacion');
     } catch (e) {
       console.error('Crear evento falló:', e?.response?.data || e);
-      setError('No se pudo crear el evento. Intenta de nuevo.');
+      setError(mensajeDeError(e, 'No se pudo crear el evento.'));
     } finally {
       setSaving(false);
     }

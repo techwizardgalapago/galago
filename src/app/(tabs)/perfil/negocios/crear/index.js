@@ -33,6 +33,7 @@ import { upsertVenuesFromAPIThunk } from '../../../../../store/slices/venueSlice
 import { getCoordsFromGoogleMapsLink } from '../../../../../utils/maps';
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 import PhotoGallery from '../../../../../components/PhotoGallery';
+import { mensajeDeError } from '../../../../../services/errores';
 
 // ---------- Constantes ----------
 const MAX_IMAGENES = 6;
@@ -399,7 +400,7 @@ export default function CrearNegocioScreen() {
       router.replace('/(tabs)/perfil/negocios/crear/confirmacion');
     } catch (e) {
       console.error('Crear negocio falló:', e);
-      setError('No se pudo registrar el negocio.');
+      setError(mensajeDeError(e, 'No se pudo registrar el negocio.'));
     } finally {
       setSaving(false);
     }

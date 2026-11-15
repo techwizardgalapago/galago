@@ -56,6 +56,7 @@ import {
   validateDaySegments,
 } from '../../../../../../features/venues/schedules';
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
+import { mensajeDeError } from '../../../../../../services/errores';
 
 const MAX_IMAGENES = 6;
 
@@ -381,7 +382,7 @@ export default function EditVenueScreen() {
       ).unwrap();
     } catch (e) {
       console.warn('No se pudo reordenar las imagenes:', e?.message || e);
-      setError('No se pudo cambiar el orden de las fotos');
+      setError(mensajeDeError(e, 'No se pudo cambiar el orden de las fotos'));
     } finally {
       setOrdenandoImagenes(false);
     }
@@ -403,7 +404,7 @@ export default function EditVenueScreen() {
       ).unwrap();
     } catch (e) {
       console.warn('No se pudo borrar la imagen:', e?.message || e);
-      setError('No se pudo borrar la imagen');
+      setError(mensajeDeError(e, 'No se pudo borrar la imagen'));
     } finally {
       setBorrandoImagen(null);
     }
@@ -533,7 +534,7 @@ export default function EditVenueScreen() {
       router.push('/(tabs)/perfil/negocios');
     } catch (e) {
       console.error('Editar venue falló', e);
-      setError('No se pudo guardar');
+      setError(mensajeDeError(e, 'No se pudo guardar'));
     } finally {
       setSaving(false);
     }

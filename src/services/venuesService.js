@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, TIMEOUT_SUBIDA } from './api';
 
 // Normaliza la respuesta de creacion.
 // El backend responde con un array de fields (airtable.crud.createRecord),
@@ -34,13 +34,13 @@ export const createVenueSchedules = async (records) => {
 export const uploadVenueImage = async (venueID, fileOrFormData) => {
   if (typeof FormData !== 'undefined' && fileOrFormData instanceof FormData) {
     // ✅ send as-is, no manual headers
-    const res = await api.put(`/venues-img/${venueID}`, fileOrFormData);
+    const res = await api.put(`/venues-img/${venueID}`, fileOrFormData, { timeout: TIMEOUT_SUBIDA });
     return res.data;
   }
   const form = new FormData();
   const lista = Array.isArray(fileOrFormData) ? fileOrFormData : [fileOrFormData];
   lista.forEach((file) => form.append('images', file)); // native { uri, name, type }
-  const res = await api.put(`/venues-img/${venueID}`, form);
+  const res = await api.put(`/venues-img/${venueID}`, form, { timeout: TIMEOUT_SUBIDA });
   return res.data;
 };
 

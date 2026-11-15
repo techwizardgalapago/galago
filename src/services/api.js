@@ -13,6 +13,12 @@ export const buildApiUrl = (path = '') =>
 
 export const api = axios.create({ baseURL: API_URL, timeout: 15000 });
 
+// Subir fotos no es una peticion normal: van varias en un solo envio, sin
+// redimensionar, y desde Galapagos la subida es lenta. Con los 15 s de arriba
+// axios cortaba la peticion a medio camino, el servidor no registraba nada
+// (la cancela el cliente) y la pantalla decia 'No se pudo guardar' sin mas.
+export const TIMEOUT_SUBIDA = 180000;
+
 // Helper to set/unset Authorization header after login/logout
 export const setAuthHeader = (token) => {
   if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;

@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, TIMEOUT_SUBIDA } from "./api";
 
 export const getEvents = async (params = {}) => {
   const res = await api.get("/events", { params });
@@ -30,13 +30,13 @@ export const deleteEvent = async (eventID) => {
 // evento ya tiene, hasta seis.
 export const uploadEventImage = async (eventID, fileOrFormData) => {
   if (typeof FormData !== 'undefined' && fileOrFormData instanceof FormData) {
-    const res = await api.put(`/events-img/${eventID}`, fileOrFormData);
+    const res = await api.put(`/events-img/${eventID}`, fileOrFormData, { timeout: TIMEOUT_SUBIDA });
     return res.data;
   }
   const form = new FormData();
   const lista = Array.isArray(fileOrFormData) ? fileOrFormData : [fileOrFormData];
   lista.forEach((file) => form.append('images', file));
-  const res = await api.put(`/events-img/${eventID}`, form);
+  const res = await api.put(`/events-img/${eventID}`, form, { timeout: TIMEOUT_SUBIDA });
   return res.data;
 };
 

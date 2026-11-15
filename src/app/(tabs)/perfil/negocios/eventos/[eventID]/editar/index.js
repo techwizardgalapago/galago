@@ -36,6 +36,7 @@ import {
 import { useTabBarInset } from "../../../../../../../hooks/useTabBarInset";
 import PhotoGallery from '../../../../../../../components/PhotoGallery';
 import { parseAttachmentImages } from '../../../../../../../features/attachments/images';
+import { mensajeDeError } from '../../../../../../../services/errores';
 
 // ---------- Constantes ----------
 const MAX_IMAGENES = 6;
@@ -253,7 +254,7 @@ export default function EditarEventoScreen() {
       await refrescarEvento();
     } catch (e) {
       console.warn('No se pudo borrar la imagen:', e?.message || e);
-      setError('No se pudo borrar la imagen');
+      setError(mensajeDeError(e, 'No se pudo borrar la imagen'));
     } finally {
       setBorrandoImagen(null);
     }
@@ -276,7 +277,7 @@ export default function EditarEventoScreen() {
       await refrescarEvento();
     } catch (e) {
       console.warn('No se pudo reordenar las imagenes:', e?.message || e);
-      setError('No se pudo cambiar el orden de las fotos');
+      setError(mensajeDeError(e, 'No se pudo cambiar el orden de las fotos'));
     } finally {
       setOrdenandoImagenes(false);
     }
@@ -362,7 +363,7 @@ export default function EditarEventoScreen() {
       router.replace(detalleHref);
     } catch (e) {
       console.error('Editar evento falló:', e?.response?.data || e);
-      setError('No se pudo guardar el evento. Intenta de nuevo.');
+      setError(mensajeDeError(e, 'No se pudo guardar el evento.'));
     } finally {
       setSaving(false);
     }
