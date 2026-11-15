@@ -228,13 +228,24 @@ export default function MisNegociosScreen() {
                         router.push(`/(tabs)/perfil/negocios/${item.venueID}`);
                       }}
                     >
+                      {/*
+                        La calificacion, la categoria y el precio venian
+                        escritos a mano del maquetado: '4.0', 'Ecuatoriana' y
+                        '$$$$'. No salian de ningun dato, asi que a cada dueno
+                        le decian que su negocio recien creado tenia cuatro
+                        estrellas y el precio mas alto.
+
+                        Se leen los mismos campos que el resto de pantallas.
+                        Hoy no existen en Airtable, asi que la etiqueta no se
+                        pinta; el dia que existan, aparece sola.
+                      */}
                       <PlaceCard
                         imageUri={getVenueImageUrl(item)}
                         title={item.venueName || 'Sin nombre'}
                         location={item.venueLocation || ''}
-                        rating="4.0"
-                        category={item.venueCategory || 'Ecuatoriana'}
-                        price="$$$$"
+                        rating={item.venueRating ?? null}
+                        category={item.venueCategory || ''}
+                        priceLevel={item.venuePrice ?? null}
                       />
                     </Pressable>
                   ))}
