@@ -31,6 +31,8 @@ import { upsertEventsFromAPIThunk } from '../../../../../../store/slices/eventsS
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 import PhotoGallery from '../../../../../../components/PhotoGallery';
 import { mensajeDeError } from '../../../../../../services/errores';
+import { reducirImagen } from '../../../../../../services/imagenesWeb';
+import ProgresoSubida from '../../../../../../components/ProgresoSubida';
 
 const MAX_IMAGENES = 6;
 
@@ -73,24 +75,6 @@ const EVENT_TAGS = [
 ];
 
 // Comprime imagen en web antes de subir (evita 413)
-const compressImageWeb = (uri) =>
-  new Promise((resolve) => {
-    const img = new window.Image();
-    img.onload = () => {
-      const MAX = 1200;
-      let w = img.width;
-      let h = img.height;
-      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.75);
-    };
-    img.src = uri;
-  });
-
 // ---------- Componente principal ----------
 export default function CrearEventoScreen() {
   const tabBarInset = useTabBarInset();
@@ -133,6 +117,8 @@ export default function CrearEventoScreen() {
   const [endDate, setEndDate] = useState(new Date());
   const [images, setImages] = useState([]);
   const [saving, setSaving] = useState(false);
+  // null cuando no se esta subiendo nada.
+  const [progreso, setProgreso] = useState(null);
   const [error, setError] = useState('');
 
   // Native date/time picker state
@@ -226,19 +212,26 @@ export default function CrearEventoScreen() {
 
       if (images.length) {
         if (Platform.OS === 'web') {
+          setProgreso({ fase: 'preparando' });
           // Todas en una sola peticion: el backend las anade en orden.
           const formData = new FormData();
           for (const img of images) {
-            const blob = await compressImageWeb(img.uri);
-            formData.append(
-              'images',
-              new File([blob], img.name || 'event.jpg', { type: 'image/jpeg' })
-            );
+            const res = await fetch(img.uri);
+            const blob = await res.blob();
+            const original = new File([blob], img.name || 'event.jpg', {
+              type: blob.type || img.type || 'image/jpeg',
+            });
+            formData.append('images', await reducirImagen(original));
           }
-          await uploadEventImage(eventID, formData);
+          await uploadEventImage(eventID, formData, (p) =>
+            setProgreso({ fase: 'subiendo', ...p })
+          );
         } else {
-          await uploadEventImage(eventID, images);
+          await uploadEventImage(eventID, images, (p) =>
+            setProgreso({ fase: 'subiendo', ...p })
+          );
         }
+        setProgreso(null);
       }
 
       const eventFull = await getEventById(eventID);
@@ -250,6 +243,7 @@ export default function CrearEventoScreen() {
       setError(mensajeDeError(e, 'No se pudo crear el evento.'));
     } finally {
       setSaving(false);
+      setProgreso(null);
     }
   };
 
@@ -491,6 +485,7 @@ export default function CrearEventoScreen() {
                 textStyle={{ color: '#1B2222' }}
               />
             </View>
+            <ProgresoSubida progreso={progreso} />
           </View>
         </AuthCard>
       </ScrollView>

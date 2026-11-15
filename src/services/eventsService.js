@@ -1,4 +1,5 @@
 import { api, TIMEOUT_SUBIDA } from "./api";
+import { progresoAxios } from "./progreso";
 
 export const getEvents = async (params = {}) => {
   const res = await api.get("/events", { params });
@@ -28,15 +29,17 @@ export const deleteEvent = async (eventID) => {
 
 // Acepta un archivo suelto o una lista: el backend las anade a las que el
 // evento ya tiene, hasta seis.
-export const uploadEventImage = async (eventID, fileOrFormData) => {
+// Ver la nota en venuesService sobre `onProgreso`.
+export const uploadEventImage = async (eventID, fileOrFormData, onProgreso) => {
+  const opciones = { timeout: TIMEOUT_SUBIDA, onUploadProgress: progresoAxios(onProgreso) };
   if (typeof FormData !== 'undefined' && fileOrFormData instanceof FormData) {
-    const res = await api.put(`/events-img/${eventID}`, fileOrFormData, { timeout: TIMEOUT_SUBIDA });
+    const res = await api.put(`/events-img/${eventID}`, fileOrFormData, opciones);
     return res.data;
   }
   const form = new FormData();
   const lista = Array.isArray(fileOrFormData) ? fileOrFormData : [fileOrFormData];
   lista.forEach((file) => form.append('images', file));
-  const res = await api.put(`/events-img/${eventID}`, form, { timeout: TIMEOUT_SUBIDA });
+  const res = await api.put(`/events-img/${eventID}`, form, opciones);
   return res.data;
 };
 

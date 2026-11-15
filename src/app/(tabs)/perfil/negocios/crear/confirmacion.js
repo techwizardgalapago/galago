@@ -1,11 +1,14 @@
 import { View, Text, Image, Pressable, StyleSheet, Linking } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import AuthBackground from '../../../../../components/auth/AuthBackground';
 
 const MASCOT = require('../../../../../../assets/mascot-gosurf.png');
 const WHATSAPP_NUMBER = 'PLACEHOLDER'; // reemplazar con el número real (sin +)
 
 export default function CrearNegocioConfirmacion() {
+  // El negocio se crea aunque fallen las fotos. Cuando eso pasa llega aqui el
+  // motivo por parametro, para no dejar a la persona creyendo que subio todo.
+  const { errorFotos } = useLocalSearchParams();
   const handleContinuar = () => {
     router.replace('/(tabs)/perfil');
   };
@@ -26,6 +29,17 @@ export default function CrearNegocioConfirmacion() {
           <Text style={styles.subtitle}>
             Nuestro equipo lo revisará y subirá a la plataforma en max. 48 horas
           </Text>
+
+          {errorFotos ? (
+            <View style={styles.aviso}>
+              <Text style={styles.avisoTitulo}>Las fotos no se subieron</Text>
+              <Text style={styles.avisoTexto}>{errorFotos}</Text>
+              <Text style={styles.avisoTexto}>
+                El negocio sí quedó guardado. Puedes añadir las fotos desde Mis
+                negocios → Editar.
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.actions}>
@@ -75,6 +89,23 @@ const styles = StyleSheet.create({
     color: '#1b2222',
     textAlign: 'center',
     lineHeight: 28,
+  },
+  aviso: {
+    backgroundColor: '#FFF4F6',
+    borderRadius: 16,
+    padding: 14,
+    gap: 6,
+    width: '100%',
+  },
+  avisoTitulo: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1b2222',
+  },
+  avisoTexto: {
+    fontSize: 13,
+    color: '#5a6060',
+    lineHeight: 19,
   },
   subtitle: {
     fontSize: 14,

@@ -57,6 +57,8 @@ import {
 } from '../../../../../../features/venues/schedules';
 import { useTabBarInset } from "../../../../../../hooks/useTabBarInset";
 import { mensajeDeError } from '../../../../../../services/errores';
+import { reducirImagen } from '../../../../../../services/imagenesWeb';
+import ProgresoSubida from '../../../../../../components/ProgresoSubida';
 
 const MAX_IMAGENES = 6;
 
@@ -165,6 +167,8 @@ export default function EditVenueScreen() {
     MAX_IMAGENES - imagenesGuardadas.length - images.length
   );
   const [saving, setSaving] = useState(false);
+  // null cuando no se esta subiendo nada.
+  const [progreso, setProgreso] = useState(null);
   const [error, setError] = useState('');
 
   // Link de Google Maps (para actualizar coords desde aquí si el usuario quiere)
@@ -474,19 +478,23 @@ export default function EditVenueScreen() {
 
       if (Platform.OS === 'web') {
         if (images.length) {
+          setProgreso({ fase: 'preparando' });
           // Todas en una sola peticion: el backend las anade a las que ya hay.
           const formData = new FormData();
           for (const img of images) {
             const res = await fetch(img.uri);
             const blob = await res.blob();
-            formData.append(
-              'images',
-              new File([blob], img.name || 'venue.jpg', {
-                type: blob.type || img.type || 'image/jpeg',
-              })
-            );
+            const original = new File([blob], img.name || 'venue.jpg', {
+              type: blob.type || img.type || 'image/jpeg',
+            });
+            // Se reducen antes de enviarlas: el navegador entrega el archivo
+            // original, y varias fotos de celular no caben en una peticion.
+            formData.append('images', await reducirImagen(original));
           }
-          await uploadVenueImage(venueID, formData);
+          await uploadVenueImage(venueID, formData, (p) =>
+            setProgreso({ fase: 'subiendo', ...p })
+          );
+          setProgreso(null);
         }
       } else {
         await dispatch(
@@ -537,6 +545,7 @@ export default function EditVenueScreen() {
       setError(mensajeDeError(e, 'No se pudo guardar'));
     } finally {
       setSaving(false);
+      setProgreso(null);
     }
   };
 
@@ -978,6 +987,7 @@ export default function EditVenueScreen() {
                 textStyle={{ color: '#1B2222' }}
               />
             </View>
+            <ProgresoSubida progreso={progreso} />
           </View>
         </AuthCard>
       </ScrollView>

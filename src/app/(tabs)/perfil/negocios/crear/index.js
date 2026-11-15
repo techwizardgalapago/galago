@@ -34,6 +34,8 @@ import { getCoordsFromGoogleMapsLink } from '../../../../../utils/maps';
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 import PhotoGallery from '../../../../../components/PhotoGallery';
 import { mensajeDeError } from '../../../../../services/errores';
+import { reducirImagen } from '../../../../../services/imagenesWeb';
+import ProgresoSubida from '../../../../../components/ProgresoSubida';
 
 // ---------- Constantes ----------
 const MAX_IMAGENES = 6;
@@ -141,6 +143,8 @@ export default function CrearNegocioScreen() {
   const [images, setImages] = useState([]); // { uri, name, type }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // null cuando no se esta subiendo nada.
+  const [progreso, setProgreso] = useState(null);
 
   // Link de Google Maps
   const [mapsUrl, setMapsUrl] = useState('');
@@ -367,27 +371,39 @@ export default function CrearNegocioScreen() {
         await createVenueSchedules(payload);
       }
 
-      // 4) Subir las fotos si las hay (no-fatal: el negocio ya fue creado)
+      // 4) Subir las fotos si las hay.
+      //
+      // No es fatal: el negocio ya esta creado y no se va a perder por una
+      // foto. Pero tampoco se calla, como hacia antes: el fallo se arrastra
+      // hasta la pantalla de confirmacion, porque un negocio que se guarda
+      // sin sus fotos y sin avisar es justo lo que paso en produccion.
+      let falloFotos = '';
       if (images.length) {
         try {
           if (Platform.OS === 'web') {
+            setProgreso({ fase: 'preparando' });
             const formData = new FormData();
             for (const img of images) {
               const res = await fetch(img.uri);
               const blob = await res.blob();
-              formData.append(
-                'images',
-                new File([blob], img.name || 'venue.jpg', {
-                  type: blob.type || img.type || 'image/jpeg',
-                })
-              );
+              const original = new File([blob], img.name || 'venue.jpg', {
+                type: blob.type || img.type || 'image/jpeg',
+              });
+              formData.append('images', await reducirImagen(original));
             }
-            await uploadVenueImage(venueID, formData);
+            await uploadVenueImage(venueID, formData, (p) =>
+              setProgreso({ fase: 'subiendo', ...p })
+            );
           } else {
-            await uploadVenueImage(venueID, images);
+            await uploadVenueImage(venueID, images, (p) =>
+              setProgreso({ fase: 'subiendo', ...p })
+            );
           }
         } catch (imgErr) {
           console.warn('No se pudieron subir las imagenes del negocio:', imgErr);
+          falloFotos = mensajeDeError(imgErr, 'No se pudieron subir las fotos.');
+        } finally {
+          setProgreso(null);
         }
       }
 
@@ -397,7 +413,12 @@ export default function CrearNegocioScreen() {
         dispatch(upsertVenuesFromAPIThunk([venueFull]));
       }
 
-      router.replace('/(tabs)/perfil/negocios/crear/confirmacion');
+      // Por parametro, no por historial: la confirmacion tiene que poder
+      // decir que las fotos no entraron.
+      router.replace({
+        pathname: '/(tabs)/perfil/negocios/crear/confirmacion',
+        params: falloFotos ? { errorFotos: falloFotos } : undefined,
+      });
     } catch (e) {
       console.error('Crear negocio falló:', e);
       setError(mensajeDeError(e, 'No se pudo registrar el negocio.'));
@@ -799,7 +820,8 @@ export default function CrearNegocioScreen() {
             style={{ flex: 1, backgroundColor: '#F49DB6' }}
             textStyle={{ color: '#1B2222' }}
           />
-        </View>
+          </View>
+          <ProgresoSubida progreso={progreso} />
           </View>
         </AuthCard>
       </ScrollView>

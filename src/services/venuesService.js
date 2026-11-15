@@ -1,4 +1,5 @@
 import { api, TIMEOUT_SUBIDA } from './api';
+import { progresoAxios } from './progreso';
 
 // Normaliza la respuesta de creacion.
 // El backend responde con un array de fields (airtable.crud.createRecord),
@@ -31,16 +32,19 @@ export const createVenueSchedules = async (records) => {
 
 // Acepta un archivo suelto o una lista: el backend las anade a las que el
 // local ya tiene, hasta seis.
-export const uploadVenueImage = async (venueID, fileOrFormData) => {
+// `onProgreso` recibe { porcentaje, enviados, total } mientras sube, para que
+// la pantalla pueda decir cuanto falta: una subida lenta sin senal de vida
+// parece colgada y la gente vuelve a darle a guardar.
+export const uploadVenueImage = async (venueID, fileOrFormData, onProgreso) => {
+  const opciones = { timeout: TIMEOUT_SUBIDA, onUploadProgress: progresoAxios(onProgreso) };
   if (typeof FormData !== 'undefined' && fileOrFormData instanceof FormData) {
-    // ✅ send as-is, no manual headers
-    const res = await api.put(`/venues-img/${venueID}`, fileOrFormData, { timeout: TIMEOUT_SUBIDA });
+    const res = await api.put(`/venues-img/${venueID}`, fileOrFormData, opciones);
     return res.data;
   }
   const form = new FormData();
   const lista = Array.isArray(fileOrFormData) ? fileOrFormData : [fileOrFormData];
   lista.forEach((file) => form.append('images', file)); // native { uri, name, type }
-  const res = await api.put(`/venues-img/${venueID}`, form, { timeout: TIMEOUT_SUBIDA });
+  const res = await api.put(`/venues-img/${venueID}`, form, opciones);
   return res.data;
 };
 
