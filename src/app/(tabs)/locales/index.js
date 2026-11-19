@@ -149,7 +149,11 @@ export function CategoryTile({ category, island }) {
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           />
-        ) : null}
+        ) : (
+          // Sin mascota queda el hueco igual, para que la etiqueta no suba y
+          // las fichas con dibujo y sin el se vean a la misma altura.
+          <View style={styles.categoryTileMascota} />
+        )}
         <Text style={styles.categoryTileText}>{category.label}</Text>
       </LinearGradient>
     </Pressable>
@@ -669,22 +673,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     paddingBottom: 18,
-    justifyContent: "flex-end",
+    // Nada de lo que lleve dentro puede salirse de la ficha. Es lo que fallo
+    // con la mascota en absoluto, que se desbordaba sobre las vecinas.
+    overflow: "hidden",
   },
-  // Va suelta sobre el degradado y no en la columna: asi la etiqueta sigue
-  // anclada abajo y la mascota no la empuja ni le roba sitio cuando el texto
-  // ocupa dos lineas.
+  // Un hijo mas de la columna, con el sobrante de la ficha.
   //
-  // Se fija la altura y no el ancho: con 'contain' el ancho lo pone la
-  // proporcion de cada dibujo, que no es la misma en todos, y asi los diez
-  // ocupan la misma franja de la ficha en vez de salir unos mas altos que
-  // otros. El hueco por arriba lo da el padding de la ficha.
+  // Antes iba en absoluto con 'top/left/right: 0' y una altura en
+  // porcentaje. En web no se media contra la ficha: la imagen salia de 619
+  // de ancho, se desbordaba sobre las fichas vecinas y estas, que se pintan
+  // despues, la tapaban. Asi no se veia ninguna mascota.
+  //
+  // Con 'flex: 1' no hay contenedor de referencia que resolver ni
+  // porcentaje que interpretar: se queda con el alto que sobra por encima
+  // de la etiqueta, y 'contain' encaja el dibujo dentro sin recortarlo.
   categoryTileMascota: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "52%",
+    flex: 1,
+    width: "100%",
   },
   categoryTileText: {
     fontSize: 19,

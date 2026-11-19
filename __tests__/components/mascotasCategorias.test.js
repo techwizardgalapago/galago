@@ -20,7 +20,7 @@ describe("mascotas de las fichas de categoria", () => {
     expect(mascota).toBeTruthy();
   });
 
-  it("le da altura a la mascota, que sin ella no se veria", async () => {
+  it("le da sitio a la mascota sin sacarla de la ficha", async () => {
     await render(<CategoryTile category={porClave("alimentos")} island="Santa Cruz" />);
 
     const imagenes = screen.UNSAFE_root.findAllByType(Image);
@@ -29,8 +29,11 @@ describe("mascotas de las fichas de categoria", () => {
       ? Object.assign({}, ...mascota.props.style)
       : mascota.props.style;
 
-    expect(estilo.position).toBe("absolute");
-    expect(estilo.height).toBeTruthy();
+    // En absoluto no se medía contra la ficha: en web la imagen salía de 619
+    // de ancho, se desbordaba sobre las fichas de al lado y quedaba tapada
+    // por ellas. Como hijo normal de la columna eso no puede volver a pasar.
+    expect(estilo.position).toBeUndefined();
+    expect(estilo.flex).toBe(1);
     expect(mascota.props.resizeMode).toBe("contain");
   });
 
