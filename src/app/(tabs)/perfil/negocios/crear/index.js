@@ -313,10 +313,12 @@ export default function CrearNegocioScreen() {
       if (mapsUrl && (!latitudeStr || !longitudeStr)) {
         const coords = await getCoordsFromGoogleMapsLink(mapsUrl);
         if (!coords) {
+          // Los enlaces cortos de la app si sirven: lo que fallaba era que
+          // se pegaba el texto entero que comparte Maps, con el nombre del
+          // sitio delante del enlace. Ya se recorta, asi que el mensaje deja
+          // de mandar a buscar un navegador de escritorio.
           setError(
-            Platform.OS === 'web'
-              ? 'No pude leer la ubicación del link. Usa el enlace completo desde Google Maps en el navegador (no el link corto de la app).'
-              : 'No pude leer la ubicación del link de Google Maps. Revisa el enlace.'
+            'No pude leer la ubicación de ese enlace. Comprueba que sea un enlace de Google Maps, o escribe la latitud y la longitud a mano.'
           );
           setSaving(false);
           return;

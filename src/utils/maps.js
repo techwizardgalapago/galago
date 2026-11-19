@@ -2,6 +2,26 @@
 import { Platform } from 'react-native';
 import { api } from '../services/api';
 
+// 0. Saca el enlace del texto que la persona pega.
+//
+// Compartir un sitio desde la APP de Google Maps no copia la URL sola: copia
+// el nombre del lugar y debajo el enlace, por ejemplo
+//
+//   FUNDAR GALAPAGOS
+//   https://maps.app.goo.gl/99AHGCnaU95i9JxS6?g_st=aw
+//
+// Desde Maps en el navegador, en cambio, se copia la URL pelada. Por eso
+// 'los links de la app no servian y los de la web si': el texto entero se
+// trataba como si fuera una URL, el backend intentaba descargarlo y fallaba.
+export const extraerUrl = (texto) => {
+  if (typeof texto !== "string") return "";
+  const encontrado = texto.match(/https?:\/\/\S+/i);
+  if (!encontrado) return texto.trim();
+  // Si el enlace venia dentro de una frase, se quita la puntuacion final que
+  // se haya pegado al pegarlo ('...goo.gl/abc.' o '(...goo.gl/abc)').
+  return encontrado[0].replace(/[.,;:!?)\]}>'"]+$/, "");
+};
+
 // 1. Extrae lat/lng de una URL "larga" de Google Maps (varios formatos)
 export function extractLatLngFromGoogleMapsUrl(url) {
   try {
@@ -76,7 +96,12 @@ async function resolveShortMapsUrlWeb(shortUrl) {
 }
 
 // 4. Función completa: acepta link corto o largo, cualquier plataforma
-export async function getCoordsFromGoogleMapsLink(url) {
+export async function getCoordsFromGoogleMapsLink(texto) {
+  if (!texto) return null;
+
+  // Lo primero: quedarse solo con el enlace. Lo que llega puede ser el texto
+  // que comparte la app de Maps, con el nombre del sitio delante.
+  const url = extraerUrl(texto);
   if (!url) return null;
 
   const isShort =
