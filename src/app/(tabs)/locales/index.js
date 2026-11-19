@@ -50,6 +50,12 @@ export const MASCOTAS = {
   actividades: require("../../../../assets/gositos/go-snorkel.png"),
 };
 
+// Informacion no lleva mascota: lleva el simbolo de informacion, que se
+// entiende sin leer y sin depender de que diseno dibuje un gosito mas.
+export const ICONOS = {
+  informacion: "information",
+};
+
 export const CATEGORIES = [
   {
     key: "alimentos",
@@ -123,6 +129,10 @@ export function CategoryTile({ category, island }) {
   const medidaMascota = isMobile
     ? styles.categoryTileMascotaMovil
     : styles.categoryTileMascotaEscritorio;
+  const ladoLetra = isMobile ? 34 : 42;
+  const medidaIconoCirculo = isMobile
+    ? styles.categoryTileIconoCirculoMovil
+    : styles.categoryTileIconoCirculoEscritorio;
   return (
     <Pressable
       // El tamano va en el Pressable, que es el hijo de la rejilla: puesto en
@@ -152,6 +162,21 @@ export function CategoryTile({ category, island }) {
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           />
+        ) : ICONOS[category.key] ? (
+          <View style={[styles.categoryTileMascota, medidaMascota, styles.categoryTileIconoCaja]}>
+            {/*
+              El circulo se dibuja aqui y dentro va solo la letra. Se descarto
+              el simbolo 'information-circle', que ya trae circulo, porque
+              depende de que la 'i' vaya calada en el glifo: si no lo esta,
+              queda un disco negro y nada dentro. Asi no depende de eso.
+
+              El crema es el del cuerpo de los gositos, para que el icono se
+              vea de la misma familia y no pegado encima.
+            */}
+            <View style={[styles.categoryTileIconoCirculo, medidaIconoCirculo]}>
+              <Ionicons name={ICONOS[category.key]} size={ladoLetra} color="#FFFBE5" />
+            </View>
+          </View>
         ) : (
           // Sin mascota queda el hueco igual, para que la etiqueta no suba y
           // las fichas con dibujo y sin el se vean a la misma altura.
@@ -712,6 +737,27 @@ const styles = StyleSheet.create({
   // del telefono. 64 entra en los estrechos de verdad sin recortar nada.
   categoryTileMascotaMovil: {
     height: 64,
+  },
+  categoryTileIconoCaja: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryTileIconoCirculo: {
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Entra en los 80 de alto que tiene la mascota en escritorio.
+  categoryTileIconoCirculoEscritorio: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+  },
+  // Entra en los 64 del movil.
+  categoryTileIconoCirculoMovil: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
   },
   categoryTileText: {
     fontSize: 19,

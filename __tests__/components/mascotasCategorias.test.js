@@ -7,7 +7,9 @@
 import { render, screen } from "@testing-library/react-native";
 import { Image } from "react-native";
 
-import { CategoryTile, CATEGORIES, MASCOTAS } from "../../src/app/(tabs)/locales/index";
+import { Ionicons } from "@expo/vector-icons";
+
+import { CategoryTile, CATEGORIES, MASCOTAS, ICONOS } from "../../src/app/(tabs)/locales/index";
 
 const porClave = (clave) => CATEGORIES.find((c) => c.key === clave);
 
@@ -57,12 +59,42 @@ describe("mascotas de las fichas de categoria", () => {
     expect(screen.getByText("Alimentos y Bebidas")).toBeTruthy();
   });
 
-  it("no rompe la ficha que todavia no tiene mascota", async () => {
-    const sinMascota = porClave("informacion");
-    expect(MASCOTAS[sinMascota.key]).toBeUndefined();
+  it("pinta el simbolo de informacion, que no tiene mascota", async () => {
+    const info = porClave("informacion");
+    expect(MASCOTAS[info.key]).toBeUndefined();
 
-    await render(<CategoryTile category={sinMascota} island="Santa Cruz" />);
+    await render(<CategoryTile category={info} island="Santa Cruz" />);
+
+    const iconos = screen.UNSAFE_root.findAllByType(Ionicons);
+    const simbolo = iconos.find((i) => i.props.name === ICONOS.informacion);
+    expect(simbolo).toBeTruthy();
+    // La letra va crema sobre el circulo negro que la envuelve. No se usa el
+    // simbolo con circulo incluido porque ese depende de que la 'i' vaya
+    // calada en el glifo; asi el circulo es nuestro y no hay nada que fallar.
+    expect(simbolo.props.color).toBe("#FFFBE5");
     expect(screen.getByText("Información")).toBeTruthy();
+  });
+
+  it("ocupa el mismo alto que una mascota", async () => {
+    // Si el simbolo midiera otra cosa, la etiqueta de Informacion quedaria a
+    // distinta altura que la de las fichas vecinas.
+    const { estilo } = await estiloDeLaMascota("alimentos");
+
+    await render(<CategoryTile category={porClave("informacion")} island="Santa Cruz" />);
+    const iconos = screen.UNSAFE_root.findAllByType(Ionicons);
+    const simbolo = iconos.find((i) => i.props.name === ICONOS.informacion);
+
+    // Se sube por los padres hasta la caja que reserva el alto. No se cuenta
+    // cuantos niveles hay porque Ionicons mete envoltorios propios, y ese
+    // detalle no es lo que se quiere fijar aqui.
+    const alturas = [];
+    for (let nodo = simbolo.parent; nodo; nodo = nodo.parent) {
+      const e = Array.isArray(nodo.props?.style)
+        ? Object.assign({}, ...nodo.props.style.filter(Boolean))
+        : nodo.props?.style;
+      if (e && typeof e.height === "number") alturas.push(e.height);
+    }
+    expect(alturas).toContain(estilo.height);
   });
 
   it("cada mascota declarada corresponde a una categoria que existe", () => {
