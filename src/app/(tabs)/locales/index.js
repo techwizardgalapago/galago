@@ -33,6 +33,21 @@ const ISLANDS = ["Todo", "San Cristóbal", "Isabela", "Santa Cruz"];
 // Isla con la que arranca la pantalla cuando no llega ninguna en la URL.
 const ISLA_POR_DEFECTO = "San Cristóbal";
 
+// Las mascotas de cada categoria. El nombre del archivo describe el dibujo
+// original ('hike' es el de la gorra y la botella), no la categoria donde va:
+// el reparto lo decide el diseno, no como se llama el PNG.
+//
+// Los PNG originales miden 4500x4500 y pesan 4,4 MB entre todos. Aqui se usan
+// reducidos a 512, que es de sobra para una baldosa de 212 de ancho incluso en
+// pantallas de tres pixeles por punto, y bajan a 584 KB en total.
+const MASCOTAS = {
+  alimentos: require("../../../../assets/gositos/go-food.png"),
+  hoteles: require("../../../../assets/gositos/go-party.png"),
+  nocturna: require("../../../../assets/gositos/go-drinks.png"),
+  tiendas: require("../../../../assets/gositos/go-hike.png"),
+  actividades: require("../../../../assets/gositos/go-snorkel.png"),
+};
+
 const CATEGORIES = [
   {
     key: "alimentos",
@@ -122,6 +137,17 @@ function CategoryTile({ category, island }) {
         end={category.end}
         style={styles.categoryTileFondo}
       >
+        {MASCOTAS[category.key] ? (
+          <Image
+            source={MASCOTAS[category.key]}
+            style={styles.categoryTileMascota}
+            resizeMode="contain"
+            // Es decoracion: quien navegue con lector de pantalla ya oye la
+            // etiqueta de la categoria, y oir ademas 'imagen' no aporta nada.
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
+        ) : null}
         <Text style={styles.categoryTileText}>{category.label}</Text>
       </LinearGradient>
     </Pressable>
@@ -642,6 +668,16 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 18,
     justifyContent: "flex-end",
+  },
+  // Va suelta sobre el degradado y no en la columna: asi la etiqueta sigue
+  // anclada abajo y la mascota no la empuja ni le roba sitio cuando el texto
+  // ocupa dos lineas.
+  categoryTileMascota: {
+    position: "absolute",
+    top: "4%",
+    left: "12%",
+    right: "12%",
+    height: "58%",
   },
   categoryTileText: {
     fontSize: 19,
