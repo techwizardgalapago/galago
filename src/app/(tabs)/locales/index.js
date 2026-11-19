@@ -37,10 +37,12 @@ const ISLA_POR_DEFECTO = "San Cristóbal";
 // original ('hike' es el de la gorra y la botella), no la categoria donde va:
 // el reparto lo decide el diseno, no como se llama el PNG.
 //
-// Los PNG originales miden 4500x4500 y pesan 4,4 MB entre todos. Aqui se usan
-// reducidos a 512, que es de sobra para una baldosa de 212 de ancho incluso en
-// pantallas de tres pixeles por punto, y bajan a 584 KB en total.
-const MASCOTAS = {
+// Los PNG originales miden 4500x4500 y pesan 4,4 MB entre todos, para un
+// hueco que en pantalla no pasa de 212 de ancho. Aqui van recortados (el
+// dibujo ocupaba poco mas de la mitad del lienzo; el resto era transparente)
+// y con la paleta reducida a 256 colores, que en un dibujo de tintas planas
+// no se distingue del original. Quedan en 276 KB los diez.
+export const MASCOTAS = {
   alimentos: require("../../../../assets/gositos/go-food.png"),
   hoteles: require("../../../../assets/gositos/go-party.png"),
   nocturna: require("../../../../assets/gositos/go-drinks.png"),
@@ -48,7 +50,7 @@ const MASCOTAS = {
   actividades: require("../../../../assets/gositos/go-snorkel.png"),
 };
 
-const CATEGORIES = [
+export const CATEGORIES = [
   {
     key: "alimentos",
     label: "Alimentos y Bebidas",
@@ -116,7 +118,7 @@ const normalizeToken = (value) =>
 
 // -------- Componentes internos --------
 
-function CategoryTile({ category, island }) {
+export function CategoryTile({ category, island }) {
   const { isMobile } = useMedia();
   return (
     <Pressable
@@ -672,12 +674,17 @@ const styles = StyleSheet.create({
   // Va suelta sobre el degradado y no en la columna: asi la etiqueta sigue
   // anclada abajo y la mascota no la empuja ni le roba sitio cuando el texto
   // ocupa dos lineas.
+  //
+  // Se fija la altura y no el ancho: con 'contain' el ancho lo pone la
+  // proporcion de cada dibujo, que no es la misma en todos, y asi los diez
+  // ocupan la misma franja de la ficha en vez de salir unos mas altos que
+  // otros. El hueco por arriba lo da el padding de la ficha.
   categoryTileMascota: {
     position: "absolute",
-    top: "4%",
-    left: "12%",
-    right: "12%",
-    height: "58%",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "52%",
   },
   categoryTileText: {
     fontSize: 19,
