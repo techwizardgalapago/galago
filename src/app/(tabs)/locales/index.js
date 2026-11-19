@@ -120,6 +120,9 @@ const normalizeToken = (value) =>
 
 export function CategoryTile({ category, island }) {
   const { isMobile } = useMedia();
+  const medidaMascota = isMobile
+    ? styles.categoryTileMascotaMovil
+    : styles.categoryTileMascotaEscritorio;
   return (
     <Pressable
       // El tamano va en el Pressable, que es el hijo de la rejilla: puesto en
@@ -142,7 +145,7 @@ export function CategoryTile({ category, island }) {
         {MASCOTAS[category.key] ? (
           <Image
             source={MASCOTAS[category.key]}
-            style={styles.categoryTileMascota}
+            style={[styles.categoryTileMascota, medidaMascota]}
             resizeMode="contain"
             // Es decoracion: quien navegue con lector de pantalla ya oye la
             // etiqueta de la categoria, y oir ademas 'imagen' no aporta nada.
@@ -152,7 +155,7 @@ export function CategoryTile({ category, island }) {
         ) : (
           // Sin mascota queda el hueco igual, para que la etiqueta no suba y
           // las fichas con dibujo y sin el se vean a la misma altura.
-          <View style={styles.categoryTileMascota} />
+          <View style={[styles.categoryTileMascota, medidaMascota]} />
         )}
         <Text style={styles.categoryTileText}>{category.label}</Text>
       </LinearGradient>
@@ -673,23 +676,42 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     paddingBottom: 18,
+    // La mascota arriba y la etiqueta abajo. Antes la etiqueta se apoyaba en
+    // que la mascota crecia hasta empujarla; ahora la mascota mide lo que
+    // mide, asi que el reparto lo hace la ficha.
+    justifyContent: "space-between",
     // Nada de lo que lleve dentro puede salirse de la ficha. Es lo que fallo
     // con la mascota en absoluto, que se desbordaba sobre las vecinas.
     overflow: "hidden",
   },
-  // Un hijo mas de la columna, con el sobrante de la ficha.
+  // Un hijo mas de la columna, de alto fijo.
   //
   // Antes iba en absoluto con 'top/left/right: 0' y una altura en
   // porcentaje. En web no se media contra la ficha: la imagen salia de 619
   // de ancho, se desbordaba sobre las fichas vecinas y estas, que se pintan
   // despues, la tapaban. Asi no se veia ninguna mascota.
   //
-  // Con 'flex: 1' no hay contenedor de referencia que resolver ni
-  // porcentaje que interpretar: se queda con el alto que sobra por encima
-  // de la etiqueta, y 'contain' encaja el dibujo dentro sin recortarlo.
+  // Luego crecia con 'flex: 1' hasta llenar el sobrante, y eso hacia que
+  // cada mascota saliera de un tamano: 'Hoteles y Alojamientos' ocupa dos
+  // lineas y le robaba 23 de alto a la suya. Ahora el alto es fijo y todas
+  // se ven iguales. 'contain' encaja el dibujo dentro sin recortarlo.
   categoryTileMascota: {
-    flex: 1,
     width: "100%",
+    // Red de seguridad para un telefono muy estrecho, donde la ficha es
+    // cuadrada y se queda pequena: antes que recortar la mascota o la
+    // etiqueta, la mascota cede. En un telefono normal no llega a activarse
+    // y las diez miden lo mismo.
+    flexShrink: 1,
+  },
+  // La ficha de escritorio mide 170 de alto y el padding deja 132 utiles.
+  // La etiqueta ocupa 46 cuando son dos lineas, asi que 80 entra con holgura.
+  categoryTileMascotaEscritorio: {
+    height: 80,
+  },
+  // En movil la ficha es cuadrada al 47% del ancho, asi que su alto depende
+  // del telefono. 64 entra en los estrechos de verdad sin recortar nada.
+  categoryTileMascotaMovil: {
+    height: 64,
   },
   categoryTileText: {
     fontSize: 19,

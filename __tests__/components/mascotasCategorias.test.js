@@ -20,21 +20,36 @@ describe("mascotas de las fichas de categoria", () => {
     expect(mascota).toBeTruthy();
   });
 
-  it("le da sitio a la mascota sin sacarla de la ficha", async () => {
-    await render(<CategoryTile category={porClave("alimentos")} island="Santa Cruz" />);
-
+  const estiloDeLaMascota = async (clave) => {
+    await render(<CategoryTile category={porClave(clave)} island="Santa Cruz" />);
     const imagenes = screen.UNSAFE_root.findAllByType(Image);
-    const mascota = imagenes.find((i) => i.props.source === MASCOTAS.alimentos);
+    const mascota = imagenes.find((i) => i.props.source === MASCOTAS[clave]);
     const estilo = Array.isArray(mascota.props.style)
       ? Object.assign({}, ...mascota.props.style)
       : mascota.props.style;
+    return { mascota, estilo };
+  };
+
+  it("le da sitio a la mascota sin sacarla de la ficha", async () => {
+    const { mascota, estilo } = await estiloDeLaMascota("alimentos");
 
     // En absoluto no se medía contra la ficha: en web la imagen salía de 619
     // de ancho, se desbordaba sobre las fichas de al lado y quedaba tapada
     // por ellas. Como hijo normal de la columna eso no puede volver a pasar.
     expect(estilo.position).toBeUndefined();
-    expect(estilo.flex).toBe(1);
     expect(mascota.props.resizeMode).toBe("contain");
+  });
+
+  it("mide lo mismo tenga la etiqueta una linea o dos", async () => {
+    // 'Alimentos y Bebidas' y 'Hoteles y Alojamientos' no ocupan las mismas
+    // lineas. Cuando la mascota crecia con el sobrante de la ficha, eso la
+    // hacia 23 mas baja en una que en otra y cada una salia de un tamano.
+    const una = await estiloDeLaMascota("alimentos");
+    const dos = await estiloDeLaMascota("hoteles");
+
+    expect(una.estilo.height).toBe(dos.estilo.height);
+    expect(typeof una.estilo.height).toBe("number");
+    expect(una.estilo.flex).toBeUndefined();
   });
 
   it("sigue mostrando la etiqueta junto a la mascota", async () => {
