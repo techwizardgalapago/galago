@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import CachedImage from "../CachedImage";
+import Estrellas from "../Estrellas";
 
 // priceLevel: número 1-4 → renderiza $$$$ con activos en naranja e inactivos en naranja al 50%
 function PriceTag({ level }) {
@@ -24,7 +25,8 @@ export default function PlaceCard({
   price,
   priceLevel,
 }) {
-  const hasTags = rating || category || price || priceLevel;
+  const hasTags =
+    Number.isFinite(rating) || category || price || priceLevel;
   return (
     <View style={styles.row}>
       <View style={styles.thumbnail}>
@@ -39,9 +41,9 @@ export default function PlaceCard({
         </View>
         {hasTags ? (
           <View style={styles.tags}>
-            {rating ? (
+            {Number.isFinite(rating) ? (
               <View style={styles.tag}>
-                <Text style={styles.tagText}>★ {rating}</Text>
+                <Estrellas rating={rating} />
               </View>
             ) : null}
             {category ? (
@@ -103,6 +105,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    // Las cinco estrellas ocupan mucho mas que el '4.0' que habia antes.
+    // Con la categoria y el precio al lado, en un telefono estrecho no caben
+    // en una fila: antes de que se aplasten, bajan.
+    flexWrap: 'wrap',
   },
   tag: {
     backgroundColor: 'rgba(230,83,0,0.1)',

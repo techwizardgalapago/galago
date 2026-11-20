@@ -28,6 +28,7 @@ import {
 import { fetchEventsRemote } from '../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 import { isCurator } from '../../../../features/users/roles';
+import { ratingDeVenue } from '../../../../features/venues/rating';
 
 const isWeb = Platform.OS === 'web';
 
@@ -229,21 +230,24 @@ export default function MisNegociosScreen() {
                       }}
                     >
                       {/*
-                        La calificacion, la categoria y el precio venian
-                        escritos a mano del maquetado: '4.0', 'Ecuatoriana' y
-                        '$$$$'. No salian de ningun dato, asi que a cada dueno
-                        le decian que su negocio recien creado tenia cuatro
-                        estrellas y el precio mas alto.
+                        La categoria y el precio venian escritos a mano del
+                        maquetado: 'Ecuatoriana' y '$$$$'. No salian de ningun
+                        dato, asi que a cada dueno le decian que su negocio
+                        recien creado era de comida ecuatoriana y del precio
+                        mas alto. Ahora se leen de sus campos, que hoy no
+                        existen en Airtable: la etiqueta no se pinta, y el dia
+                        que existan aparece sola.
 
-                        Se leen los mismos campos que el resto de pantallas.
-                        Hoy no existen en Airtable, asi que la etiqueta no se
-                        pinta; el dia que existan, aparece sola.
+                        La calificacion es aparte: sale provisional igual para
+                        todos hasta que exista el sistema de valoraciones. Va
+                        por 'ratingDeVenue', que es el unico sitio donde se
+                        decide eso.
                       */}
                       <PlaceCard
                         imageUri={getVenueImageUrl(item)}
                         title={item.venueName || 'Sin nombre'}
                         location={item.venueLocation || ''}
-                        rating={item.venueRating ?? null}
+                        rating={ratingDeVenue(item)}
                         category={item.venueCategory || ''}
                         priceLevel={item.venuePrice ?? null}
                       />

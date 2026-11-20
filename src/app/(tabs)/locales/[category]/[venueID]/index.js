@@ -23,6 +23,8 @@ import { fetchSchedulesByVenue } from "../../../../../store/slices/schedulesByVe
 import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { getVenueById } from "../../../../../services/venuesService";
 import CachedImage from "../../../../../components/CachedImage";
+import Estrellas from "../../../../../components/Estrellas";
+import { ratingDeVenue } from "../../../../../features/venues/rating";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 import { useMedia } from "../../../../../hooks/useMedia";
 
@@ -208,18 +210,15 @@ export default function VenueDetailScreen() {
   }, [normalizedSchedules]);
 
   // Tags (igual que perfil/negocios/[venueID])
-  const ratingValue = venue?.venueRating ?? venue?.rating;
+  //
+  // La calificacion sale provisional igual para todos hasta que exista el
+  // sistema de valoraciones; 'ratingDeVenue' es el unico sitio donde se
+  // decide eso. Sin local todavia no se pinta nada.
+  const rating = venue ? ratingDeVenue(venue) : null;
   const priceValue = venue?.venuePriceRange ?? venue?.priceRange;
   const ecoFriendly = venue?.ecoFriendly ?? venue?.isEcoFriendly;
   const acceptsCard =
     venue?.acceptsCard ?? venue?.acceptsCardPayments ?? venue?.cardAccepted;
-
-  const normalizedRating =
-    ratingValue != null
-      ? String(
-          typeof ratingValue === "number" ? ratingValue.toFixed(1) : ratingValue
-        )
-      : null;
 
   const normalizedPrice =
     typeof priceValue === "number"
@@ -380,10 +379,9 @@ export default function VenueDetailScreen() {
                 </Text>
               </View>
             ) : null}
-            {normalizedRating ? (
+            {Number.isFinite(rating) ? (
               <View style={[styles.tag, styles.tagOrange]}>
-                <Ionicons name="star" size={12} color="#E65300" />
-                <Text style={styles.tagText}> {normalizedRating}</Text>
+                <Estrellas rating={rating} />
               </View>
             ) : null}
           </View>

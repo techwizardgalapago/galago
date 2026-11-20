@@ -19,6 +19,7 @@ import { useMedia } from "../../../../hooks/useMedia";
 import { useVenues } from "../../../../hooks/useVenues";
 import PlaceCard from "../../../../components/profile/PlaceCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ratingDeVenue } from "../../../../features/venues/rating";
 import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 import {
   tagsForCategory,
@@ -280,7 +281,7 @@ export default function VenueListScreen() {
                     imageUri={getImageUrl(venue.venueImage)}
                     title={venue.venueName}
                     location={venue.venueLocation}
-                    rating={venue.venueRating ?? null}
+                    rating={ratingDeVenue(venue)}
                     category={venue.venueCategory}
                     priceLevel={venue.venuePrice ?? null}
                   />

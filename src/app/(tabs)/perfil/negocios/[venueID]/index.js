@@ -13,6 +13,8 @@ import { fetchEventsRemote } from '../../../../../store/slices/eventsSlice';
 import { toggleFavorite } from '../../../../../store/slices/authSlice';
 import { getVenueById } from '../../../../../services/venuesService';
 import PhotoCarousel from "../../../../../components/PhotoCarousel";
+import Estrellas from "../../../../../components/Estrellas";
+import { ratingDeVenue } from "../../../../../features/venues/rating";
 import { parseAttachmentImages } from "../../../../../features/attachments/images";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
@@ -172,15 +174,12 @@ export default function VenueDetailScreen() {
     return map;
   }, [normalizedSchedules]);
 
-  const ratingValue = venue?.venueRating ?? venue?.rating;
+  // Provisional e igual para todos hasta que exista el sistema de
+  // valoraciones. 'ratingDeVenue' es el unico sitio donde se decide eso.
+  const rating = venue ? ratingDeVenue(venue) : null;
   const priceValue = venue?.venuePriceRange ?? venue?.priceRange;
   const ecoFriendly = venue?.ecoFriendly ?? venue?.isEcoFriendly;
   const acceptsCard = venue?.acceptsCard ?? venue?.acceptsCardPayments ?? venue?.cardAccepted;
-
-  const normalizedRating =
-    ratingValue !== null && ratingValue !== undefined
-      ? String(typeof ratingValue === 'number' ? ratingValue.toFixed(1) : ratingValue)
-      : null;
 
   const normalizedPrice =
     typeof priceValue === 'number'
@@ -246,8 +245,8 @@ export default function VenueDetailScreen() {
     normalizedPrice
       ? { key: 'price', label: normalizedPrice, variant: 'price' }
       : null,
-    normalizedRating
-      ? { key: 'rating', label: normalizedRating, variant: 'rating' }
+    Number.isFinite(rating)
+      ? { key: 'rating', rating, variant: 'rating' }
       : null,
   ].filter(Boolean);
 
@@ -325,8 +324,7 @@ export default function VenueDetailScreen() {
                   if (tag.variant === 'rating') {
                     return (
                       <View key={tag.key} style={[styles.tag, styles.tagOrange]}>
-                        <Ionicons name="star" size={12} color="#E65300" />
-                        <Text style={styles.tagText}>{tag.label}</Text>
+                        <Estrellas rating={tag.rating} />
                       </View>
                     );
                   }
