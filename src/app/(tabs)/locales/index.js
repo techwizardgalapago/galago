@@ -168,13 +168,19 @@ export function CategoryTile({ category, island }) {
               El circulo se dibuja aqui y dentro va solo la letra. Se descarto
               el simbolo 'information-circle', que ya trae circulo, porque
               depende de que la 'i' vaya calada en el glifo: si no lo esta,
-              queda un disco negro y nada dentro. Asi no depende de eso.
+              queda un disco y nada dentro. Asi no depende de eso.
 
-              El crema es el del cuerpo de los gositos, para que el icono se
-              vea de la misma familia y no pegado encima.
+              Circulo en el crema del cuerpo de los gositos y letra en el
+              color de la propia ficha, que se toma del degradado en vez de
+              escribirlo: la categoria que lleve simbolo se tine con el suyo
+              sin tocar nada aqui.
             */}
             <View style={[styles.categoryTileIconoCirculo, medidaIconoCirculo]}>
-              <Ionicons name={ICONOS[category.key]} size={ladoLetra} color="#FFFBE5" />
+              <Ionicons
+                name={ICONOS[category.key]}
+                size={ladoLetra}
+                color={category.colors[0]}
+              />
             </View>
           </View>
         ) : (
@@ -742,8 +748,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // El crema del cuerpo de los gositos, sacado de los propios PNG.
   categoryTileIconoCirculo: {
-    backgroundColor: "#000000",
+    backgroundColor: "#FFFBE5",
     alignItems: "center",
     justifyContent: "center",
   },

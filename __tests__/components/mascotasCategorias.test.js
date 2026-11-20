@@ -68,10 +68,9 @@ describe("mascotas de las fichas de categoria", () => {
     const iconos = screen.UNSAFE_root.findAllByType(Ionicons);
     const simbolo = iconos.find((i) => i.props.name === ICONOS.informacion);
     expect(simbolo).toBeTruthy();
-    // La letra va crema sobre el circulo negro que la envuelve. No se usa el
-    // simbolo con circulo incluido porque ese depende de que la 'i' vaya
-    // calada en el glifo; asi el circulo es nuestro y no hay nada que fallar.
-    expect(simbolo.props.color).toBe("#FFFBE5");
+    // La letra se tine con el color de la propia ficha, no con uno escrito a
+    // mano: la categoria que lleve simbolo usa el suyo sin tocar el codigo.
+    expect(simbolo.props.color).toBe(info.colors[0]);
     expect(screen.getByText("Información")).toBeTruthy();
   });
 
