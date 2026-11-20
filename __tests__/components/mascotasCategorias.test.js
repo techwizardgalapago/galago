@@ -5,11 +5,9 @@
 // altura, que es exactamente lo que no se nota hasta abrir la app.
 
 import { render, screen } from "@testing-library/react-native";
-import { Image } from "react-native";
+import { Image, Text } from "react-native";
 
-import { Ionicons } from "@expo/vector-icons";
-
-import { CategoryTile, CATEGORIES, MASCOTAS, ICONOS } from "../../src/app/(tabs)/locales/index";
+import { CategoryTile, CATEGORIES, MASCOTAS, SIMBOLOS } from "../../src/app/(tabs)/locales/index";
 
 const porClave = (clave) => CATEGORIES.find((c) => c.key === clave);
 
@@ -59,18 +57,28 @@ describe("mascotas de las fichas de categoria", () => {
     expect(screen.getByText("Alimentos y Bebidas")).toBeTruthy();
   });
 
+  const letraDelSimbolo = () => {
+    const textos = screen.UNSAFE_root.findAllByType(Text);
+    return textos.find((t) => t.props.children === SIMBOLOS.informacion);
+  };
+
   it("pinta el simbolo de informacion, que no tiene mascota", async () => {
     const info = porClave("informacion");
     expect(MASCOTAS[info.key]).toBeUndefined();
 
     await render(<CategoryTile category={info} island="Santa Cruz" />);
 
-    const iconos = screen.UNSAFE_root.findAllByType(Ionicons);
-    const simbolo = iconos.find((i) => i.props.name === ICONOS.informacion);
-    expect(simbolo).toBeTruthy();
-    // La letra se tine con el color de la propia ficha, no con uno escrito a
-    // mano: la categoria que lleve simbolo usa el suyo sin tocar el codigo.
-    expect(simbolo.props.color).toBe(info.colors[0]);
+    const letra = letraDelSimbolo();
+    expect(letra).toBeTruthy();
+
+    const estilo = Object.assign({}, ...[].concat(letra.props.style).filter(Boolean));
+    // Es una letra de verdad, no el icono de palo seco de Ionicons: el diseno
+    // pide la serif en cursiva.
+    expect(estilo.fontStyle).toBe("italic");
+    expect(estilo.fontFamily).toBeTruthy();
+    // Se tine con el color de la propia ficha, no con uno escrito a mano: la
+    // categoria que lleve simbolo usa el suyo sin tocar el codigo.
+    expect(estilo.color).toBe(info.colors[0]);
     expect(screen.getByText("Información")).toBeTruthy();
   });
 
@@ -80,8 +88,7 @@ describe("mascotas de las fichas de categoria", () => {
     const { estilo } = await estiloDeLaMascota("alimentos");
 
     await render(<CategoryTile category={porClave("informacion")} island="Santa Cruz" />);
-    const iconos = screen.UNSAFE_root.findAllByType(Ionicons);
-    const simbolo = iconos.find((i) => i.props.name === ICONOS.informacion);
+    const simbolo = letraDelSimbolo();
 
     // Se sube por los padres hasta la caja que reserva el alto. No se cuenta
     // cuantos niveles hay porque Ionicons mete envoltorios propios, y ese

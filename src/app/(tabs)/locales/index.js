@@ -52,9 +52,21 @@ export const MASCOTAS = {
 
 // Informacion no lleva mascota: lleva el simbolo de informacion, que se
 // entiende sin leer y sin depender de que diseno dibuje un gosito mas.
-export const ICONOS = {
-  informacion: "information",
+//
+// Es la letra, no un icono. Se probo con el glifo 'information' de
+// Ionicons, pero ese es de palo seco y el diseno pide la serif en cursiva.
+export const SIMBOLOS = {
+  informacion: "i",
 };
+
+// La serif del sistema, que en cada plataforma se llama de una manera. El
+// proyecto no carga ninguna fuente propia, y meter una por una sola letra no
+// compensa ni en peso ni en dependencias.
+const SERIF = Platform.select({
+  ios: "Georgia",
+  android: "serif",
+  default: "Georgia, 'Times New Roman', serif",
+});
 
 export const CATEGORIES = [
   {
@@ -162,7 +174,7 @@ export function CategoryTile({ category, island }) {
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           />
-        ) : ICONOS[category.key] ? (
+        ) : SIMBOLOS[category.key] ? (
           <View style={[styles.categoryTileMascota, medidaMascota, styles.categoryTileIconoCaja]}>
             {/*
               El circulo se dibuja aqui y dentro va solo la letra. Se descarto
@@ -176,11 +188,14 @@ export function CategoryTile({ category, island }) {
               sin tocar nada aqui.
             */}
             <View style={[styles.categoryTileIconoCirculo, medidaIconoCirculo]}>
-              <Ionicons
-                name={ICONOS[category.key]}
-                size={ladoLetra}
-                color={category.colors[0]}
-              />
+              <Text
+                style={[
+                  styles.categoryTileIconoLetra,
+                  { fontSize: ladoLetra, lineHeight: ladoLetra, color: category.colors[0] },
+                ]}
+              >
+                {SIMBOLOS[category.key]}
+              </Text>
             </View>
           </View>
         ) : (
@@ -747,6 +762,15 @@ const styles = StyleSheet.create({
   categoryTileIconoCaja: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  categoryTileIconoLetra: {
+    fontFamily: SERIF,
+    fontStyle: "italic",
+    fontWeight: "700",
+    textAlign: "center",
+    // Android reserva un alto extra por encima y por debajo de la letra que
+    // la descentraria dentro del circulo.
+    includeFontPadding: false,
   },
   // El crema del cuerpo de los gositos, sacado de los propios PNG.
   categoryTileIconoCirculo: {
