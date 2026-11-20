@@ -34,7 +34,7 @@ export default function CrearEventoConfirmacion() {
           </Pressable>
 
           <Pressable style={styles.whatsappBtn} onPress={handleWhatsApp}>
-            <Text style={styles.whatsappBtnText}>Contactar a GalapaGO</Text>
+            <Text style={styles.whatsappBtnText}>Contactar a GalaGO</Text>
           </Pressable>
         </View>
       </View>
