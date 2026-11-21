@@ -28,7 +28,7 @@ import {
 import { fetchEventsRemote } from '../../../../store/slices/eventsSlice';
 import { useTabBarInset } from "../../../../hooks/useTabBarInset";
 import { isCurator } from '../../../../features/users/roles';
-import { ratingDeVenue } from '../../../../features/venues/rating';
+import { ratingDeVenue, conteoDeVenue } from '../../../../features/venues/rating';
 
 const isWeb = Platform.OS === 'web';
 
@@ -248,6 +248,7 @@ export default function MisNegociosScreen() {
                         title={item.venueName || 'Sin nombre'}
                         location={item.venueLocation || ''}
                         rating={ratingDeVenue(item)}
+                  ratingCount={conteoDeVenue(item)}
                         category={item.venueCategory || ''}
                         priceLevel={item.venuePrice ?? null}
                       />

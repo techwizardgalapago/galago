@@ -24,7 +24,12 @@ import { toggleFavorite } from "../../../../../store/slices/authSlice";
 import { getVenueById } from "../../../../../services/venuesService";
 import CachedImage from "../../../../../components/CachedImage";
 import Estrellas from "../../../../../components/Estrellas";
-import { ratingDeVenue } from "../../../../../features/venues/rating";
+import { ratingDeVenue, conteoDeVenue } from "../../../../../features/venues/rating";
+import {
+  getVenueRatings,
+  getMyVenueRating,
+  rateVenue,
+} from "../../../../../services/ratingsService";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 import { useMedia } from "../../../../../hooks/useMedia";
 
@@ -61,6 +66,19 @@ const normalizeWeekDay = (value) => {
   const asNum = Number(raw);
   if (!Number.isNaN(asNum)) return WEEKDAYS_ORDER[asNum] || null;
   return null;
+};
+
+// La fecha de una opinion. Solo dia y mes: la hora exacta no le dice nada a
+// quien esta leyendo si vale la pena entrar.
+const formatearFecha = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const meses = [
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic",
+  ];
+  return `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
 };
 
 const parseImages = (venueImage) => {
@@ -120,6 +138,11 @@ export default function VenueDetailScreen() {
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [selectedStars, setSelectedStars] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
+  const [opiniones, setOpiniones] = useState([]);
+  const [miOpinion, setMiOpinion] = useState(null);
+  const [enviandoRating, setEnviandoRating] = useState(false);
+  const [errorRating, setErrorRating] = useState("");
+  const [avisoRating, setAvisoRating] = useState("");
   const [mapsConfirmVisible, setMapsConfirmVisible] = useState(false);
   const [whatsappConfirmVisible, setWhatsappConfirmVisible] = useState(false);
 
@@ -211,10 +234,11 @@ export default function VenueDetailScreen() {
 
   // Tags (igual que perfil/negocios/[venueID])
   //
-  // La calificacion sale provisional igual para todos hasta que exista el
-  // sistema de valoraciones; 'ratingDeVenue' es el unico sitio donde se
-  // decide eso. Sin local todavia no se pinta nada.
+  // Mientras un local no tenga valoraciones publicadas la nota sale
+  // provisional; 'ratingDeVenue' es el unico sitio donde se decide eso. Sin
+  // local todavia no se pinta nada.
   const rating = venue ? ratingDeVenue(venue) : null;
+  const conteoRating = venue ? conteoDeVenue(venue) : 0;
   const priceValue = venue?.venuePriceRange ?? venue?.priceRange;
   const ecoFriendly = venue?.ecoFriendly ?? venue?.isEcoFriendly;
   const acceptsCard =
@@ -269,6 +293,107 @@ export default function VenueDetailScreen() {
     const canOpen = await Linking.canOpenURL(appUrl);
     Linking.openURL(canOpen ? appUrl : webUrl);
   }, [venue?.venueContact, venue?.venueName]);
+
+  // -------- Valoraciones --------
+
+  const miUserID = authUser?.userID || null;
+
+  // El dueño no califica su propio negocio. El backend lo rechaza igual, pero
+  // enseñarle el boton para que luego le digan que no es peor que no
+  // enseñarselo.
+  const esMiNegocio = useMemo(() => {
+    if (!miUserID) return false;
+    const duenos = venue?.userID;
+    if (Array.isArray(duenos)) return duenos.includes(miUserID);
+    return duenos === miUserID;
+  }, [venue?.userID, miUserID]);
+
+  const cargarOpiniones = useCallback(async () => {
+    if (!venueID) return;
+    try {
+      const lista = await getVenueRatings(venueID);
+      setOpiniones(lista);
+    } catch {
+      // Sin opiniones la ficha sigue sirviendo: no se tumba la pantalla.
+      setOpiniones([]);
+    }
+  }, [venueID]);
+
+  useEffect(() => {
+    cargarOpiniones();
+  }, [cargarOpiniones]);
+
+  // La propia hace falta para poder decir 'la tuya esta en revision' y para
+  // que el formulario se abra con lo que ya habia escrito en lugar de en
+  // blanco.
+  useEffect(() => {
+    if (!venueID || !miUserID) {
+      setMiOpinion(null);
+      return;
+    }
+    let activo = true;
+    getMyVenueRating(venueID)
+      .then((mia) => {
+        if (!activo) return;
+        setMiOpinion(mia);
+        if (mia) {
+          setSelectedStars(mia.ratingStars || 0);
+          setRatingComment(mia.ratingComment || "");
+        }
+      })
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, [venueID, miUserID]);
+
+  const abrirRating = useCallback(() => {
+    if (!miUserID) {
+      router.push("/(auth)/login");
+      return;
+    }
+    setErrorRating("");
+    setRatingModalVisible(true);
+  }, [miUserID]);
+
+  const publicarRating = useCallback(async () => {
+    if (selectedStars < 1) {
+      setErrorRating("Elige cuántas estrellas le das.");
+      return;
+    }
+    const comentario = ratingComment.trim();
+    if (comentario.length < 5) {
+      setErrorRating("Cuéntanos en una frase cómo te fue.");
+      return;
+    }
+
+    setErrorRating("");
+    setEnviandoRating(true);
+    try {
+      const guardada = await rateVenue({
+        venueID,
+        estrellas: selectedStars,
+        comentario,
+      });
+      setMiOpinion(guardada);
+      setRatingModalVisible(false);
+      // Nace oculta: si no se dice, parece que no se guardo nada.
+      setAvisoRating("Gracias. Tu opinión se publicará cuando la revisemos.");
+      cargarOpiniones();
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 403) {
+        setErrorRating("No puedes calificar tu propio negocio.");
+      } else if (status === 401) {
+        setRatingModalVisible(false);
+        router.push("/(auth)/login");
+      } else {
+        setErrorRating("No se pudo guardar tu opinión. Inténtalo de nuevo.");
+      }
+    } finally {
+      setEnviandoRating(false);
+    }
+  }, [selectedStars, ratingComment, venueID, cargarOpiniones]);
 
   if (!venue) {
     return (
@@ -381,7 +506,7 @@ export default function VenueDetailScreen() {
             ) : null}
             {Number.isFinite(rating) ? (
               <View style={[styles.tag, styles.tagOrange]}>
-                <Estrellas rating={rating} />
+                <Estrellas rating={rating} conteo={conteoRating} />
               </View>
             ) : null}
           </View>
@@ -422,6 +547,52 @@ export default function VenueDetailScreen() {
             })}
           </View>
 
+          {/* Opiniones */}
+          <View style={styles.opinionesBlock}>
+            <Text style={styles.opinionesTitulo}>
+              {conteoRating > 0
+                ? `Opiniones (${conteoRating})`
+                : "Opiniones"}
+            </Text>
+
+            {avisoRating ? (
+              <Text style={styles.opinionesAviso}>{avisoRating}</Text>
+            ) : miOpinion && miOpinion.ratingStatus !== "publicada" ? (
+              <Text style={styles.opinionesAviso}>
+                Tu opinión está en revisión.
+              </Text>
+            ) : null}
+
+            {opiniones.length === 0 ? (
+              <Text style={styles.opinionesVacio}>
+                Todavía nadie ha opinado sobre este lugar.
+              </Text>
+            ) : (
+              opiniones.map((opinion) => (
+                <View key={opinion.ratingID} style={styles.opinion}>
+                  <View style={styles.opinionCabecera}>
+                    <Text style={styles.opinionAutor} numberOfLines={1}>
+                      {opinion.ratingAuthor || "Visitante"}
+                    </Text>
+                    <Estrellas
+                      rating={opinion.ratingStars}
+                      size={12}
+                      mostrarNumero={false}
+                    />
+                  </View>
+                  <Text style={styles.opinionTexto}>
+                    {opinion.ratingComment}
+                  </Text>
+                  {opinion.ratingCreatedAt ? (
+                    <Text style={styles.opinionFecha}>
+                      {formatearFecha(opinion.ratingCreatedAt)}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            )}
+          </View>
+
           {/* Espaciado para la barra de acciones sticky */}
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -434,12 +605,21 @@ export default function VenueDetailScreen() {
         </Pressable>
 
         <View style={styles.actionButtons}>
-          <Pressable
-            style={[styles.actionBtn, styles.actionYellow]}
-            onPress={() => setRatingModalVisible(true)}
-          >
-            <Ionicons name="star-outline" size={22} color="#FDFDFC" />
-          </Pressable>
+          {esMiNegocio ? null : (
+            <Pressable
+              style={[styles.actionBtn, styles.actionYellow]}
+              onPress={abrirRating}
+              accessibilityLabel={
+                miOpinion ? "Editar tu calificación" : "Calificar este lugar"
+              }
+            >
+              <Ionicons
+                name={miOpinion ? "star" : "star-outline"}
+                size={22}
+                color="#FDFDFC"
+              />
+            </Pressable>
+          )}
           <Pressable
             style={[styles.actionBtn, styles.actionBlue]}
             onPress={() => setMapsConfirmVisible(true)}
@@ -583,28 +763,37 @@ export default function VenueDetailScreen() {
               </View>
             </View>
 
+            {errorRating ? (
+              <Text style={styles.ratingError}>{errorRating}</Text>
+            ) : null}
+
             {/* Botones */}
             <View style={styles.ratingActions}>
               <Pressable
                 style={styles.cancelButton}
+                disabled={enviandoRating}
                 onPress={() => {
                   setRatingModalVisible(false);
-                  setSelectedStars(0);
-                  setRatingComment("");
+                  setErrorRating("");
+                  // No se borra lo escrito: si la persona ya tenia una
+                  // opinion, al reabrir sigue estando la suya.
+                  setSelectedStars(miOpinion?.ratingStars || 0);
+                  setRatingComment(miOpinion?.ratingComment || "");
                 }}
               >
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </Pressable>
               <Pressable
-                style={styles.publishButton}
-                onPress={() => {
-                  // TODO: enviar rating al backend
-                  setRatingModalVisible(false);
-                  setSelectedStars(0);
-                  setRatingComment("");
-                }}
+                style={[
+                  styles.publishButton,
+                  enviandoRating && styles.publishButtonDisabled,
+                ]}
+                disabled={enviandoRating}
+                onPress={publicarRating}
               >
-                <Text style={styles.publishButtonText}>Publicar</Text>
+                <Text style={styles.publishButtonText}>
+                  {enviandoRating ? "Enviando..." : "Publicar"}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -965,5 +1154,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     color: "#FDFDFC",
+  },
+  publishButtonDisabled: {
+    opacity: 0.6,
+  },
+  ratingError: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: "#C0392B",
+    marginTop: 4,
+  },
+
+  // Opiniones
+  opinionesBlock: {
+    width: "100%",
+    marginTop: 24,
+    gap: 12,
+  },
+  opinionesTitulo: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1B2222",
+  },
+  opinionesAviso: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: "#E65300",
+  },
+  opinionesVacio: {
+    fontSize: 14,
+    fontWeight: "300",
+    color: "#99A0A0",
+  },
+  opinion: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#D5D6D6",
+    borderRadius: 10,
+    padding: 12,
+    gap: 6,
+  },
+  opinionCabecera: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  opinionAutor: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1B2222",
+  },
+  opinionTexto: {
+    fontSize: 14,
+    fontWeight: "300",
+    color: "#1B2222",
+    lineHeight: 19,
+  },
+  opinionFecha: {
+    fontSize: 12,
+    fontWeight: "300",
+    color: "#99A0A0",
   },
 });

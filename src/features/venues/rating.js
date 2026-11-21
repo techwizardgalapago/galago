@@ -1,14 +1,14 @@
 // La calificacion de un local.
 //
-// Hoy no existe: 'venueRating' no es un campo de la tabla de Airtable, asi
-// que lo que llega de la API siempre viene vacio. Mientras no exista el
-// sistema de valoraciones, todos los locales se muestran con la calificacion
-// provisional, que es una decision de producto y no un dato.
+// 'venueRating' es un rollup de Airtable: el promedio de las valoraciones
+// publicadas del local. Un local sin ninguna no trae un hueco sino el objeto
+// { specialValue: 'NaN' }, que es como Airtable escribe el promedio de un
+// conjunto vacio; eso cuenta como 'todavia no tiene nota'.
 //
-// El valor real tiene prioridad: en cuanto el campo exista en Airtable y
-// llegue con contenido, se usa ese. Para dejar de inventar calificaciones
-// basta con que 'ratingDeVenue' devuelva null en vez de la provisional; no
-// hay que tocar ninguna pantalla.
+// Mientras un local no tenga valoraciones se muestra con la calificacion
+// provisional, que es una decision de producto y no un dato. Para dejar de
+// inventar calificaciones basta con que 'ratingDeVenue' devuelva null en vez
+// de la provisional; no hay que tocar ninguna pantalla.
 
 export const RATING_MAXIMO = 5;
 
@@ -16,7 +16,9 @@ export const RATING_MAXIMO = 5;
 export const RATING_PROVISIONAL = 5;
 
 // Airtable puede devolver el numero como texto, y en castellano la coma es
-// el separador decimal, asi que '4,5' tambien se entiende.
+// el separador decimal, asi que '4,5' tambien se entiende. Un rollup sin
+// nada que promediar llega como { specialValue: 'NaN' }, que no es un
+// numero: cae en el NaN final igual que un hueco.
 const comoNumero = (valor) => {
   if (typeof valor === "number") return valor;
   if (typeof valor === "string" && valor.trim()) {
@@ -61,7 +63,30 @@ export const formasDeEstrellas = (rating, maximo = RATING_MAXIMO) => {
   return formas;
 };
 
-export const etiquetaRating = (rating) =>
-  Number.isFinite(rating)
-    ? `Calificación ${textoRating(rating)} de ${RATING_MAXIMO}`
-    : "";
+// Lo que oye un lector de pantalla. El conteo es opcional porque no todas
+// las pantallas lo tienen a mano, pero cuando lo hay se dice: 'cinco de
+// cinco' a secas suena igual con una opinion que con cien.
+export const etiquetaRating = (rating, conteo) => {
+  if (!Number.isFinite(rating)) return "";
+  const base = `Calificación ${textoRating(rating)} de ${RATING_MAXIMO}`;
+  if (!Number.isFinite(conteo) || conteo <= 0) return base;
+  return conteo === 1
+    ? `${base}, 1 valoración`
+    : `${base}, ${conteo} valoraciones`;
+};
+
+// Cuantas valoraciones publicadas tiene el local ('venueRatingCount', el
+// segundo rollup).
+//
+// Sin este numero una nota de 5 puesta por una sola persona se ve igual que
+// una de 5 sostenida por cien, que es justo lo que la gente quiere distinguir.
+export const conteoDeVenue = (venue) => {
+  const numero = comoNumero(venue?.venueRatingCount);
+  if (!Number.isFinite(numero) || numero < 0) return 0;
+  return Math.round(numero);
+};
+
+// Si lo que se ve es una nota de verdad o la provisional. Las pantallas que
+// quieran avisar de que todavia nadie ha opinado preguntan por esto en lugar
+// de comparar con el 5.
+export const esProvisional = (venue) => conteoDeVenue(venue) === 0;

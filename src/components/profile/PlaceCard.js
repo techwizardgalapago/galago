@@ -21,6 +21,7 @@ export default function PlaceCard({
   title,
   location,
   rating,
+  ratingCount,
   category,
   price,
   priceLevel,
@@ -43,7 +44,7 @@ export default function PlaceCard({
           <View style={styles.tags}>
             {Number.isFinite(rating) ? (
               <View style={styles.tag}>
-                <Estrellas rating={rating} />
+                <Estrellas rating={rating} conteo={ratingCount} />
               </View>
             ) : null}
             {category ? (

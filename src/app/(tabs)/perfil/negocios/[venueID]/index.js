@@ -14,7 +14,7 @@ import { toggleFavorite } from '../../../../../store/slices/authSlice';
 import { getVenueById } from '../../../../../services/venuesService';
 import PhotoCarousel from "../../../../../components/PhotoCarousel";
 import Estrellas from "../../../../../components/Estrellas";
-import { ratingDeVenue } from "../../../../../features/venues/rating";
+import { ratingDeVenue, conteoDeVenue } from "../../../../../features/venues/rating";
 import { parseAttachmentImages } from "../../../../../features/attachments/images";
 import { useTabBarInset } from "../../../../../hooks/useTabBarInset";
 
@@ -174,9 +174,10 @@ export default function VenueDetailScreen() {
     return map;
   }, [normalizedSchedules]);
 
-  // Provisional e igual para todos hasta que exista el sistema de
-  // valoraciones. 'ratingDeVenue' es el unico sitio donde se decide eso.
+  // Provisional mientras el local no tenga valoraciones publicadas.
+  // 'ratingDeVenue' es el unico sitio donde se decide eso.
   const rating = venue ? ratingDeVenue(venue) : null;
+  const conteoRating = venue ? conteoDeVenue(venue) : 0;
   const priceValue = venue?.venuePriceRange ?? venue?.priceRange;
   const ecoFriendly = venue?.ecoFriendly ?? venue?.isEcoFriendly;
   const acceptsCard = venue?.acceptsCard ?? venue?.acceptsCardPayments ?? venue?.cardAccepted;
@@ -246,7 +247,7 @@ export default function VenueDetailScreen() {
       ? { key: 'price', label: normalizedPrice, variant: 'price' }
       : null,
     Number.isFinite(rating)
-      ? { key: 'rating', rating, variant: 'rating' }
+      ? { key: 'rating', rating, conteo: conteoRating, variant: 'rating' }
       : null,
   ].filter(Boolean);
 
@@ -324,7 +325,7 @@ export default function VenueDetailScreen() {
                   if (tag.variant === 'rating') {
                     return (
                       <View key={tag.key} style={[styles.tag, styles.tagOrange]}>
-                        <Estrellas rating={tag.rating} />
+                        <Estrellas rating={tag.rating} conteo={tag.conteo} />
                       </View>
                     );
                   }

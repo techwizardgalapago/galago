@@ -26,6 +26,8 @@ export const initVenuesTable = async () => {
         longitude REAL,
         negocio INTEGER,
         userID TEXT,
+        venueRating REAL,
+        venueRatingCount INTEGER,
         updated_at INTEGER NOT NULL,     
         deleted INTEGER NOT NULL DEFAULT 0,
         isSynced INTEGER DEFAULT 0,
@@ -41,6 +43,23 @@ export const initVenuesTable = async () => {
   if (!colNames.has("latitude")) {
     await db.runAsync(`ALTER TABLE venues ADD COLUMN latitude REAL`);
   }
+  // La calificacion llego despues. Sin estas dos columnas un telefono que ya
+  // tenia la app instalada leia los locales de SQLite sin nota y los mostraba
+  // todos con la provisional para siempre, aunque la gente ya hubiera opinado.
+  if (!colNames.has("venueRating")) {
+    await db.runAsync(`ALTER TABLE venues ADD COLUMN venueRating REAL`);
+  }
+  if (!colNames.has("venueRatingCount")) {
+    await db.runAsync(`ALTER TABLE venues ADD COLUMN venueRatingCount INTEGER`);
+  }
+};
+
+// El promedio es un rollup de Airtable: un local sin valoraciones no trae un
+// hueco sino { specialValue: 'NaN' }, que en SQLite tiene que entrar como
+// NULL y no como texto.
+const comoNumeroONull = (valor) => {
+  const numero = typeof valor === "string" ? Number(valor.replace(",", ".")) : valor;
+  return Number.isFinite(numero) ? numero : null;
 };
 
 export const insertVenue = async (venue) => {
@@ -149,6 +168,8 @@ const mapVenueFromAPI = (venue) => {
     userID: Array.isArray(venue.userID)
       ? venue.userID[0]
       : venue.userID ?? null,
+    venueRating: comoNumeroONull(venue.venueRating),
+    venueRatingCount: comoNumeroONull(venue.venueRatingCount),
     updated_at,
     deleted: venue.deleted ? 1 : 0,
   };
@@ -209,8 +230,9 @@ const runVenuesUpsert = async (venues = []) => {
             INSERT INTO venues (
               venueID, venueName, venueImage, venueDescription, venueCategory, venueLocation,
               venueAddress, venueContact, latitude, longitude, negocio, userID,
+              venueRating, venueRatingCount,
               updated_at, deleted, isSynced
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ON CONFLICT(venueID) DO UPDATE SET
               venueName       = excluded.venueName,
               venueImage      = excluded.venueImage,
@@ -223,6 +245,8 @@ const runVenuesUpsert = async (venues = []) => {
               longitude        = excluded.longitude,
               negocio         = excluded.negocio,
               userID          = excluded.userID,
+              venueRating     = excluded.venueRating,
+              venueRatingCount= excluded.venueRatingCount,
               updated_at      = excluded.updated_at,
               deleted         = excluded.deleted,
               isSynced        = 1
@@ -241,6 +265,8 @@ const runVenuesUpsert = async (venues = []) => {
           v.longitude,
           v.negocio,
           v.userID,
+          v.venueRating,
+          v.venueRatingCount,
           v.updated_at,
           v.deleted,
         ]

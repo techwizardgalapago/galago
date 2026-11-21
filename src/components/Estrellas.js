@@ -13,7 +13,8 @@ const ICONO = {
   vacia: "star-outline",
 };
 
-// Las cinco estrellas de un local, con la nota al lado.
+// Las cinco estrellas de un local, con la nota al lado y, si se conoce,
+// cuantas personas la han puesto.
 //
 // Las estrellas se marcan como decoracion y la etiqueta va en la fila: un
 // lector de pantalla dice 'Calificacion 5 de 5' una vez, en lugar de nombrar
@@ -23,14 +24,17 @@ export default function Estrellas({
   size = 12,
   color = "#E65300",
   mostrarNumero = true,
+  conteo = null,
 }) {
   if (!Number.isFinite(rating)) return null;
+
+  const hayConteo = Number.isFinite(conteo) && conteo > 0;
 
   return (
     <View
       style={styles.fila}
       accessible
-      accessibilityLabel={etiquetaRating(rating)}
+      accessibilityLabel={etiquetaRating(rating, conteo)}
     >
       {formasDeEstrellas(rating).map((forma, i) => (
         <Ionicons
@@ -49,6 +53,11 @@ export default function Estrellas({
           {textoRating(rating)}
         </Text>
       ) : null}
+      {hayConteo ? (
+        <Text style={[styles.conteo, { color, fontSize: size }]}>
+          {`(${conteo})`}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -61,6 +70,12 @@ const styles = StyleSheet.create({
   },
   numero: {
     fontWeight: "500",
+    marginLeft: 2,
+  },
+  conteo: {
+    // Mas tenue que la nota: acompana al promedio, no compite con el.
+    fontWeight: "400",
+    opacity: 0.75,
     marginLeft: 2,
   },
 });

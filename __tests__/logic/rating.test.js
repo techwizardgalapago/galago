@@ -2,17 +2,31 @@ const {
   RATING_MAXIMO,
   RATING_PROVISIONAL,
   ratingDeVenue,
+  conteoDeVenue,
+  esProvisional,
   textoRating,
   formasDeEstrellas,
   etiquetaRating,
 } = require("../../src/features/venues/rating");
 
+// Lo que Airtable devuelve de verdad en el rollup 'venueRating' cuando el
+// local todavia no tiene ninguna valoracion publicada: no es un hueco, es un
+// objeto. Comprobado contra la base real.
+const ROLLUP_VACIO = { specialValue: "NaN" };
+
 describe("ratingDeVenue", () => {
   it("usa la provisional cuando el local no trae calificacion", () => {
-    // Es el caso de hoy: 'venueRating' no existe en Airtable.
     expect(ratingDeVenue({ venueName: "Ahonui" })).toBe(RATING_PROVISIONAL);
     expect(ratingDeVenue({ venueRating: null })).toBe(RATING_PROVISIONAL);
     expect(ratingDeVenue(undefined)).toBe(RATING_PROVISIONAL);
+  });
+
+  it("trata el promedio vacio de Airtable como 'todavia sin nota'", () => {
+    // Un AVERAGE sin nada que promediar llega como objeto, no como vacio.
+    // Si esto se colara tal cual, la ficha pintaria NaN estrellas.
+    expect(ratingDeVenue({ venueRating: ROLLUP_VACIO })).toBe(
+      RATING_PROVISIONAL
+    );
   });
 
   it("prefiere la calificacion real en cuanto exista", () => {
@@ -105,9 +119,51 @@ describe("formasDeEstrellas", () => {
   });
 });
 
+
+describe("conteoDeVenue", () => {
+  it("cuenta las valoraciones publicadas del local", () => {
+    expect(conteoDeVenue({ venueRatingCount: 12 })).toBe(12);
+    expect(conteoDeVenue({ venueRatingCount: "3" })).toBe(3);
+  });
+
+  it("es cero cuando el local no tiene ninguna", () => {
+    expect(conteoDeVenue({ venueRatingCount: 0 })).toBe(0);
+    expect(conteoDeVenue({ venueRatingCount: ROLLUP_VACIO })).toBe(0);
+    expect(conteoDeVenue({})).toBe(0);
+    expect(conteoDeVenue(undefined)).toBe(0);
+  });
+
+  it("no devuelve un conteo negativo ni con decimales", () => {
+    expect(conteoDeVenue({ venueRatingCount: -4 })).toBe(0);
+    expect(conteoDeVenue({ venueRatingCount: 2.4 })).toBe(2);
+  });
+});
+
+describe("esProvisional", () => {
+  it("distingue el cinco inventado del cinco ganado", () => {
+    // Los dos locales muestran 5 estrellas; solo uno lo ha merecido.
+    expect(esProvisional({ venueRating: ROLLUP_VACIO, venueRatingCount: 0 })).toBe(
+      true
+    );
+    expect(esProvisional({ venueRating: 5, venueRatingCount: 9 })).toBe(false);
+  });
+});
+
 describe("etiquetaRating", () => {
   it("dice la calificacion de una vez, no cinco iconos seguidos", () => {
     expect(etiquetaRating(5)).toBe("Calificación 5 de 5");
     expect(etiquetaRating(4.5)).toBe("Calificación 4,5 de 5");
+  });
+
+  it("dice tambien cuantas personas han opinado", () => {
+    expect(etiquetaRating(4.5, 12)).toBe("Calificación 4,5 de 5, 12 valoraciones");
+  });
+
+  it("no dice '1 valoraciones'", () => {
+    expect(etiquetaRating(5, 1)).toBe("Calificación 5 de 5, 1 valoración");
+  });
+
+  it("calla el conteo cuando no hay ninguna", () => {
+    expect(etiquetaRating(5, 0)).toBe("Calificación 5 de 5");
   });
 });

@@ -58,6 +58,19 @@ describe("Estrellas", () => {
     expect(screen.getByLabelText("Calificación 5 de 5")).toBeTruthy();
   });
 
+  it("dice cuantas personas han opinado", async () => {
+    await render(<Estrellas rating={4.5} conteo={12} />);
+    expect(screen.getByText("4,5")).toBeTruthy();
+    expect(screen.getByText("(12)")).toBeTruthy();
+  });
+
+  it("no escribe '(0)' cuando todavia no ha opinado nadie", async () => {
+    // Con la nota provisional el conteo es cero; un '(0)' al lado de cinco
+    // estrellas se lee como un error.
+    await render(<Estrellas rating={5} conteo={0} />);
+    expect(screen.queryByText("(0)")).toBeNull();
+  });
+
   it("no pinta nada sin calificacion", async () => {
     await render(<Estrellas rating={null} />);
     expect(nombresDeIconos()).toHaveLength(0);
@@ -72,6 +85,13 @@ describe("PlaceCard", () => {
 
     expect(nombresDeIconos()).toHaveLength(5);
     expect(screen.getByText("Ahonui")).toBeTruthy();
+  });
+
+  it("lleva el conteo a la tarjeta de la lista", async () => {
+    await render(
+      <PlaceCard title="Ahonui" location="Isla Santa Cruz" rating={4} ratingCount={7} />
+    );
+    expect(screen.getByText("(7)")).toBeTruthy();
   });
 
   it("no inventa estrellas cuando no le pasan calificacion", async () => {
