@@ -315,7 +315,12 @@ export default function RegisterProfileScreen() {
 
             <View style={styles.buttonRow}>
               <Pressable
-                onPress={() => router.back()}
+                // Destino explicito, no router.back(): a esta pantalla se
+                // llega desde el perfil, desde ajustes y empujado por el
+                // guard al completar el registro, asi que el historial manda
+                // de vuelta a cualquier sitio menos al perfil. replace y no
+                // push para que el formulario no quede detras.
+                onPress={() => router.replace('/(tabs)/perfil')}
                 style={[styles.buttonBase, styles.buttonOutline]}
               >
                 <Text style={styles.buttonOutlineText}>Regresar</Text>
