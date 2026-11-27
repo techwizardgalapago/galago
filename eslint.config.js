@@ -19,6 +19,21 @@ module.exports = [
     },
   },
   {
+    // Lo de scripts/ y __mocks__/ no se empaqueta: corre en node, a mano o
+    // desde jest, y usa sus globales.
+    files: ["scripts/**/*.{js,mjs}", "__mocks__/**/*.js"],
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+        process: "readonly",
+        console: "readonly",
+        module: "writable",
+        require: "readonly",
+        __dirname: "readonly",
+      },
+    },
+  },
+  {
     files: ["__tests__/**/*.js"],
     languageOptions: {
       globals: {

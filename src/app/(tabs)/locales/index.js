@@ -17,6 +17,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSelector } from "react-redux";
 
+import GoAlimentos from "../../../../assets/gositos/go-alimentos.svg";
+import GoHoteles from "../../../../assets/gositos/go-hoteles.svg";
+import GoActividades from "../../../../assets/gositos/go-actividades.svg";
+import GoNocturna from "../../../../assets/gositos/go-nocturna.svg";
+import GoInformacion from "../../../../assets/gositos/go-informacion.svg";
 import { useMedia } from "../../../hooks/useMedia";
 import CachedImage from "../../../components/CachedImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,40 +38,30 @@ const ISLANDS = ["Todo", "San Cristóbal", "Isabela", "Santa Cruz"];
 // Isla con la que arranca la pantalla cuando no llega ninguna en la URL.
 const ISLA_POR_DEFECTO = "San Cristóbal";
 
-// Las mascotas de cada categoria. El nombre del archivo describe el dibujo
-// original ('hike' es el de la gorra y la botella), no la categoria donde va:
-// el reparto lo decide el diseno, no como se llama el PNG.
+// Las mascotas de cada categoria, en vectores.
 //
-// Los PNG originales miden 4500x4500 y pesan 4,4 MB entre todos, para un
-// hueco que en pantalla no pasa de 212 de ancho. Aqui van recortados (el
-// dibujo ocupaba poco mas de la mitad del lienzo; el resto era transparente)
-// y con la paleta reducida a 256 colores, que en un dibujo de tintas planas
-// no se distingue del original. Quedan en 276 KB los diez.
+// El reparto ya no es una suposicion mia: diseno entrego un dibujo por
+// categoria, con su nombre encima, y cada uno va donde le corresponde.
+//
+// Los archivos que llegan son el post completo de 1080x1080 (fondo de color
+// y titulo incluidos) y el gosito ocupa alrededor del 22% del lienzo. Lo que
+// hay aqui son esos mismos archivos sin el fondo, sin el texto y con el
+// viewBox recortado al dibujo: puestos enteros, el gosito saldria de unos 37
+// de alto perdido en medio de un marco vacio, y encima con un rectangulo de
+// color tapando el degradado de la ficha.
 export const MASCOTAS = {
-  alimentos: require("../../../../assets/gositos/go-food.png"),
-  hoteles: require("../../../../assets/gositos/go-party.png"),
-  nocturna: require("../../../../assets/gositos/go-drinks.png"),
+  alimentos: GoAlimentos,
+  hoteles: GoHoteles,
+  actividades: GoActividades,
+  nocturna: GoNocturna,
+  informacion: GoInformacion,
+};
+
+// Tiendas y Souvenirs es la unica que todavia no tiene dibujo propio. Hasta
+// que llegue se queda con el PNG que ya estaba, para no dejar la ficha vacia.
+export const MASCOTAS_PNG = {
   tiendas: require("../../../../assets/gositos/go-hike.png"),
-  actividades: require("../../../../assets/gositos/go-snorkel.png"),
 };
-
-// Informacion no lleva mascota: lleva el simbolo de informacion, que se
-// entiende sin leer y sin depender de que diseno dibuje un gosito mas.
-//
-// Es la letra, no un icono. Se probo con el glifo 'information' de
-// Ionicons, pero ese es de palo seco y el diseno pide la serif en cursiva.
-export const SIMBOLOS = {
-  informacion: "i",
-};
-
-// La serif del sistema, que en cada plataforma se llama de una manera. El
-// proyecto no carga ninguna fuente propia, y meter una por una sola letra no
-// compensa ni en peso ni en dependencias.
-const SERIF = Platform.select({
-  ios: "Georgia",
-  android: "serif",
-  default: "Georgia, 'Times New Roman', serif",
-});
 
 export const CATEGORIES = [
   {
@@ -106,7 +101,7 @@ export const CATEGORIES = [
   },
   {
     key: "informacion",
-    label: "Información",
+    label: "Información y Servicios",
     colors: ["#C43D3D", "#F2766B"],
     start: { x: 0.85, y: 0.12 },
     end: { x: 0.15, y: 0.88 },
@@ -141,10 +136,8 @@ export function CategoryTile({ category, island }) {
   const medidaMascota = isMobile
     ? styles.categoryTileMascotaMovil
     : styles.categoryTileMascotaEscritorio;
-  const ladoLetra = isMobile ? 34 : 42;
-  const medidaIconoCirculo = isMobile
-    ? styles.categoryTileIconoCirculoMovil
-    : styles.categoryTileIconoCirculoEscritorio;
+  const Mascota = MASCOTAS[category.key];
+  const mascotaPng = MASCOTAS_PNG[category.key];
   return (
     <Pressable
       // El tamano va en el Pressable, que es el hijo de la rejilla: puesto en
@@ -164,40 +157,28 @@ export function CategoryTile({ category, island }) {
         end={category.end}
         style={styles.categoryTileFondo}
       >
-        {MASCOTAS[category.key] ? (
-          <Image
-            source={MASCOTAS[category.key]}
+        {Mascota ? (
+          // El alto fijo vive en la caja, no en el dibujo. El SVG la rellena
+          // y, como su viewBox va recortado al gosito, se escala solo sin
+          // deformarse: es lo mismo que hacia el resizeMode 'contain' de la
+          // imagen, pero sin depender del tamano del archivo.
+          <View
             style={[styles.categoryTileMascota, medidaMascota]}
-            resizeMode="contain"
             // Es decoracion: quien navegue con lector de pantalla ya oye la
             // etiqueta de la categoria, y oir ademas 'imagen' no aporta nada.
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
-          />
-        ) : SIMBOLOS[category.key] ? (
-          <View style={[styles.categoryTileMascota, medidaMascota, styles.categoryTileIconoCaja]}>
-            {/*
-              El circulo se dibuja aqui y dentro va solo la letra. Se descarto
-              el simbolo 'information-circle', que ya trae circulo, porque
-              depende de que la 'i' vaya calada en el glifo: si no lo esta,
-              queda un disco y nada dentro. Asi no depende de eso.
-
-              Circulo en el crema del cuerpo de los gositos y letra en el
-              color de la propia ficha, que se toma del degradado en vez de
-              escribirlo: la categoria que lleve simbolo se tine con el suyo
-              sin tocar nada aqui.
-            */}
-            <View style={[styles.categoryTileIconoCirculo, medidaIconoCirculo]}>
-              <Text
-                style={[
-                  styles.categoryTileIconoLetra,
-                  { fontSize: ladoLetra, lineHeight: ladoLetra, color: category.colors[0] },
-                ]}
-              >
-                {SIMBOLOS[category.key]}
-              </Text>
-            </View>
+          >
+            <Mascota width="100%" height="100%" />
           </View>
+        ) : mascotaPng ? (
+          <Image
+            source={mascotaPng}
+            style={[styles.categoryTileMascota, medidaMascota]}
+            resizeMode="contain"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
         ) : (
           // Sin mascota queda el hueco igual, para que la etiqueta no suba y
           // las fichas con dibujo y sin el se vean a la misma altura.
@@ -758,37 +739,6 @@ const styles = StyleSheet.create({
   // del telefono. 64 entra en los estrechos de verdad sin recortar nada.
   categoryTileMascotaMovil: {
     height: 64,
-  },
-  categoryTileIconoCaja: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  categoryTileIconoLetra: {
-    fontFamily: SERIF,
-    fontStyle: "italic",
-    fontWeight: "700",
-    textAlign: "center",
-    // Android reserva un alto extra por encima y por debajo de la letra que
-    // la descentraria dentro del circulo.
-    includeFontPadding: false,
-  },
-  // El crema del cuerpo de los gositos, sacado de los propios PNG.
-  categoryTileIconoCirculo: {
-    backgroundColor: "#FFFBE5",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // Entra en los 80 de alto que tiene la mascota en escritorio.
-  categoryTileIconoCirculoEscritorio: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-  },
-  // Entra en los 64 del movil.
-  categoryTileIconoCirculoMovil: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
   },
   categoryTileText: {
     fontSize: 19,

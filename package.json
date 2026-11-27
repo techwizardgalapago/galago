@@ -87,7 +87,10 @@
         ],
         "transformIgnorePatterns": [
           "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|native-base|react-native-svg|immer|react-redux))"
-        ]
+        ],
+        "transform": {
+          "^.+\\.svg$": "<rootDir>/__mocks__/svgTransformer.js"
+        }
       },
       {
         "displayName": "android",
@@ -100,7 +103,10 @@
         ],
         "transformIgnorePatterns": [
           "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|native-base|react-native-svg|immer|react-redux))"
-        ]
+        ],
+        "transform": {
+          "^.+\\.svg$": "<rootDir>/__mocks__/svgTransformer.js"
+        }
       },
       {
         "displayName": "web",
@@ -108,7 +114,10 @@
         "testMatch": [
           "<rootDir>/__tests__/app/**/*.test.js",
           "<rootDir>/__tests__/store/**/*.test.js"
-        ]
+        ],
+        "transform": {
+          "^.+\\.svg$": "<rootDir>/__mocks__/svgTransformer.js"
+        }
       }
     ]
   }

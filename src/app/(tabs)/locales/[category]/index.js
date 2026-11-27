@@ -58,7 +58,7 @@ const CATEGORY_LABELS = {
   actividades: "Tours y Actividades",
   nocturna: "Vida Nocturna",
   tiendas: "Tiendas y Souvenirs",
-  informacion: "Información",
+  informacion: "Información y Servicios",
 };
 
 const normalizeToken = (value) =>
