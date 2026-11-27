@@ -152,4 +152,25 @@ export const toggleFavorite = createAsyncThunk(
   }
 );
 
+export const setAvatar = createAsyncThunk(
+  'auth/setAvatar',
+  async (clave, { getState, dispatch }) => {
+    const user = getState().auth.user;
+    if (!user?.userID) return;
+    const anterior = user.userAvatar ?? null;
+    if (anterior === clave) return { clave };
+    // Se pinta antes de que responda el servidor: elegir avatar no puede
+    // quedarse esperando a la red. Si la escritura falla, se vuelve al
+    // anterior para no mentir sobre lo que hay guardado.
+    dispatch(authSlice.actions.setAuthUserPatch({ userAvatar: clave }));
+    try {
+      await patchUserProfile(user.userID, { userAvatar: clave });
+    } catch (error) {
+      dispatch(authSlice.actions.setAuthUserPatch({ userAvatar: anterior }));
+      throw error;
+    }
+    return { clave };
+  }
+);
+
 export default authSlice.reducer;

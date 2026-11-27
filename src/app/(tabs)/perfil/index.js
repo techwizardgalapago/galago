@@ -12,7 +12,10 @@ import ProfileTabs from "../../../components/profile/ProfileTabs";
 import ProfileEventCard from "../../../components/profile/ProfileEventCard";
 import PlaceCard from "../../../components/profile/PlaceCard";
 import ProfileActionsSheet from "../../../components/profile/ProfileActionsSheet";
+import AvatarPicker from "../../../components/profile/AvatarPicker";
 import { joinFullName } from "../../../features/users/profileComplition";
+import { claveDeAvatar } from "../../../features/users/avatares";
+import { setAvatar } from "../../../store/slices/authSlice";
 import { getVenueById } from "../../../services/venuesService";
 import { upsertVenueLocal } from "../../../store/slices/venueSlice";
 import { useTabBarInset } from "../../../hooks/useTabBarInset";
@@ -80,6 +83,7 @@ export default function PerfilScreen() {
     ["agenda", "saved", "places"].includes(params.tab) ? params.tab : "saved"
   );
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [avatarVisible, setAvatarVisible] = useState(false);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const user = useSelector((s) => s.auth?.user);
@@ -90,6 +94,16 @@ export default function PerfilScreen() {
   const topInset = Platform.OS === "ios" ? insets.top : 0;
   const fullName =
     user?.fullName || joinFullName(user?.firstName, user?.lastName) || "—";
+
+  const avatarClave = claveDeAvatar(user);
+
+  const elegirAvatar = (clave) => {
+    setAvatarVisible(false);
+    // Si la escritura falla, el thunk vuelve al avatar anterior y el circulo
+    // se nota cambiar de vuelta: eso ya le dice a la persona que no se guardo,
+    // asi que no hace falta un aviso aparte.
+    dispatch(setAvatar(clave));
+  };
 
   const favoriteEventIDs = user?.favoriteEvents || [];
   const favoriteVenueIDs = user?.favoriteVenues || [];
@@ -148,7 +162,10 @@ export default function PerfilScreen() {
           ]}>
           <View style={styles.section}>
             <View style={styles.profileBlock}>
-              <ProfileAvatarBadge />
+              <ProfileAvatarBadge
+                avatarClave={avatarClave}
+                onPress={() => setAvatarVisible(true)}
+              />
               <Text style={styles.name}>{fullName}</Text>
             </View>
 
@@ -252,6 +269,12 @@ export default function PerfilScreen() {
       <ProfileActionsSheet
         visible={sheetVisible}
         onClose={() => setSheetVisible(false)}
+      />
+      <AvatarPicker
+        visible={avatarVisible}
+        avatarClave={avatarClave}
+        onSelect={elegirAvatar}
+        onClose={() => setAvatarVisible(false)}
       />
     </AuthBackground>
   );

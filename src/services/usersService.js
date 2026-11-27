@@ -19,6 +19,7 @@ export const patchUserProfile = async (userID, data) => {
       : (data.reasonForTravel ? [data.reasonForTravel] : []);
   }
   if (data.genero !== undefined) body.genero = data.genero;
+  if (data.userAvatar !== undefined) body.userAvatar = data.userAvatar;
   if (data.favoriteEvents !== undefined) body.favoriteEvents = data.favoriteEvents;
   if (data.favoriteVenues !== undefined) body.favoriteVenues = data.favoriteVenues;
   if (data.favoriteSites !== undefined) body.favoriteSites = data.favoriteSites;
